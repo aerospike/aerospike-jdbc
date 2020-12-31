@@ -4,8 +4,8 @@ Aerospike JDBC Driver allows you to interact with Aerospike clusters by using SQ
 Read [Java Tutorials](https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html) to get started with JDBC.
 
 ## Prerequisites
-* Java 8
-* Aerospike server version >= 4.9
+* Java 8 or later
+* Aerospike Server version 5.2+
 
 ## Build
 ```sh
