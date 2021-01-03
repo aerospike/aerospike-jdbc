@@ -33,7 +33,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
         logger.info("UPDATE statement");
         Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
         final Bin[] bins = getBins(query);
-        WritePolicy writePolicy = buildWritePolicy(query);
+        final WritePolicy writePolicy = buildWritePolicy(query);
         if (Objects.nonNull(keyObject)) {
             Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
             client.put(writePolicy, key, bins);
@@ -51,6 +51,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
                 client.put(writePolicy, r.key, bins);
                 count.incrementAndGet();
             });
+
             return new Pair<>(emptyRecordSet(query), count.get());
         }
     }
