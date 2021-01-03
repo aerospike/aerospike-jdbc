@@ -44,21 +44,23 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public ResultSet executeQuery(String sql) {
         logger.info("executeQuery: " + sql);
-        io.prestosql.sql.tree.Statement statement = createStatement(sql);
+        AerospikeQuery query = parseQuery(sql);
+
+        Pair<ResultSet, Integer> result = QueryPerformer.executeQuery(client, this, query);
+        resultSet = result.getLeft();
+        updateCount = result.getRight();
+
+        return resultSet;
+    }
+
+    private AerospikeQuery parseQuery(String sql) {
+        sql = sql.replaceAll("\n", " ");
+        io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sql, parsingOptions);
         AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
         if (query.getSchema() == null) {
             query.setSchema(schema);
         }
-        QueryPerformer performer = new QueryPerformer(client, query, this);
-        Pair<ResultSet, Integer> result = performer.executeQuery();
-        resultSet = result.getLeft();
-        updateCount = result.getRight();
-        return resultSet;
-    }
-
-    private io.prestosql.sql.tree.Statement createStatement(String sql) {
-        sql = sql.replaceAll("\n", " ");
-        return SQL_PARSER.createStatement(sql, parsingOptions);
+        return query;
     }
 
     @Override
