@@ -1,5 +1,8 @@
 package com.aerospike.jdbc.model;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -160,5 +163,14 @@ public class AerospikeQuery {
 
     public List<String> getColumns() {
         return columns;
+    }
+
+    @Override
+    public String toString() {
+        try {
+            return (new ObjectMapper()).writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            return getClass().getName() + "@" + Integer.toHexString(hashCode());
+        }
     }
 }
