@@ -9,6 +9,7 @@ public enum QueryType {
     DROP_TABLE,
     SELECT,
     INSERT,
+    UPDATE,
     DELETE,
     UNKNOWN
 }

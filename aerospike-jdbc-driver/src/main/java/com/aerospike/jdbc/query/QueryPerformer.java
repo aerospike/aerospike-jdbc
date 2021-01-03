@@ -22,6 +22,10 @@ public final class QueryPerformer {
                 queryHandler = new InsertQueryHandler(client, statement);
                 return queryHandler.execute(query);
 
+            case UPDATE:
+                queryHandler = new UpdateQueryHandler(client, statement);
+                return queryHandler.execute(query);
+
             case DELETE:
                 queryHandler = new DeleteQueryHandler(client, statement);
                 return queryHandler.execute(query);

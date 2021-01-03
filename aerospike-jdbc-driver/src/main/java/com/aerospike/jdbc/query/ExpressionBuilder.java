@@ -105,11 +105,11 @@ public final class ExpressionBuilder {
         }
     }
 
-    private static boolean isStringValue(String value) {
+    public static boolean isStringValue(String value) {
         return value.startsWith("\"") && value.endsWith("\"");
     }
 
-    private static String stripQuotes(String value) {
+    public static String stripQuotes(String value) {
         return value.substring(1, value.length() - 1);
     }
 }

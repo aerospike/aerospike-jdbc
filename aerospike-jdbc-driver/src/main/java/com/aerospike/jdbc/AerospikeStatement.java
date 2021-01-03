@@ -6,6 +6,7 @@ import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
+import com.aerospike.jdbc.util.UpdateStatemenParser;
 import io.prestosql.sql.parser.ParsingOptions;
 import io.prestosql.sql.parser.SqlParser;
 
@@ -20,8 +21,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
 
-    protected static final SqlParser SQL_PARSER = new SqlParser();
-    protected static final ParsingOptions parsingOptions = new ParsingOptions(AS_DOUBLE);
+    public static final SqlParser SQL_PARSER = new SqlParser();
+    public static final ParsingOptions parsingOptions = new ParsingOptions(AS_DOUBLE);
 
     protected final IAerospikeClient client;
     private final Connection connection;
@@ -54,9 +55,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     private AerospikeQuery parseQuery(String sql) {
-        sql = sql.replaceAll("\n", " ");
-        io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sql, parsingOptions);
-        AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
+        final String sqlEscape = sql.replaceAll("\n", " ");
+        AerospikeQuery query = UpdateStatemenParser.hack(sqlEscape).orElseGet(() -> {
+            io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
+            return AerospikeQueryParser.parseSql(statement);
+        });
         if (query.getSchema() == null) {
             query.setSchema(schema);
         }
