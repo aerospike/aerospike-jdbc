@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -43,7 +44,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
         Value pk = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
         Pair<ResultSet, Integer> result;
-        if (isSimpleCount(query)) {
+        if (isCount(query)) {
             result = executeCountQuery(query);
         } else if (Objects.nonNull(pk)) {
             result = executeSelectByPrimaryKey(query, pk);
@@ -57,7 +58,20 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Pair<ResultSet, Integer> executeCountQuery(AerospikeQuery query) {
         logger.info("SELECT count");
         String countLabel = query.getColumns().get(0);
-        int recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
+        int recordNumber;
+        if (Objects.isNull(query.getWhere())) {
+            recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
+        } else {
+            ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
+            ScanPolicy scanPolicy = buildScanPolicy(query);
+            scanPolicy.includeBinData = false;
+            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
+                    query.getTable());
+
+            final AtomicInteger count = new AtomicInteger();
+            listener.getRecordSet().forEach(r -> count.incrementAndGet());
+            recordNumber = count.get();
+        }
         com.aerospike.client.Record record = new com.aerospike.client.Record(Collections.singletonMap(
                 countLabel, recordNumber), 1, 0);
 
@@ -98,9 +112,8 @@ public class SelectQueryHandler extends BaseQueryHandler {
                 query.getTable(), filterColumns(columns, getBinNames(query))), -1);
     }
 
-    private boolean isSimpleCount(AerospikeQuery query) {
-        return query.getColumns().size() == 1 && query.getColumns().get(0).startsWith("count(")
-                && query.getWhere() == null;
+    private boolean isCount(AerospikeQuery query) {
+        return query.getColumns().size() == 1 && query.getColumns().get(0).startsWith("count(");
     }
 
     private List<DataColumn> filterColumns(List<DataColumn> columns, String[] selected) {
