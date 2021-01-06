@@ -28,8 +28,8 @@ public final class AerospikeUtils {
     }
 
     public static Map<String, String> getSchemaInfo(IAerospikeClient client, String ns) {
-        String sets = Info.request(null, client.getNodes()[0], "get-config:context=namespace;id=" + ns);
-        return Splitter.on(";").trimResults().splitToList(sets).stream()
+        String schemaInfo = Info.request(null, client.getNodes()[0], "namespace/" + ns);
+        return Splitter.on(";").trimResults().splitToList(schemaInfo).stream()
                 .map(s -> s.split("=", 2))
                 .collect(Collectors.toMap(e -> e[0], e -> e[1]));
     }
@@ -39,10 +39,7 @@ public final class AerospikeUtils {
                 .map(m -> Integer.parseInt(m.get("objects")))
                 .reduce(0, Integer::sum);
 
-        int replicationFactor = Math.min(
-                client.getNodes().length,
-                Integer.parseInt(getSchemaInfo(client, ns).get("replication-factor"))
-        );
+        int replicationFactor = Integer.parseInt(getSchemaInfo(client, ns).get("effective_replication_factor"));
 
         return (int) Math.floor((double) allRecords / replicationFactor);
     }
