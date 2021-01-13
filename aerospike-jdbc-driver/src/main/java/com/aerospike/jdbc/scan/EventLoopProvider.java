@@ -17,7 +17,7 @@ public final class EventLoopProvider {
 
     public static EventLoop getEventLoop() {
         initEventLoops();
-        return eventLoops.get(0);
+        return eventLoops.next();
     }
 
     public static EventLoops getEventLoops() {
