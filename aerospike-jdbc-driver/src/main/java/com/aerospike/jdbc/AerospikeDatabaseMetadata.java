@@ -4,6 +4,7 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Info;
 import com.aerospike.client.policy.InfoPolicy;
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.ListRecordSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.ConnectionParametersParser;
@@ -47,6 +48,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final Map<String, Collection<IndexInfo>> indices = new ConcurrentHashMap<>();
 
     public AerospikeDatabaseMetadata(String url, Properties info, IAerospikeClient client, Connection connection) {
+        logger.info("Init AerospikeDatabaseMetadata");
+        AerospikeSchemaBuilder.cleanSchemaCache();
         this.url = url;
         clientInfo = parser.clientInfo(url, info);
         this.connection = connection;
@@ -741,6 +744,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
+        logger.info(String.format("AerospikeDatabaseMetadata getColumns; %s, %s, %s, %s", catalog,
+                schemaPattern, tableNamePattern, columnNamePattern));
         Pattern tableNameRegex = tableNamePattern == null || "".equals(tableNamePattern) ? null
                 : Pattern.compile(tableNamePattern.replace("%", ".*"));
 
@@ -765,7 +770,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                         md.getTableName(1), md.getColumnName(i), md.getColumnType(i), md.getColumnTypeName(i),
                         0, 0, 0, 0, columnNullable, null, null, md.getColumnType(i), 0,
                         md.getColumnType(i) == VARCHAR ? 128 * 1024 : 0, ordinal(md, md.getColumnName(i)),
-                        "YES", md.getCatalogName(i), null, md.getColumnTypeName(i), null, "NO", "NO"));
+                        "YES", md.getCatalogName(i), null, md.getColumnTypeName(i), NULL, "NO", "NO"));
             }
         }
 
