@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Logger;
 
 import static java.lang.String.format;
 import static java.sql.ResultSet.*;
@@ -22,6 +23,8 @@ import static java.util.Arrays.stream;
 import static java.util.Collections.emptyMap;
 
 public class AerospikeConnection implements Connection, SimpleWrapper {
+
+    private static final Logger logger = Logger.getLogger(AerospikeConnection.class.getName());
 
     private static final ConnectionParametersParser parser = new ConnectionParametersParser();
     private final String url;
@@ -33,8 +36,6 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private volatile int holdability = HOLD_CURSORS_OVER_COMMIT;
     private final AtomicReference<String> schema = new AtomicReference<>(null); // namespace
     private volatile boolean closed;
-
-    private volatile DatabaseMetaData databaseMetaData;
 
     public AerospikeConnection(String url, Properties props) {
         this.url = url;
@@ -97,15 +98,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public DatabaseMetaData getMetaData() {
-        return retrieveMetaData();
-    }
-
-    // TODO add TTL to the metadata caching mechanism
-    private synchronized DatabaseMetaData retrieveMetaData() {
-        if (databaseMetaData == null) {
-            databaseMetaData = new AerospikeDatabaseMetadata(url, props, client, this);
-        }
-        return databaseMetaData;
+        logger.info("getMetaData request");
+        return new AerospikeDatabaseMetadata(url, props, client, this);
     }
 
     @Override
