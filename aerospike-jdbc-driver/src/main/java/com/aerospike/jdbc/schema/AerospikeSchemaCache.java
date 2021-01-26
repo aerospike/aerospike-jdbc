@@ -27,4 +27,9 @@ public final class AerospikeSchemaCache
     public void put(SchemaTableName schemaTableName, List<DataColumn> columns) {
         store.put(schemaTableName, columns);
     }
+
+    @Override
+    public void clear() {
+        store.invalidateAll();
+    }
 }

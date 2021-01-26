@@ -26,6 +26,10 @@ public final class AerospikeSchemaBuilder {
     private AerospikeSchemaBuilder() {
     }
 
+    public static void cleanSchemaCache() {
+        cache.clear();
+    }
+
     public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
         return cache.get(schemaTableName).orElseGet(() -> {
             logger.info("Fetching SchemaTableName: " + schemaTableName);
