@@ -59,7 +59,7 @@ try {
         * Driver Name: Aerospike
         * Driver Type: Generic
         * Class Name: `com.aerospike.jdbc.AerospikeDriver`
-        * URL Template: `jdbc:aerospike:{host}[:{port}]/[{database}]`
+        * URL Template: `jdbc:aerospike:{host}[:{port}]/[{database}]`<sup>[1](#jdbc-database)</sup>
         * Default Port: 3000
     * Click the `Add File` button and add the JDBC jar file.
     * Click the `Find Class` button.
@@ -69,6 +69,8 @@ try {
     * Database -> New Database Connection
     * Select `Aerospike` and click `Next`.
     * Fill in the connection settings and click `Finish`.
+    
+    <sup name="jdc-database">1</sup> Specify the `database` parameter for proper functionality.
     
 * [SQuirreL](http://squirrel-sql.sourceforge.net/)
 
