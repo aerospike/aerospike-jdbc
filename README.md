@@ -69,7 +69,11 @@ try {
     Create a connection:  
     * Database -> New Database Connection
     * Select `Aerospike` and click `Next`.
-    * Fill in the connection settings and click `Finish`.
+    * Fill in the connection settings
+        * Host and Port
+        * Database/Schema: the namespace you are connecting to
+        * Username and Password if you have security turned on in Aerospike Database Enterprise Edition
+    * Click `Finish`.
     
     <sup name="jdc-database">1</sup> Specify the `database` parameter for proper functionality.
     
