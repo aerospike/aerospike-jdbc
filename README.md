@@ -1,4 +1,5 @@
 # Aerospike JDBC Driver
+![Build](https://github.com/aerospike/aerospike-jdbc/workflows/Build/badge.svg)
 
 Aerospike JDBC Driver allows you to interact with Aerospike clusters by using SQL statements from your Java application.  
 Read [Java Tutorials](https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html) to get started with JDBC.
