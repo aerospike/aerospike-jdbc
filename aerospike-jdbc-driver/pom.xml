@@ -11,7 +11,7 @@
     </parent>
 
     <artifactId>aerospike-jdbc-driver</artifactId>
-    <name>aerospike-jdbc-drive</name>
+    <name>aerospike-jdbc-driver</name>
 
     <properties>
         <aerospike-client.version>5.0.4</aerospike-client.version>
