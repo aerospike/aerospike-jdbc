@@ -1,6 +1,4 @@
 .idea/
-/presto-parser
-
 target
 *.iml
 *.jar
