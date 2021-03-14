@@ -1,0 +1,7 @@
+<suite name="JdbcSuite" verbose="1">
+    <test name="Integration">
+        <packages>
+            <package name="com.aerospike.jdbc"/>
+        </packages>
+    </test>
+</suite>
