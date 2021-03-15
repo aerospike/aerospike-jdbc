@@ -1,5 +1,7 @@
 # Aerospike JDBC Driver
 ![Build](https://github.com/aerospike/aerospike-jdbc/workflows/Build/badge.svg)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.aerospike/aerospike-jdbc/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.aerospike/aerospike-jdbc/)
+[![javadoc](https://javadoc.io/badge2/com.aerospike/aerospike-jdbc/javadoc.svg)](https://javadoc.io/doc/com.aerospike/aerospike-jdbc)
 
 Aerospike JDBC Driver allows you to interact with Aerospike clusters by using SQL statements from your Java application.  
 Read [Java Tutorials](https://docs.oracle.com/javase/tutorial/jdbc/basics/index.html) to get started with JDBC.
@@ -12,7 +14,7 @@ Read [Java Tutorials](https://docs.oracle.com/javase/tutorial/jdbc/basics/index.
 ```sh
 mvn clean package
 ```
-The JDBC driver jar `uber-aerospike-jdbc-driver-<version>.jar` will be created under the target folder.
+The JDBC driver jar `uber-aerospike-jdbc-<version>.jar` will be created under the target folder.
 
 Pre-built versions of the driver are available in the [Releases](https://github.com/aerospike/aerospike-jdbc/releases).
 
@@ -78,6 +80,7 @@ try {
     <sup name="jdc-database">1</sup> Specify the `database` parameter for proper functionality.
     
 * [SQuirreL](http://squirrel-sql.sourceforge.net/)
+* [JetBrains DataGrip](https://www.jetbrains.com/datagrip/)
 
 ## License
 Licensed under the Apache 2.0 License.
