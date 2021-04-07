@@ -152,9 +152,9 @@ DELETE FROM port_list WHERE __key="snmp";
 SELECT COUNT(*) FROM port_list;
 ```
 
-COUNT(*)|
---------|
-       3|
+|COUNT(*)|
+|--------|
+|       3|
 
 
 To delete all the rows in a table:
@@ -164,7 +164,7 @@ DELETE FROM port_list;
 SELECT COUNT(*) FROM port_list;
 ```
 
-COUNT(*)|
---------|
-       0|
+|COUNT(*)|
+|--------|
+|       0|
 
