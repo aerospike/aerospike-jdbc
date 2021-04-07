@@ -10,6 +10,7 @@ import com.aerospike.jdbc.util.IOUtils;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static java.util.Collections.emptyList;
 
@@ -32,11 +33,22 @@ public abstract class BaseQueryHandler implements QueryHandler {
         return bins.toArray(new Bin[0]);
     }
 
-    private Value getBinValue(String strValue) {
+    protected Value getBinValue(String strValue) {
         if (ExpressionBuilder.isStringValue(strValue)) {
             return Value.get(ExpressionBuilder.stripQuotes(strValue));
         }
-        return Value.get(Long.parseLong(strValue));
+        try {
+            return new Value.LongValue(Long.parseLong(strValue));
+        } catch (NumberFormatException ignore) {
+        }
+        try {
+            return new Value.DoubleValue(Double.parseDouble(strValue));
+        } catch (NumberFormatException ignore) {
+        }
+        if (strValue.toLowerCase(Locale.ENGLISH).equals("null")) {
+            return Value.NULL;
+        }
+        return Value.get(strValue);
     }
 
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {

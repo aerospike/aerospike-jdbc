@@ -43,7 +43,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
                 String key = query.getValues().get(i);
                 columns.remove(i);
                 query.getValues().remove(i);
-                return Value.get(key);
+                return getBinValue(key);
             }
         }
         return null;

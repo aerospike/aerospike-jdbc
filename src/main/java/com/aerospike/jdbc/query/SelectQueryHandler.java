@@ -21,6 +21,7 @@ import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -113,7 +114,8 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private boolean isCount(AerospikeQuery query) {
-        return query.getColumns().size() == 1 && query.getColumns().get(0).startsWith("count(");
+        return query.getColumns().size() == 1 &&
+                query.getColumns().get(0).toLowerCase(Locale.ENGLISH).startsWith("count(");
     }
 
     private List<DataColumn> filterColumns(List<DataColumn> columns, String[] selected) {
