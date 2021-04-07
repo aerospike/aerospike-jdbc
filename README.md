@@ -50,9 +50,9 @@ try {
 * UPDATE
 * DELETE
 
-See [examples](docs/examples.md).
+See [examples](docs/examples.md) of SQL.
 
-<sup>1</sup> JOIN, nested SELECT and GROUP BY statements are not in the scope of the current version.
+<sup>1</sup> JOIN, nested SELECT queries and GROUP BY statements are not in the scope of the current version.
 
 <sup>2</sup> The development is in progress, and minor features documentation is not maintained now.
 

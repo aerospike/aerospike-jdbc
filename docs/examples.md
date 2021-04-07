@@ -1,101 +1,170 @@
 # Aerospike JDBC Supported Statements Examples
 
-The below query examples will have been run on a table (set) named `table1` with the following columns (bin names):
+The following examples demonstrate CRUD operations in SQL using the Aerospike
+JDBC driver.
 
-| table1 |
-| ------ |
+## Concepts
+
+Let's assume the namespace does not have a table named _port_list_.
+
+```sql
+SELECT * FROM port_list;
+```
+
 | __key<sup>[1](#key)</sup> |
-| bin1   |
-| id     |
-| int1   |
-| list   |
-| map    |
+| ------------------------- |
+|         &nbsp;            |
 
-<sup name="key">1</sup> Aerospike always has a primary key on an identifier that isn't one of the bins (columns).
-To represent this in SQL, `__key` is a magic column. Developers should use the `WritePolicy.sendKey=true` writing to Aerospike.
-Otherwise, it will appear to be NULL.
+<sup name="key">1</sup> Aerospike always has a primary key index
+on an identifier that isn't one of the bins (columns).
+
+To represent this in SQL, `__key` is a magic column. When developers use
+`WritePolicy.sendKey=true` in their applications, the `__key` column will
+reflect the _userKey_ that is saved with any write operation. Otherwise, it
+will appear to be NULL, but each row still has a distinct object identifier,
+the Aerospike record's _diget_ (see the
+[Glossary](https://www.aerospike.com/docs/guide/glossary.html)). The Aerospike
+JDBC driver always sends the primary key.
+
+Notice that this table is shown even though it does not explicitly exist.
+That is because Aerospike is schemaless, with tables (Aerospike _sets_)
+created upon insertion of a new row.
+
+For more on the [Aerospike data model](https://www.aerospike.com/docs/architecture/data-model.html)
+see the Aerospike documentation.
 
 ## INSERT
-INSERT query specifying the primary key.
+
+Let's add some rows with explicit primary keys:
+
 ```sql
-insert into table1 (__key, bin1, "int") values (abc, 11101, 3)
+INSERT INTO port_list (__key, port, description) VALUES ("ntp", 123, "Network Time Protocol used for time synchronization");
+INSERT INTO port_list (__key, port, description) VALUES ("snmp", 161, "Simple Network Management Protocol (SNMP)");
+INSERT INTO port_list (__key, port, description) VALUES ("snmptrap", 162, "Simple Network Management Protocol Trap(SNMPTRAP)");
+INSERT INTO port_list (__key, port, description) VALUES ("aerospike", 3000, "Aerospike Database");
+INSERT INTO port_list (__key, port, description) VALUES ("cloud9ide", 3000, "Cloud9 IDE Server");
+INSERT INTO port_list (__key, port, description) VALUES ("ror", 3000, "Ruby on Rails development default");
+INSERT INTO port_list (__key, port, description) VALUES ("dis", 3000, "Distributed Interactive Simulation (DIS)");
+INSERT INTO port_list (__key, port, description) VALUES ("fcip", 3225, "Fibre Channel over IP (FCIP)");
+INSERT INTO port_list (__key, port, description) VALUES ("metasys", 11001, "Johnson Controls Metasys java AC control environment");
+INSERT INTO port_list (__key, port, description) VALUES ("memcache", 11211, "Memcached");
+INSERT INTO port_list (__key, port, description) VALUES ("battlefield2", 16567, "Battlefield 2");
 ```
 
-If no primary key is provided, the random UUID will be generated for it.
-```sql
-insert into table1 (bin1, "int1") values (11101, 3)
-```
+As an Aerospike row (_record_) must have a primary key, if none is provided
+the JDBC driver will generate a random UUID for it.
 
-And now, select-query the inserted row.
 ```sql
-select * from table1 where bin1>10000
+INSERT INTO port_list (port, description) VALUES (47, NULL);
 ```
-Will result in:
-
-| __key | bin1 | id | int1 | list | map |
-| --- | --- | --- | --- | --- | --- |
-| 702daeb1-4904-4973-bda5-70f4999ee627 | 11101 | NULL | 3 | NULL | NULL |
 
 ## SELECT
-A simple SELECT query.
+
+A simple query over the rows in the table:
+
 ```sql
-select * from table1 limit 10
+SELECT * FROM port_list WHERE port < 100;
+```
+
+__key                               |description|port|
+------------------------------------|-----------|----|
+05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|           |  47|
+
+A simple SELECT query with a limit on the number of rows in the result:
+
+```sql
+SELECT * FROM port_list WHERE description IS NOT NULL LIMIT 5;
 ```
 
 Will result in:
 
-| __key  | bin1 | id    | int1       | list   | map      |
-| ------ | ---- | ----- | ---------- | ------ | -------- | 
-| key_92 | NULL | id_92 | 1508976092 | NULL   | [{k1=1}] |
-| key_74 | NULL | id_74 | 1508976074 | NULL   | NULL     |
-| key_12 | NULL | id_12 | 1508976012 | str_12 | [{k1=1}] |
-| key_62 | NULL | id_62 | 1508976062 | NULL   | NULL     |
-| key_15 | 15   | id_15 |       NULL | str_15 | NULL     |
-| key_26 | NULL | id_26 | 1508976026 | NULL   | NULL     |
-| key_46 | NULL | id_46 | 1508976046 | NULL   | NULL     |
-| key_81 | 81   | id_81 |       NULL | str_81 | NULL     |
-| key_87 | 87   | id_87 |       NULL | str_87 | NULL     |
-| key_9  |  9   | id_9  |       NULL | str_9  | NULL     |
+__key       |description                                        |port |
+------------|---------------------------------------------------|-----|
+snmp        |Simple Network Management Protocol (SNMP)          |  161|
+ntp         |Network Time Protocol used for time synchronization|  123|
+aerospike   |Aerospike Database                                 | 3000|
+battlefield2|Battlefield 2                                      |16567|
+cloud9ide   |Cloud9 IDE Server                                  | 3000|
 
-Select using a primary key.
+Query for a specific row using its primary key:
+
 ```sql
-select * from table1 where __key="key_92"
+SELECT * FROM port_list WHERE __key="memcache";
 ```
 
-| __key  | bin1 | id    | int1       | list   | map      |
-| ------ | ---- | ----- | ---------- | ------ | -------- |    
-| key_92 | NULL | id_92 | 1508976092 | NULL   | [{k1=1}] |
+__key   |description|port |
+--------|-----------|-----|
+memcache|Memcached  |11211|
 
-Select count query.
+Count the records in the table:
+
 ```sql
-select count(*) from table1
+SELECT COUNT(*) FROM port_list;
 ```
 
-100
+COUNT(*)|
+--------|
+      12|
 
 ## UPDATE
-Update a row using a primary key.
+Update a row using its primary key:
+
 ```sql
-update table1 set bin1=1 where __key="702daeb1-4904-4973-bda5-70f4999ee627"
+UPDATE port_list SET description="Battlefield 2 and mods" WHERE __key="battlefield2";
+SELECT * FROM port_list WHERE __key="battlefield2";
 ```
 
-A simple update statement using a WHERE clause.
+__key       |description           |port |
+------------|----------------------|-----|
+battlefield2|Battlefield 2 and mods|16567|
+
+A simple update statement using a non-PK predicate:
+
 ```sql
-update table1 set bin1=1 where bin1 is null
+UPDATE port_list SET description="Reserved" WHERE description IS NULL;
+SELECT * FROM port_list WHERE port = 47;
 ```
+
+__key                               |description|port|
+------------------------------------|-----------|----|
+05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|Reserved   |  47|
 
 ## DELETE
-To delete the entire table.
+
+Delete rows that match a WHERE condition on a regular column (a bin):
+
 ```sql
-delete from table1
+DELETE FROM port_list WHERE port > 200;
+SELECT * FROM port_list;
 ```
 
-Delete the inserted row by the primary key (the __key column).
+__key                               |description                                        |port|
+------------------------------------|---------------------------------------------------|----|
+05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|Reserved                                           |  47|
+snmp                                |Simple Network Management Protocol (SNMP)          | 161|
+ntp                                 |Network Time Protocol used for time synchronization| 123|
+snmptrap                            |Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
+
+Delete a row by its primary key (the __key column).
+
 ```sql
-delete from table1 where __key="702daeb1-4904-4973-bda5-70f4999ee627"
+DELETE FROM port_list WHERE __key="snmp";
+SELECT COUNT(*) FROM port_list;
 ```
 
-Delete the inserted row using WHERE condition on a regular column.
+COUNT(*)|
+--------|
+       3|
+
+
+To delete all the rows in a table:
+
 ```sql
-delete from table1 where bin1>10000
+DELETE FROM port_list;
+SELECT COUNT(*) FROM port_list;
 ```
+
+COUNT(*)|
+--------|
+       0|
+
