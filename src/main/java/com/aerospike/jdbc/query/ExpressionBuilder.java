@@ -106,7 +106,8 @@ public final class ExpressionBuilder {
     }
 
     public static boolean isStringValue(String value) {
-        return value.startsWith("\"") && value.endsWith("\"");
+        return (value.startsWith("\"") && value.endsWith("\"")) ||
+                (value.startsWith("'") && value.endsWith("'"));
     }
 
     public static String stripQuotes(String value) {
