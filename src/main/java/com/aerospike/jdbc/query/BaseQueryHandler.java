@@ -10,6 +10,7 @@ import com.aerospike.jdbc.util.IOUtils;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static java.util.Collections.emptyList;
 
@@ -43,6 +44,9 @@ public abstract class BaseQueryHandler implements QueryHandler {
         try {
             return new Value.DoubleValue(Double.parseDouble(strValue));
         } catch (NumberFormatException ignore) {
+        }
+        if (strValue.toLowerCase(Locale.ENGLISH).equals("null")) {
+            return Value.NULL;
         }
         return Value.get(strValue);
     }
