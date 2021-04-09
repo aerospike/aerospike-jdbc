@@ -16,11 +16,15 @@ import static com.aerospike.jdbc.AerospikeStatement.parsingOptions;
 
 public final class UpdateStatemenParser {
 
-    private static final Pattern pattern;
+    private static final Pattern updateSetWherePattern;
+    private static final Pattern updateSetPattern;
 
     static {
-        String str = "update (.*) set (.*) where (.*)";
-        pattern = Pattern.compile(str, Pattern.CASE_INSENSITIVE);
+        String p1 = "update (.*) set (.*) where (.*)";
+        updateSetWherePattern = Pattern.compile(p1, Pattern.CASE_INSENSITIVE);
+
+        String p2 = "update (.*) set (.*)";
+        updateSetPattern = Pattern.compile(p2, Pattern.CASE_INSENSITIVE);
     }
 
     private UpdateStatemenParser() {
@@ -34,25 +38,36 @@ public final class UpdateStatemenParser {
      * for the valid UPDATE statement, otherwise an empty Optional.
      */
     public static Optional<AerospikeQuery> hack(String sql) {
-        Matcher m = pattern.matcher(sql);
+        Matcher m = updateSetWherePattern.matcher(sql);
         if (m.find()) {
             String queryString = "select * from " + m.group(1) + " where " + m.group(3);
-            final List<String> columns = new ArrayList<>();
-            final List<String> values = new ArrayList<>();
-            Arrays.stream(m.group(2).split(",")).map(String::trim).forEach(s -> {
-                String[] arr = s.split("=");
-                columns.add(arr[0]);
-                values.add(arr[1]);
-            });
-            io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(queryString, parsingOptions);
-            AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
-
-            query.setColumns(columns);
-            query.setValues(values);
-            query.setType(QueryType.UPDATE);
-
-            return Optional.of(query);
+            return Optional.of(buildQuery(queryString, m.group(2)));
         }
+
+        m = updateSetPattern.matcher(sql);
+        if (m.find()) {
+            String queryString = "select * from " + m.group(1);
+            return Optional.of(buildQuery(queryString, m.group(2)));
+        }
+
         return Optional.empty();
+    }
+
+    private static AerospikeQuery buildQuery(String queryString, String setString) {
+        final List<String> columns = new ArrayList<>();
+        final List<String> values = new ArrayList<>();
+        Arrays.stream(setString.split(",")).map(String::trim).forEach(s -> {
+            String[] arr = s.split("=");
+            columns.add(arr[0]);
+            values.add(arr[1]);
+        });
+        io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(queryString, parsingOptions);
+        AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
+
+        query.setColumns(columns);
+        query.setValues(values);
+        query.setType(QueryType.UPDATE);
+
+        return query;
     }
 }
