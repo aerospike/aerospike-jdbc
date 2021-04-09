@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 import static com.aerospike.jdbc.AerospikeStatement.SQL_PARSER;
 import static com.aerospike.jdbc.AerospikeStatement.parsingOptions;
 
-public final class UpdateStatemenParser {
+public final class UpdateStatementParser {
 
     private static final Pattern updateSetWherePattern;
     private static final Pattern updateSetPattern;
@@ -27,7 +27,7 @@ public final class UpdateStatemenParser {
         updateSetPattern = Pattern.compile(p2, Pattern.CASE_INSENSITIVE);
     }
 
-    private UpdateStatemenParser() {
+    private UpdateStatementParser() {
     }
 
     /**

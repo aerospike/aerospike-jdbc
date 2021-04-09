@@ -6,7 +6,7 @@ import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
-import com.aerospike.jdbc.util.UpdateStatemenParser;
+import com.aerospike.jdbc.util.UpdateStatementParser;
 import io.prestosql.sql.parser.ParsingOptions;
 import io.prestosql.sql.parser.SqlParser;
 
@@ -56,7 +56,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private AerospikeQuery parseQuery(String sql) {
         final String sqlEscape = sql.replaceAll("\n", " ");
-        AerospikeQuery query = UpdateStatemenParser.hack(sqlEscape).orElseGet(() -> {
+        AerospikeQuery query = UpdateStatementParser.hack(sqlEscape).orElseGet(() -> {
             io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
             return AerospikeQueryParser.parseSql(statement);
         });
