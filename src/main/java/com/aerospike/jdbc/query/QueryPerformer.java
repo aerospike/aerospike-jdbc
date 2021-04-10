@@ -30,6 +30,10 @@ public final class QueryPerformer {
                 queryHandler = new DeleteQueryHandler(client, statement);
                 return queryHandler.execute(query);
 
+            case DROP_TABLE:
+                queryHandler = new TruncateQueryHandler(client, statement);
+                return queryHandler.execute(query);
+
             default:
                 throw new RuntimeException("Unsupported query type");
         }

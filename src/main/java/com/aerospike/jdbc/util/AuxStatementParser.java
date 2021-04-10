@@ -14,10 +14,12 @@ import java.util.regex.Pattern;
 import static com.aerospike.jdbc.AerospikeStatement.SQL_PARSER;
 import static com.aerospike.jdbc.AerospikeStatement.parsingOptions;
 
-public final class UpdateStatementParser {
+public final class AuxStatementParser {
 
     private static final Pattern updateSetWherePattern;
     private static final Pattern updateSetPattern;
+
+    private static final Pattern truncateTablePattern;
 
     static {
         String p1 = "update (.*) set (.*) where (.*)";
@@ -25,17 +27,20 @@ public final class UpdateStatementParser {
 
         String p2 = "update (.*) set (.*)";
         updateSetPattern = Pattern.compile(p2, Pattern.CASE_INSENSITIVE);
+
+        String p3 = "truncate table (.*)";
+        truncateTablePattern = Pattern.compile(p3, Pattern.CASE_INSENSITIVE);
     }
 
-    private UpdateStatementParser() {
+    private AuxStatementParser() {
     }
 
     /**
-     * A hack method to parse UPDATE queries which are currently not supported by Presto.
+     * A hack method to parse queries which are currently not supported by the Presto parser.
      *
      * @param sql the original SQL query string.
      * @return an Optional with a present {@link com.aerospike.jdbc.model.AerospikeQuery}
-     * for the valid UPDATE statement, otherwise an empty Optional.
+     * for the valid statement, otherwise an empty Optional.
      */
     public static Optional<AerospikeQuery> hack(String sql) {
         Matcher m = updateSetWherePattern.matcher(sql);
@@ -48,6 +53,14 @@ public final class UpdateStatementParser {
         if (m.find()) {
             String queryString = "select * from " + m.group(1);
             return Optional.of(buildQuery(queryString, m.group(2)));
+        }
+
+        m = truncateTablePattern.matcher(sql);
+        if (m.find()) {
+            AerospikeQuery query = new AerospikeQuery();
+            query.setType(QueryType.DROP_TABLE);
+            query.setTable(m.group(1));
+            return Optional.of(query);
         }
 
         return Optional.empty();

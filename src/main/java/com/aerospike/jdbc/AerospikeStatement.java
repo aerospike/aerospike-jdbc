@@ -6,11 +6,16 @@ import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
-import com.aerospike.jdbc.util.UpdateStatementParser;
+import com.aerospike.jdbc.util.AuxStatementParser;
 import io.prestosql.sql.parser.ParsingOptions;
 import io.prestosql.sql.parser.SqlParser;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.util.logging.Logger;
 
 import static io.prestosql.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
@@ -56,7 +61,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private AerospikeQuery parseQuery(String sql) {
         final String sqlEscape = sql.replaceAll("\n", " ");
-        AerospikeQuery query = UpdateStatementParser.hack(sqlEscape).orElseGet(() -> {
+        AerospikeQuery query = AuxStatementParser.hack(sqlEscape).orElseGet(() -> {
             io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
             return AerospikeQueryParser.parseSql(statement);
         });
