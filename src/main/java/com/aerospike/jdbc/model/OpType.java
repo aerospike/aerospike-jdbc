@@ -2,6 +2,7 @@ package com.aerospike.jdbc.model;
 
 public enum OpType {
     EQUALS,
+    NOT_EQUALS,
     LESS,
     LESS_EQUALS,
     GREATER,
@@ -18,6 +19,9 @@ public enum OpType {
         switch (op.toUpperCase()) {
             case "=":
                 return EQUALS;
+            case "<>":
+            case "!=":
+                return NOT_EQUALS;
             case "<":
                 return LESS;
             case "<=":

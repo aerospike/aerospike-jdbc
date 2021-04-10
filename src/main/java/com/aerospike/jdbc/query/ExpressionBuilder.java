@@ -65,6 +65,8 @@ public final class ExpressionBuilder {
                 );
             case EQUALS:
                 return getComparableExpression(whereExpression, Exp::eq);
+            case NOT_EQUALS:
+                return getComparableExpression(whereExpression, Exp::ne);
             case LESS:
                 return getComparableExpression(whereExpression, Exp::lt);
             case LESS_EQUALS:
