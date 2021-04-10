@@ -92,9 +92,14 @@ public class SelectQueryHandler extends BaseQueryHandler {
         Key key = new Key(query.getSchema(), query.getTable(), primaryKey);
         com.aerospike.client.Record record = client.get(null, key, getBinNames(query));
 
-        RecordSet recordSet = new RecordSet(2);
-        KeyRecord keyRecord = new KeyRecord(key, record);
-        recordSet.put(keyRecord);
+        RecordSet recordSet;
+        if (Objects.nonNull(record)) {
+            recordSet = new RecordSet(2);
+            KeyRecord keyRecord = new KeyRecord(key, record);
+            recordSet.put(keyRecord);
+        } else {
+            recordSet = new RecordSet(1);
+        }
         recordSet.end();
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
