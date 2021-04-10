@@ -34,9 +34,9 @@ public class DeleteQueryHandler extends BaseQueryHandler {
         final WritePolicy writePolicy = buildWritePolicy(query);
         if (Objects.nonNull(keyObject)) {
             Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
-            client.delete(writePolicy, key);
+            int count = client.delete(writePolicy, key) ? 1 : 0;
 
-            return new Pair<>(emptyRecordSet(query), 1);
+            return new Pair<>(emptyRecordSet(query), count);
         } else {
             ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
             ScanPolicy scanPolicy = buildScanPolicy(query);
@@ -46,8 +46,8 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
-                client.delete(writePolicy, r.key);
-                count.incrementAndGet();
+                if (client.delete(writePolicy, r.key))
+                    count.incrementAndGet();
             });
 
             return new Pair<>(emptyRecordSet(query), count.get());
