@@ -1,5 +1,6 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
@@ -18,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildWritePolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildUpdateOnlyPolicy;
 
 public class UpdateQueryHandler extends BaseQueryHandler {
 
@@ -33,10 +34,14 @@ public class UpdateQueryHandler extends BaseQueryHandler {
         logger.info("UPDATE statement");
         Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
         final Bin[] bins = getBins(query);
-        final WritePolicy writePolicy = buildWritePolicy(query);
+        final WritePolicy writePolicy = buildUpdateOnlyPolicy(query);
         if (Objects.nonNull(keyObject)) {
             Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
-            client.put(writePolicy, key, bins);
+            try {
+                client.put(writePolicy, key, bins);
+            } catch (AerospikeException e) {
+                return new Pair<>(emptyRecordSet(query), 0);
+            }
 
             return new Pair<>(emptyRecordSet(query), 1);
         } else {
@@ -48,8 +53,11 @@ public class UpdateQueryHandler extends BaseQueryHandler {
 
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
-                client.put(writePolicy, r.key, bins);
-                count.incrementAndGet();
+                try {
+                    client.put(writePolicy, r.key, bins);
+                    count.incrementAndGet();
+                } catch (AerospikeException ignore) {
+                }
             });
 
             return new Pair<>(emptyRecordSet(query), count.get());

@@ -1,5 +1,6 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildWritePolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildCreateOnlyPolicy;
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
 
 public class InsertQueryHandler extends BaseQueryHandler {
@@ -31,7 +32,11 @@ public class InsertQueryHandler extends BaseQueryHandler {
         Key key = new Key(query.getSchema(), query.getTable(), queryKey);
 
         Bin[] bins = getBins(query);
-        client.put(buildWritePolicy(query), key, bins);
+        try {
+            client.put(buildCreateOnlyPolicy(query), key, bins);
+        } catch (AerospikeException e) {
+            return new Pair<>(emptyRecordSet(query), 0);
+        }
 
         return new Pair<>(emptyRecordSet(query), 1);
     }
