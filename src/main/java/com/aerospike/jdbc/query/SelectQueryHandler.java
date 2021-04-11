@@ -8,9 +8,8 @@ import com.aerospike.client.query.KeyRecord;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.scan.EventLoopProvider;
+import com.aerospike.jdbc.scan.PartitionScanHandler;
 import com.aerospike.jdbc.scan.RecordSet;
-import com.aerospike.jdbc.scan.ScanRecordSequenceListener;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 import com.aerospike.jdbc.util.IOUtils;
@@ -27,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static com.aerospike.jdbc.query.PolicyBuilder.buildScanNoBinDataPolicy;
 import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
 
@@ -63,14 +63,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
         if (Objects.isNull(query.getWhere())) {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
-            ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
-            ScanPolicy scanPolicy = buildScanPolicy(query);
-            scanPolicy.includeBinData = false;
-            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
-                    query.getTable());
+            ScanPolicy policy = buildScanNoBinDataPolicy(query);
+            RecordSet recordSet = PartitionScanHandler.create(client).scanPartition(policy, query);
 
             final AtomicInteger count = new AtomicInteger();
-            listener.getRecordSet().forEach(r -> count.incrementAndGet());
+            recordSet.forEach(r -> count.incrementAndGet());
             recordNumber = count.get();
         }
         com.aerospike.client.Record record = new com.aerospike.client.Record(Collections.singletonMap(
@@ -90,7 +87,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Value primaryKey) {
         logger.info("SELECT PK");
         Key key = new Key(query.getSchema(), query.getTable(), primaryKey);
-        com.aerospike.client.Record record = client.get(null, key, getBinNames(query));
+        com.aerospike.client.Record record = client.get(null, key, query.getBinNames());
 
         RecordSet recordSet;
         if (Objects.nonNull(record)) {
@@ -103,19 +100,17 @@ public class SelectQueryHandler extends BaseQueryHandler {
         recordSet.end();
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, getBinNames(query))), -1);
+                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
     }
 
     private Pair<ResultSet, Integer> executeScanQuery(AerospikeQuery query) {
         logger.info("SELECT scan");
-        ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
-        ScanPolicy scanPolicy = buildScanPolicy(query);
-        client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
-                query.getTable(), getBinNames(query));
-        RecordSet recordSet = listener.getRecordSet();
+
+        ScanPolicy policy = buildScanPolicy(query);
+        RecordSet recordSet = PartitionScanHandler.create(client).scanPartition(policy, query);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, getBinNames(query))), -1);
+                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
     }
 
     private boolean isCount(AerospikeQuery query) {
@@ -129,11 +124,4 @@ public class SelectQueryHandler extends BaseQueryHandler {
         return columns.stream().filter(c -> list.contains(c.getName())).collect(Collectors.toList());
     }
 
-    private String[] getBinNames(AerospikeQuery query) {
-        List<String> columns = query.getColumns();
-        if (columns.size() == 1 && columns.get(0).equals("*")) {
-            return null;
-        }
-        return columns.toArray(new String[0]);
-    }
 }

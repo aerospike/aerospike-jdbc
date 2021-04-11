@@ -165,6 +165,13 @@ public class AerospikeQuery {
         return columns;
     }
 
+    public String[] getBinNames() {
+        if (columns.size() == 1 && columns.get(0).equals("*")) {
+            return null;
+        }
+        return columns.toArray(new String[0]);
+    }
+
     @Override
     public String toString() {
         try {

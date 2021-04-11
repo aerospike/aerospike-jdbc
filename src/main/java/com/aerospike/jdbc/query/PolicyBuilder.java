@@ -8,8 +8,6 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 
 import java.util.Objects;
 
-import static com.aerospike.jdbc.util.Constants.defaultQueryLimit;
-
 public final class PolicyBuilder {
 
     private PolicyBuilder() {
@@ -17,9 +15,15 @@ public final class PolicyBuilder {
 
     public static ScanPolicy buildScanPolicy(AerospikeQuery query) {
         ScanPolicy scanPolicy = new ScanPolicy();
-        scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? defaultQueryLimit : query.getLimit();
+        scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
         Exp expression = ExpressionBuilder.buildExp(query.getWhere());
         scanPolicy.filterExp = Objects.isNull(expression) ? null : Exp.build(expression);
+        return scanPolicy;
+    }
+
+    public static ScanPolicy buildScanNoBinDataPolicy(AerospikeQuery query) {
+        ScanPolicy scanPolicy = buildScanPolicy(query);
+        scanPolicy.includeBinData = false;
         return scanPolicy;
     }
 
