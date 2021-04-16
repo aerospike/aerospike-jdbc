@@ -49,6 +49,7 @@ try {
 * INSERT
 * UPDATE
 * DELETE
+* TRUNCATE TABLE
 
 See [examples](docs/examples.md) of SQL.
 
