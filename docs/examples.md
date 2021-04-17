@@ -96,15 +96,15 @@ __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
 
-Count the records in the table:
+Count the records in the table that don't use port 3000:
 
 ```sql
-SELECT COUNT(*) FROM port_list;
+SELECT COUNT(*) FROM port_list WHERE port != 3000;
 ```
 
 COUNT(*)|
 --------|
-      12|
+       7|
 
 ## UPDATE
 Update a row using its primary key:
@@ -128,6 +128,31 @@ SELECT * FROM port_list WHERE port = 47;
 __key                               |description|port|
 ------------------------------------|-----------|----|
 05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|Reserved   |  47|
+
+A column (bin) can be added to the table using an update statement without a
+`WHERE` clause.
+
+```sql
+UPDATE port_list SET extra=1;
+SELECT * FROM port_list WHERE port <> 47;
+```
+
+__key       |description                                         |extra|port |
+------------|----------------------------------------------------|-----|-----|
+snmp        |Simple Network Management Protocol (SNMP)           |    1|  161|
+ntp         |Network Time Protocol used for time synchronization |    1|  123|
+aerospike   |Aerospike Database                                  |    1| 3000|
+battlefield2|Battlefield 2 and mods                              |    1|16567|
+cloud9ide   |Cloud9 IDE Server                                   |    1| 3000|
+dis         |Distributed Interactive Simulation (DIS)            |    1| 3000|
+metasys     |Johnson Controls Metasys java AC control environment|    1|11001|
+fcip        |Fibre Channel over IP (FCIP)                        |    1| 3225|
+memcache    |Memcached                                           |    1|11211|
+ror         |Ruby on Rails development default                   |    1| 3000|
+snmptrap    |Simple Network Management Protocol Trap(SNMPTRAP)   |    1|  162|
+
+Since Aerospike is schemaless, the data browser may need to be refreshed for it
+to pick up the new _extra_ column.
 
 ## DELETE
 
@@ -167,4 +192,18 @@ SELECT COUNT(*) FROM port_list;
 |COUNT(*)|
 |--------|
 |       0|
+
+
+## TRUNCATE
+
+The `TRUNCATE TABLE` command is equivalent to a `DELETE` without a `WHERE`
+clause.
+
+```sql
+TRUNCATE TABLE port_list;
+
+-- is the same as
+
+DELETE FROM port_list;
+```
 
