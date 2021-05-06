@@ -5,11 +5,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map.Entry;
 
-public class PreparedStatementUtil {
+public class PreparedStatement {
 
     public static final char PS_PLACEHOLDER_PREFIX = '_';
 
-    private PreparedStatementUtil() {
+    private PreparedStatement() {
     }
 
     public static Entry<String, Integer> parseParameters(String sql, int offset) {

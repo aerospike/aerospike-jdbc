@@ -72,8 +72,9 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public int executeUpdate(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Update is not supported");
+    public int executeUpdate(String sql) {
+        executeQuery(sql);
+        return updateCount;
     }
 
     @Override

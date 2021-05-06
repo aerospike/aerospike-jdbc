@@ -12,7 +12,12 @@ import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.IOUtils;
 import io.prestosql.sql.parser.ParsingOptions;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
@@ -22,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.PreparedStatementUtil.parseParameters;
+import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static io.prestosql.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
 import static java.lang.String.format;
 
@@ -54,7 +59,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
-    public int executeUpdate() throws SQLException {
+    public int executeUpdate() {
         logger.info("AerospikePreparedStatement executeUpdate");
         return super.executeUpdate(sql);
     }

@@ -1,6 +1,5 @@
 package com.aerospike.jdbc.query;
 
-import com.aerospike.client.Value;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.RegexFlag;
 import com.aerospike.jdbc.model.OpType;
@@ -17,14 +16,10 @@ public final class ExpressionBuilder {
     private ExpressionBuilder() {
     }
 
-    public static Value fetchPrimaryKey(WhereExpression whereExpression) {
+    public static Object fetchPrimaryKey(WhereExpression whereExpression) {
         if (Objects.nonNull(whereExpression) && !whereExpression.isWrapper()) {
             if (whereExpression.getColumn().equals(defaultKeyName)) {
-                Object value = whereExpression.getValue();
-                if (isStringValue(value.toString())) {
-                    return Value.get(stripQuotes(value.toString()));
-                }
-                return Value.get(value);
+                return whereExpression.getValue();
             }
         }
         return null;

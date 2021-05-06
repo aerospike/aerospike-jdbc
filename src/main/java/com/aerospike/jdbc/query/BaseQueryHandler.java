@@ -10,7 +10,6 @@ import com.aerospike.jdbc.util.IOUtils;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import static java.util.Collections.emptyList;
 
@@ -28,7 +27,8 @@ public abstract class BaseQueryHandler implements QueryHandler {
         List<Bin> bins = new ArrayList<>();
         List<String> columns = query.getColumns();
         for (int i = 0; i < columns.size(); i++) {
-            bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)), getBinValue(query.getValues().get(i))));
+            bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)),
+                    getBinValue(query.getValues().get(i))));
         }
         return bins.toArray(new Bin[0]);
     }
@@ -45,7 +45,11 @@ public abstract class BaseQueryHandler implements QueryHandler {
             return new Value.DoubleValue(Double.parseDouble(strValue));
         } catch (NumberFormatException ignore) {
         }
-        if (strValue.toLowerCase(Locale.ENGLISH).equals("null")) {
+        if (strValue.equalsIgnoreCase("true") ||
+                strValue.equalsIgnoreCase("false")) {
+            return Value.get(Boolean.parseBoolean(strValue));
+        }
+        if (strValue.equalsIgnoreCase("null")) {
             return Value.NULL;
         }
         return Value.get(strValue);

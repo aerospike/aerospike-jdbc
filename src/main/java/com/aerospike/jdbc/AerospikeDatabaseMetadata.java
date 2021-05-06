@@ -7,11 +7,16 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.ListRecordSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
-import com.aerospike.jdbc.util.ConnectionParametersParser;
+import com.aerospike.jdbc.util.URLParser;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowIdLifetime;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -34,7 +39,6 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     private static final Logger logger = Logger.getLogger(AerospikeDatabaseMetadata.class.getName());
 
-    private final static ConnectionParametersParser parser = new ConnectionParametersParser();
     private final String url;
     private final Properties clientInfo;
 
@@ -47,11 +51,11 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final Map<String, Collection<String>> tables = new ConcurrentHashMap<>();
     private final Map<String, Collection<IndexInfo>> indices = new ConcurrentHashMap<>();
 
-    public AerospikeDatabaseMetadata(String url, Properties info, IAerospikeClient client, Connection connection) {
+    public AerospikeDatabaseMetadata(String url, IAerospikeClient client, Connection connection) {
         logger.info("Init AerospikeDatabaseMetadata");
         AerospikeSchemaBuilder.cleanSchemaCache();
         this.url = url;
-        clientInfo = parser.clientInfo(url, info);
+        clientInfo = URLParser.getClientInfo();
         this.connection = connection;
         infoPolicy = client.getInfoPolicyDefault();
 
