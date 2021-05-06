@@ -25,9 +25,9 @@
         <maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
         <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
 
-        <aerospike-client.version>5.0.5</aerospike-client.version>
-        <netty.version>4.1.58.Final</netty.version>
-        <jackson.version>2.12.0</jackson.version>
+        <aerospike-client.version>5.1.0</aerospike-client.version>
+        <netty.version>4.1.63.Final</netty.version>
+        <jackson.version>2.12.3</jackson.version>
         <presto-parser.version>347</presto-parser.version>
     </properties>
 
