@@ -2,7 +2,6 @@ package com.aerospike.jdbc.query;
 
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
-import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
@@ -33,7 +32,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
         Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
         final WritePolicy writePolicy = buildWritePolicy(query);
         if (Objects.nonNull(keyObject)) {
-            Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+            Key key = new Key(query.getSchema(), query.getTable(), getBinValue(keyObject.toString()));
             int count = client.delete(writePolicy, key) ? 1 : 0;
 
             return new Pair<>(emptyRecordSet(query), count);

@@ -4,7 +4,6 @@ import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
-import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
@@ -36,7 +35,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
         final Bin[] bins = getBins(query);
         final WritePolicy writePolicy = buildUpdateOnlyPolicy(query);
         if (Objects.nonNull(keyObject)) {
-            Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+            Key key = new Key(query.getSchema(), query.getTable(), getBinValue(keyObject.toString()));
             try {
                 client.put(writePolicy, key, bins);
             } catch (AerospikeException e) {

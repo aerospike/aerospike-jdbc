@@ -43,12 +43,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
-        Value pk = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
+        Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
         Pair<ResultSet, Integer> result;
         if (isCount(query)) {
             result = executeCountQuery(query);
-        } else if (Objects.nonNull(pk)) {
-            result = executeSelectByPrimaryKey(query, pk);
+        } else if (Objects.nonNull(keyObject)) {
+            result = executeSelectByPrimaryKey(query, getBinValue(keyObject.toString()));
         } else {
             result = executeScanQuery(query);
         }
