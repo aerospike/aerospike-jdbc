@@ -5,6 +5,7 @@ import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.util.URLParser;
 
 import java.util.Objects;
 
@@ -14,7 +15,7 @@ public final class PolicyBuilder {
     }
 
     public static ScanPolicy buildScanPolicy(AerospikeQuery query) {
-        ScanPolicy scanPolicy = new ScanPolicy();
+        ScanPolicy scanPolicy = new ScanPolicy(URLParser.getScanPolicy());
         scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
         Exp expression = ExpressionBuilder.buildExp(query.getWhere());
         scanPolicy.filterExp = Objects.isNull(expression) ? null : Exp.build(expression);
@@ -28,7 +29,7 @@ public final class PolicyBuilder {
     }
 
     public static WritePolicy buildWritePolicy(AerospikeQuery query) {
-        WritePolicy writePolicy = new WritePolicy();
+        WritePolicy writePolicy = new WritePolicy(URLParser.getWritePolicy());
         writePolicy.sendKey = true;
         return writePolicy;
     }

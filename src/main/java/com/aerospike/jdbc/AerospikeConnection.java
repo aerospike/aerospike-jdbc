@@ -1,13 +1,12 @@
 package com.aerospike.jdbc;
 
 import com.aerospike.client.AerospikeClient;
-import com.aerospike.client.Host;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
-import com.aerospike.jdbc.util.ConnectionParametersParser;
+import com.aerospike.jdbc.util.URLParser;
 
 import java.sql.*;
 import java.util.Map;
@@ -26,9 +25,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeConnection.class.getName());
 
-    private static final ConnectionParametersParser parser = new ConnectionParametersParser();
     private final String url;
-    private final Properties props;
     private final IAerospikeClient client;
     private volatile boolean readOnly = false;
     private final Properties clientInfo = new Properties();
@@ -39,10 +36,11 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     public AerospikeConnection(String url, Properties props) {
         this.url = url;
-        this.props = props;
-        Host[] hosts = parser.hosts(url);
-        client = new AerospikeClient(parser.policy(url, props), hosts);
-        schema.set(parser.schema(url)); // namespace
+        URLParser.parseUrl(url, props);
+        client = new AerospikeClient(
+                URLParser.getClientPolicy(), URLParser.getHosts()
+        );
+        schema.set(URLParser.getSchema()); // namespace
     }
 
     @Override
@@ -99,7 +97,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public DatabaseMetaData getMetaData() {
         logger.info("getMetaData request");
-        return new AerospikeDatabaseMetadata(url, props, client, this);
+        return new AerospikeDatabaseMetadata(url, client, this);
     }
 
     @Override
