@@ -89,16 +89,39 @@ public final class ExpressionBuilder {
     }
 
     private static Pair<Exp, Exp> parseComparable(WhereExpression whereExpression) {
-        if (isStringValue(whereExpression.getValue().toString())) {
+        String value = whereExpression.getValue().toString();
+        if (isStringValue(value)) {
             return new Pair<>(
                     Exp.stringBin(whereExpression.getColumn()),
-                    Exp.val(stripQuotes(whereExpression.getValue().toString()))
+                    Exp.val(stripQuotes(value))
             );
         } else {
-            return new Pair<>(
-                    Exp.intBin(whereExpression.getColumn()),
-                    Exp.val(Long.parseLong(whereExpression.getValue().toString()))
-            );
+            try {
+                return new Pair<>(
+                        Exp.intBin(whereExpression.getColumn()),
+                        Exp.val(Long.parseLong(value))
+                );
+            } catch (NumberFormatException ignore) {
+            }
+            try {
+                return new Pair<>(
+                        Exp.floatBin(whereExpression.getColumn()),
+                        Exp.val(Double.parseDouble(value))
+                );
+            } catch (NumberFormatException ignore) {
+            }
+//            if (value.equalsIgnoreCase("true") ||
+//                    value.equalsIgnoreCase("false")) {
+//                return new Pair<>(
+//                        Exp.boolBin(whereExpression.getColumn()), // TODO will be available with the next client version
+//                        Exp.val(Boolean.parseBoolean(value))
+//                );
+//            } else {
+                return new Pair<>(
+                        Exp.stringBin(whereExpression.getColumn()),
+                        Exp.val(value)
+                );
+//            }
         }
     }
 

@@ -1,6 +1,7 @@
 package com.aerospike.jdbc;
 
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.query.AerospikeQueryParser;
@@ -71,7 +72,11 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
-        setObject(parameterIndex, x ? 1 : 0);
+        Object value = x;
+        if (!Value.UseBoolBin) {
+            value = x ? 1 : 0;
+        }
+        setObject(parameterIndex, value);
     }
 
     @Override
@@ -111,7 +116,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-        setObject(parameterIndex, x);
+        setObject(parameterIndex, "\"" + x + "\"");
     }
 
     @Override
@@ -172,7 +177,13 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public boolean execute() {
-        return execute(sql);
+        String preparedQuery = prepareQuery();
+        logger.info(preparedQuery);
+        return execute(preparedQuery);
+    }
+
+    private String prepareQuery() {
+        return String.format(this.sql.replace("?", "%s"), parameterValues);
     }
 
     @Override
