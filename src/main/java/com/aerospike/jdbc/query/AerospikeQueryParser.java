@@ -205,9 +205,7 @@ public final class AerospikeQueryParser {
         }
 
         protected Void visitAllColumns(AllColumns node, Integer context) {
-            node.getTarget().ifPresent((value) -> {
-                query.setTable(ExpressionFormatter.formatExpression(value));
-            });
+            node.getTarget().ifPresent((value) -> query.setTable(ExpressionFormatter.formatExpression(value)));
             query.appendColumns("*");
             return null;
         }
@@ -232,13 +230,13 @@ public final class AerospikeQueryParser {
         protected Void visitValues(Values node, Integer indent) {
             boolean first = true;
             StringBuilder builder = new StringBuilder();
-            for (Iterator var4 = node.getRows().iterator(); var4.hasNext(); first = false) {
-                Expression row = (Expression) var4.next();
+            for (Iterator<Expression> var4 = node.getRows().iterator(); var4.hasNext(); first = false) {
+                Expression row = var4.next();
                 builder.append(indentString(indent)).append(first ? "  " : ", ");
                 builder.append(AerospikeExpressionParser.formatExpression(row));
             }
 
-            query.setValues(Arrays.stream(builder.toString().split(",")).map(String::trim).distinct()
+            query.setValues(Arrays.stream(builder.toString().split(",")).map(String::trim)
                     .collect(Collectors.toList()));
             return null;
         }
