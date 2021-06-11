@@ -4,15 +4,15 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.prestosql.sql.SqlFormatter;
-import io.prestosql.sql.parser.ParsingOptions;
-import io.prestosql.sql.parser.SqlParser;
-import io.prestosql.sql.tree.Statement;
+import io.trino.sql.SqlFormatter;
+import io.trino.sql.parser.ParsingOptions;
+import io.trino.sql.parser.SqlParser;
+import io.trino.sql.tree.Statement;
 import org.testng.annotations.Test;
 
 import static com.google.common.base.Strings.repeat;
-import static io.prestosql.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
-import static io.prestosql.sql.testing.TreeAssertions.assertFormattedSql;
+import static io.trino.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
+import static io.trino.sql.testing.TreeAssertions.assertFormattedSql;
 
 public class StatementBuilderTest {
 

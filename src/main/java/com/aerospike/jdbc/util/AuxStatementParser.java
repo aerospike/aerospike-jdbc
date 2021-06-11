@@ -74,7 +74,7 @@ public final class AuxStatementParser {
             columns.add(arr[0]);
             values.add(arr[1]);
         });
-        io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(queryString, parsingOptions);
+        io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(queryString, parsingOptions);
         AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
 
         query.setColumns(columns);

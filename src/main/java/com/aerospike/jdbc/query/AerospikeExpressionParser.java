@@ -4,8 +4,8 @@ import com.google.common.base.CharMatcher;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.prestosql.sql.SqlFormatter;
-import io.prestosql.sql.tree.*;
+import io.trino.sql.SqlFormatter;
+import io.trino.sql.tree.*;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -78,7 +78,7 @@ public final class AerospikeExpressionParser {
 
     private static String formatGroupingSet(List<Expression> groupingSet) {
         return String.format("(%s)", Joiner.on(", ").join(groupingSet.stream()
-                .map(io.prestosql.sql.ExpressionFormatter::formatExpression).iterator()));
+                .map(io.trino.sql.ExpressionFormatter::formatExpression).iterator()));
     }
 
     private static Function<SortItem, String> sortItemFormatterFunction() {
@@ -243,7 +243,7 @@ public final class AerospikeExpressionParser {
         }
 
         protected String visitLambdaArgumentDeclaration(LambdaArgumentDeclaration node, Void context) {
-            return io.prestosql.sql.ExpressionFormatter.formatExpression(node.getName());
+            return io.trino.sql.ExpressionFormatter.formatExpression(node.getName());
         }
 
         protected String visitSymbolReference(SymbolReference node, Void context) {

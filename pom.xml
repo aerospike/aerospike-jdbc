@@ -28,7 +28,7 @@
         <aerospike-client.version>5.1.0</aerospike-client.version>
         <netty.version>4.1.63.Final</netty.version>
         <jackson.version>2.12.3</jackson.version>
-        <presto-parser.version>347</presto-parser.version>
+        <trino-parser.version>358</trino-parser.version>
     </properties>
 
     <licenses>
@@ -94,9 +94,9 @@
         </dependency>
 
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-parser</artifactId>
-            <version>${presto-parser.version}</version>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-parser</artifactId>
+            <version>${trino-parser.version}</version>
         </dependency>
 
         <!-- for testing -->
