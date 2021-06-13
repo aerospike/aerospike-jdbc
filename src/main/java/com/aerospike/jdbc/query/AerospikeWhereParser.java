@@ -2,7 +2,7 @@ package com.aerospike.jdbc.query;
 
 import com.aerospike.jdbc.model.OpType;
 import com.aerospike.jdbc.model.WhereExpression;
-import io.prestosql.sql.tree.*;
+import io.trino.sql.tree.*;
 
 public class AerospikeWhereParser {
 

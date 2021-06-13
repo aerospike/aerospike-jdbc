@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.2.0</version>
+    <version>1.3.0</version>
 
     <properties>
         <skipTests>true</skipTests>
@@ -25,10 +25,10 @@
         <maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
         <maven-shade-plugin.version>3.1.1</maven-shade-plugin.version>
 
-        <aerospike-client.version>5.1.0</aerospike-client.version>
-        <netty.version>4.1.63.Final</netty.version>
+        <aerospike-client.version>5.1.3</aerospike-client.version>
+        <netty.version>4.1.65.Final</netty.version>
         <jackson.version>2.12.3</jackson.version>
-        <presto-parser.version>347</presto-parser.version>
+        <trino-parser.version>358</trino-parser.version>
     </properties>
 
     <licenses>
@@ -94,9 +94,9 @@
         </dependency>
 
         <dependency>
-            <groupId>io.prestosql</groupId>
-            <artifactId>presto-parser</artifactId>
-            <version>${presto-parser.version}</version>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-parser</artifactId>
+            <version>${trino-parser.version}</version>
         </dependency>
 
         <!-- for testing -->

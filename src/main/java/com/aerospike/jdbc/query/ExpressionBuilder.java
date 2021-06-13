@@ -110,18 +110,18 @@ public final class ExpressionBuilder {
                 );
             } catch (NumberFormatException ignore) {
             }
-//            if (value.equalsIgnoreCase("true") ||
-//                    value.equalsIgnoreCase("false")) {
-//                return new Pair<>(
-//                        Exp.boolBin(whereExpression.getColumn()), // TODO will be available with the next client version
-//                        Exp.val(Boolean.parseBoolean(value))
-//                );
-//            } else {
+            if (value.equalsIgnoreCase("true") ||
+                    value.equalsIgnoreCase("false")) {
+                return new Pair<>(
+                        Exp.boolBin(whereExpression.getColumn()),
+                        Exp.val(Boolean.parseBoolean(value))
+                );
+            } else {
                 return new Pair<>(
                         Exp.stringBin(whereExpression.getColumn()),
                         Exp.val(value)
                 );
-//            }
+            }
         }
     }
 

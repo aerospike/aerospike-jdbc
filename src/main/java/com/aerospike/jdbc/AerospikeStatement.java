@@ -7,8 +7,8 @@ import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AuxStatementParser;
-import io.prestosql.sql.parser.ParsingOptions;
-import io.prestosql.sql.parser.SqlParser;
+import io.trino.sql.parser.ParsingOptions;
+import io.trino.sql.parser.SqlParser;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -18,7 +18,7 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.logging.Logger;
 
-import static io.prestosql.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
+import static io.trino.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
 import static java.lang.String.format;
 import static java.sql.ResultSet.*;
 
@@ -62,7 +62,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     private AerospikeQuery parseQuery(String sql) {
         final String sqlEscape = sql.replaceAll("\n", " ");
         AerospikeQuery query = AuxStatementParser.hack(sqlEscape).orElseGet(() -> {
-            io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
+            io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
             return AerospikeQueryParser.parseSql(statement);
         });
         if (query.getSchema() == null) {

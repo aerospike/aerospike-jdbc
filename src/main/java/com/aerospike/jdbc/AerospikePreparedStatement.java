@@ -11,7 +11,7 @@ import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.IOUtils;
-import io.prestosql.sql.parser.ParsingOptions;
+import io.trino.sql.parser.ParsingOptions;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
-import static io.prestosql.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
+import static io.trino.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
 import static java.lang.String.format;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
@@ -48,7 +48,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         parameterValues = new Object[n];
         Arrays.fill(parameterValues, Optional.empty());
         ParsingOptions parsingOptions = new ParsingOptions(AS_DOUBLE);
-        io.prestosql.sql.tree.Statement statement = SQL_PARSER.createStatement(sql, parsingOptions);
+        io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(sql, parsingOptions);
         query = AerospikeQueryParser.parseSql(statement);
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
     }

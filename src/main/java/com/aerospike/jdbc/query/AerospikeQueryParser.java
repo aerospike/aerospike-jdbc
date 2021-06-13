@@ -7,8 +7,8 @@ import com.aerospike.jdbc.util.IOUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
-import io.prestosql.sql.ExpressionFormatter;
-import io.prestosql.sql.tree.*;
+import io.trino.sql.ExpressionFormatter;
+import io.trino.sql.tree.*;
 
 import java.util.Arrays;
 import java.util.Iterator;
