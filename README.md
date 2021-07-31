@@ -43,6 +43,7 @@ try {
     System.err.println(e.getMessage());
 }
 ```
+Packages documentation can be found [here](https://javadoc.io/doc/com.aerospike/aerospike-jdbc).
 
 ## Supported SQL Statements
 * SELECT
