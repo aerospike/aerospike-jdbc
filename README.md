@@ -82,9 +82,29 @@ See [examples](docs/examples.md) of SQL.
     * Click `Finish`.
     
     <sup name="jdc-database">1</sup> Specify the `database` parameter for proper functionality.
-    
-* [SQuirreL](http://squirrel-sql.sourceforge.net/)
+  
+![DBeaverAerospike](/images/DBeaverAerospike.png)
+
 * [JetBrains DataGrip](https://www.jetbrains.com/datagrip/)
+
+    Configure the Aerospike JDBC Driver:
+    * Database > + > Driver
+        * Name: Aerospike
+        * Comment (Optional): Aerospike Driver
+        * Driver Files > + > Custom JARs… > add the Aerospike JDBC jar file
+        * URL Template > + > jdbc:aerospike:{host}[:{port}]/[{database}]
+        * Class: select “com.aerospike.jdbc.AerospikeDriver” (should appear after doing the previous steps).
+        * Apply.
+    
+    Configure the data source connection:
+    * Go to the Data Sources tab > + > Aerospike
+        * Choose No Auth or Username & Password if you have security turned on in Aerospike Database Enterprise Edition.
+        * URL: fill the Host, Port and the namespace (For example: jdbc:aerospike:localhost:3000/test).
+        * Apply (ignore the warning).
+
+![JetBrainsDataGripAerospike](/images/JetBrainsDataGripAerospike.png)
+
+* [SQuirreL](http://squirrel-sql.sourceforge.net/)
 
 ## License
 Licensed under the Apache 2.0 License.
