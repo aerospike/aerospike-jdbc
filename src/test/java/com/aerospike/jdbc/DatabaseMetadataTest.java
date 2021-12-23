@@ -1,5 +1,6 @@
 package com.aerospike.jdbc;
 
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.sql.DatabaseMetaData;
@@ -11,6 +12,7 @@ import static org.testng.Assert.*;
 public class DatabaseMetadataTest extends JdbcBaseTest {
 
     @Test
+    @Ignore
     public void testGetTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
 
