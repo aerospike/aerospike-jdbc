@@ -18,6 +18,9 @@ jobs:
         with:
           java-version: 1.8
 
+      - name: Set up Aerospike Database
+        uses: reugn/github-action-aerospike@v1
+
       - name: Maven cache and restore deps
         uses: actions/cache@v1
         with:

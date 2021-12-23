@@ -2,12 +2,15 @@ package com.aerospike.jdbc.util;
 
 import com.aerospike.client.Host;
 import com.aerospike.client.Value;
+import com.aerospike.client.policy.AuthMode;
 import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.scan.EventLoopProvider;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -78,7 +81,18 @@ public final class URLParser {
         Class<T> clazz = (Class<T>) object.getClass();
         props.forEach((key, value) -> {
             try {
-                clazz.getField((String) key).set(object, value);
+                Field field = clazz.getField((String) key);
+                if (field.getType().equals(Integer.TYPE)) {
+                    field.set(object, Integer.valueOf(value.toString()));
+                } else if (field.getType().equals(Long.TYPE)) {
+                    field.set(object, Long.valueOf(value.toString()));
+                } else if (field.getType().equals(Boolean.TYPE)) {
+                    field.set(object, Boolean.valueOf(value.toString()));
+                } else if (field.getType().equals(AuthMode.class)) {
+                    field.set(object, AuthMode.valueOf(value.toString().toUpperCase(Locale.ENGLISH)));
+                } else {
+                    field.set(object, value);
+                }
             } catch (ReflectiveOperationException e1) {
                 // ignore it; this property does not belong to the object
             }
