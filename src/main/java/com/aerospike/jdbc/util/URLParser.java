@@ -75,7 +75,7 @@ public final class URLParser {
         if (scanPolicy.recordsPerSecond == 0) {
             scanPolicy.recordsPerSecond = defaultRecordsPerSecond;
         }
-        Value.UseBoolBin = Optional.ofNullable(props.getProperty("useBoolBin"))
+        Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
                 .map(Boolean::parseBoolean).orElse(true);
         logger.info("Value.UseBoolBin = " + Value.UseBoolBin);
     }
