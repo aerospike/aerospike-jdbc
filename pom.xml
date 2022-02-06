@@ -29,6 +29,7 @@
         <netty.version>4.1.72.Final</netty.version>
         <jackson.version>2.13.1</jackson.version>
         <trino-parser.version>362</trino-parser.version>
+        <httpclient.version>4.5.13</httpclient.version>
     </properties>
 
     <licenses>
@@ -73,7 +74,12 @@
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
             <version>${netty.version}</version>
         </dependency>
 
@@ -99,25 +105,31 @@
             <version>${trino-parser.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>${httpclient.version}</version>
+        </dependency>
+
         <!-- for testing -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.21.0</version>
+            <version>3.22.0</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>7.4.0</version>
+            <version>7.5</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
-            <version>3.24.1</version>
+            <version>3.27.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
