@@ -5,8 +5,11 @@ import com.aerospike.client.Value;
 import com.aerospike.client.policy.AuthMode;
 import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.policy.ScanPolicy;
+import com.aerospike.client.policy.TlsPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.scan.EventLoopProvider;
+import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
+import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -60,11 +63,12 @@ public final class URLParser {
 
     public static void parseUrl(String url, Properties props) {
         logger.info("URL properties: " + props);
-        hosts = parseHosts(url);
         schema = parseSchema(url);
         clientInfo = parseClientInfo(url, props);
+        hosts = parseHosts(url, clientInfo.getProperty("tlsName"));
         clientPolicy = copy(clientInfo, new ClientPolicy());
         clientPolicy.eventLoops = EventLoopProvider.getEventLoops();
+        clientPolicy.tlsPolicy = parseTlsPolicy(clientInfo);
 
         writePolicy = copy(clientInfo, new WritePolicy());
         scanPolicy = copy(clientInfo, new ScanPolicy());
@@ -100,7 +104,12 @@ public final class URLParser {
         return object;
     }
 
-    private static Host[] parseHosts(String url) {
+    private static TlsPolicy parseTlsPolicy(Properties props) {
+        AerospikeTLSPolicyConfig config = AerospikeTLSPolicyConfig.fromProperties(props);
+        return new AerospikeTLSPolicyBuilder(config).build();
+    }
+
+    private static Host[] parseHosts(String url, final String tlsName) {
         Matcher m = AS_JDBC_URL.matcher(url);
         if (!m.find()) {
             throw new IllegalArgumentException("Cannot parse URL " + url);
@@ -108,7 +117,7 @@ public final class URLParser {
         return Arrays.stream(m.group(1).split(","))
                 .map(p -> p.split(":"))
                 .map(a -> a.length > 1 ? a : new String[]{a[0], defaultAerospikePort})
-                .map(hostPort -> new Host(hostPort[0], Integer.parseInt(hostPort[1])))
+                .map(hostPort -> new Host(hostPort[0], tlsName, Integer.parseInt(hostPort[1])))
                 .toArray(Host[]::new);
     }
 
