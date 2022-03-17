@@ -96,6 +96,16 @@ __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
 
+Query for rows that satisfy a `WHERE` with more than one predicate
+
+```sql
+SELECT * FROM port_list WHERE description="Battlefield 2" AND port=16567;
+```
+
+__key       |description  |port |
+------------+-------------+-----+
+battlefield2|Battlefield 2|16567|
+
 Count the records in the table that don't use port 3000:
 
 ```sql
