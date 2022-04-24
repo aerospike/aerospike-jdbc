@@ -19,7 +19,7 @@ SELECT * FROM port_list;
 on an identifier that isn't one of the bins (columns).
 
 To represent this in SQL, `__key` is a magic column. When developers use
-`WritePolicy.sendKey=true` in their applications, the `__key` column will
+`sendKey=true` in their applications, the `__key` column will
 reflect the _userKey_ that is saved with any write operation. Otherwise, it
 will appear to be NULL, but each row still has a distinct object identifier,
 the Aerospike record's _diget_ (see the
