@@ -27,6 +27,8 @@ Pre-built versions of the driver are available in the [Releases](https://github.
 <sup name="jdc-url">1</sup> For example `jdbc:aerospike:localhost` connects to the Aerospike database running on a local machine and listening on the default port (3000).
 The `jdbc:aerospike:172.17.0.5:3300/test` URL connects to the `test` namespace on the Aerospike database running on `172.17.0.5:3300`.
 
+See more about optional [configuration parameters](docs/params.md).
+
 ## Usage example
 ```java
 try {
