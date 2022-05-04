@@ -96,6 +96,7 @@ __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
 
+### Multiple predicates
 Query for rows that satisfy a `WHERE` with more than one predicate
 
 ```sql
@@ -103,9 +104,29 @@ SELECT * FROM port_list WHERE description="Battlefield 2" AND port=16567;
 ```
 
 __key       |description  |port |
-------------+-------------+-----+
+------------|-------------|-----|
 battlefield2|Battlefield 2|16567|
 
+```sql
+SELECT * FROM port_list WHERE port=123 OR port=161;
+```
+
+__key |description                                        |port |
+------|---------------------------------------------------|-----|
+snmp  |Simple Network Management Protocol (SNMP)          | 161 |
+ntp   |Network Time Protocol used for time synchronization| 123 |
+
+```sql
+SELECT * FROM port_list WHERE port=3000 AND NOT(description="Aerospike Database");
+```
+
+__key    |description                             |port|
+---------|----------------------------------------|----|
+cloud9ide|Cloud9 IDE Server                       |3000|
+dis      |Distributed Interactive Simulation (DIS)|3000|
+ror      |Ruby on Rails development default       |3000|
+
+## Aggregate functions
 Count the records in the table that don't use port 3000:
 
 ```sql
