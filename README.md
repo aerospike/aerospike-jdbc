@@ -25,7 +25,10 @@ Pre-built versions of the driver are available in the [Releases](https://github.
 | JDBC URL | `jdbc:aerospike:HOST[:PORT][/NAMESPACE][?PARAM1=VALUE1[&PARAM2=VALUE2]`<sup>[1](#jdbc-url)</sup> |
 
 <sup name="jdc-url">1</sup> For example `jdbc:aerospike:localhost` connects to the Aerospike database running on a local machine and listening on the default port (3000).
-The `jdbc:aerospike:172.17.0.5:3300/test` URL connects to the `test` namespace on the Aerospike database running on `172.17.0.5:3300`.
+The `jdbc:aerospike:172.17.0.5:3300/test` URL connects to the `test` namespace on the Aerospike database running on `172.17.0.5:3300`. When the namespace is provided in the JDBC URL a table name is assumed to be in that connection's namespace, and there is no need to mention the namespace in the query. In this example the following will get the records in namespace _test_ and set _demo_.
+```sql
+SELECT * FROM demo;
+```
 
 See more about optional [configuration parameters](docs/params.md).
 
@@ -69,7 +72,9 @@ See [examples](docs/examples.md) of SQL.
         * Driver Type: Generic
         * Class Name: `com.aerospike.jdbc.AerospikeDriver`
         * URL Template: `jdbc:aerospike:{host}[:{port}]/[{database}]`<sup>[1](#jdbc-database)</sup>
-        * Default Port: 3000
+        * Host: _host_ URL (such as `localhost` or `0.0.0.0`)
+        * Port: _port_ by default should be `3000`
+        * Database/Schema: _database_ by default should be `test`
     * Click the `Add File` button and add the JDBC jar file.
     * Click the `Find Class` button.
     * Click `OK`.

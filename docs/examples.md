@@ -5,7 +5,9 @@ JDBC driver.
 
 ## Concepts
 
-Let's assume the namespace does not have a table named _port_list_.
+Let's assume the namespace does not yet have a table (set) named _port_list_ in
+the namespace defined in the JDBC URL. There is no need to repeat the database
+(namespace) when it's provided in the connection string.
 
 ```sql
 SELECT * FROM port_list;
