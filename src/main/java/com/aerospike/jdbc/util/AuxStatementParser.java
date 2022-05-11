@@ -71,8 +71,8 @@ public final class AuxStatementParser {
         final List<String> values = new ArrayList<>();
         Arrays.stream(setString.split(",")).map(String::trim).forEach(s -> {
             String[] arr = s.split("=");
-            columns.add(arr[0]);
-            values.add(arr[1]);
+            columns.add(arr[0].trim());
+            values.add(arr[1].trim());
         });
         io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(queryString, parsingOptions);
         AerospikeQuery query = AerospikeQueryParser.parseSql(statement);
