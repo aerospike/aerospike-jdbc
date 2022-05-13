@@ -13,7 +13,7 @@ public final class QueryPerformer {
                                                         Statement statement, AerospikeQuery query) {
 
         QueryHandler queryHandler;
-        switch (query.getType()) {
+        switch (query.getQueryType()) {
             case SELECT:
                 queryHandler = new SelectQueryHandler(client, statement);
                 return queryHandler.execute(query);
@@ -38,5 +38,4 @@ public final class QueryPerformer {
                 throw new RuntimeException("Unsupported query type");
         }
     }
-
 }

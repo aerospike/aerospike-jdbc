@@ -25,13 +25,13 @@ public class InsertQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        Value queryKey = extractInsertKey(query);
+        Value queryKey = extractInsertKey(query, 0);
         if (Objects.isNull(queryKey)) {
             queryKey = generateRandomKey();
         }
         Key key = new Key(query.getSchema(), query.getTable(), queryKey);
 
-        Bin[] bins = getBins(query);
+        Bin[] bins = getInsertBins(query, 0);
         try {
             client.put(buildCreateOnlyPolicy(query), key, bins);
         } catch (AerospikeException e) {
@@ -41,14 +41,14 @@ public class InsertQueryHandler extends BaseQueryHandler {
         return new Pair<>(emptyRecordSet(query), 1);
     }
 
-    private Value extractInsertKey(AerospikeQuery query) {
+    private Value extractInsertKey(AerospikeQuery query, int n) {
         List<String> columns = query.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             if (columns.get(i).equals(defaultKeyName)) {
-                String key = query.getValues().get(i);
+                Object key = ((List<Object>) query.getValues().get(n)).get(i);
                 columns.remove(i);
-                query.getValues().remove(i);
-                return getBinValue(key);
+                ((List<Object>) query.getValues().get(n)).remove(i);
+                return Value.get(key);
             }
         }
         return null;

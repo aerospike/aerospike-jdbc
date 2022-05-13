@@ -1,35 +1,45 @@
 package com.aerospike.jdbc.model;
 
+import com.aerospike.jdbc.predicate.QueryPredicate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
+import org.apache.calcite.avatica.util.Casing;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AerospikeQuery {
+
+    @VisibleForTesting
+    public static final SqlParser.Config sqlParserConfig = SqlParser.config()
+            .withParserFactory(SqlDdlParserImpl.FACTORY)
+            .withCaseSensitive(true)
+            .withUnquotedCasing(Casing.UNCHANGED)
+            .withQuotedCasing(Casing.UNCHANGED);
 
     private String catalog;
     private String schema;
     private String table;
-    private QueryType type;
-    private final List<OrderByExpression> orderBy;
+    private QueryType queryType;
     private Integer offset;
     private Integer limit;
-    private Boolean distinct;
-    private WhereExpression where;
-    private String like;
-    private String escape;
-    private List<String> values;
+
+    private QueryPredicate predicate;
+    private List<Object> values;
     private List<String> columns;
 
     public AerospikeQuery() {
-        this.type = QueryType.UNKNOWN;
-        this.orderBy = new ArrayList<>();
-        this.values = new LinkedList<>();
-        this.columns = new LinkedList<>();
+        this.queryType = QueryType.UNKNOWN;
+    }
+
+    public static AerospikeQuery parse(String sql) throws SqlParseException {
+        SqlParser parser = SqlParser.create(sql, sqlParserConfig);
+        SqlNode parsed = parser.parseQuery();
+        return parsed.accept(new AerospikeSqlVisitor());
     }
 
     public String getCatalog() {
@@ -77,20 +87,12 @@ public class AerospikeQuery {
         return new SchemaTableName(schema, table);
     }
 
-    public void setType(QueryType type) {
-        this.type = type;
+    public void setQueryType(QueryType queryType) {
+        this.queryType = queryType;
     }
 
-    public QueryType getType() {
-        return type;
-    }
-
-    public void appendOrderBy(OrderByExpression orderBy) {
-        this.orderBy.add(orderBy);
-    }
-
-    public List<OrderByExpression> getOrderBy() {
-        return orderBy;
+    public QueryType getQueryType() {
+        return queryType;
     }
 
     public void setOffset(int offset) {
@@ -109,56 +111,24 @@ public class AerospikeQuery {
         return limit;
     }
 
-    public void setDistinct(boolean distinct) {
-        this.distinct = distinct;
+    public void setPredicate(QueryPredicate predicate) {
+        this.predicate = predicate;
     }
 
-    public Boolean getDistinct() {
-        return distinct;
+    public QueryPredicate getPredicate() {
+        return predicate;
     }
 
-    public void setWhere(WhereExpression where) {
-        this.where = where;
-    }
-
-    public WhereExpression getWhere() {
-        return where;
-    }
-
-    public void setLike(String like) {
-        this.like = like;
-    }
-
-    public String getLike() {
-        return like;
-    }
-
-    public void setEscape(String escape) {
-        this.escape = escape;
-    }
-
-    public String getEscape() {
-        return escape;
-    }
-
-    public void setValues(List<String> values) {
+    public void setValues(List<Object> values) {
         this.values = values;
     }
 
-    public void appendValues(String... values) {
-        this.values.addAll(Arrays.stream(values).filter(x -> !x.equals("")).collect(Collectors.toList()));
-    }
-
-    public List<String> getValues() {
+    public List<Object> getValues() {
         return values;
     }
 
     public void setColumns(List<String> columns) {
         this.columns = columns;
-    }
-
-    public void appendColumns(String... columns) {
-        this.columns.addAll(Arrays.stream(columns).filter(x -> !x.equals("")).collect(Collectors.toList()));
     }
 
     public List<String> getColumns() {
@@ -170,6 +140,13 @@ public class AerospikeQuery {
             return null;
         }
         return columns.toArray(new String[0]);
+    }
+
+    public Object getPrimaryKey() {
+        if (predicate != null) {
+            return predicate.getPrimaryKey();
+        }
+        return null;
     }
 
     @Override

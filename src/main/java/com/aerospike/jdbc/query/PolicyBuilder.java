@@ -17,8 +17,8 @@ public final class PolicyBuilder {
     public static ScanPolicy buildScanPolicy(AerospikeQuery query) {
         ScanPolicy scanPolicy = new ScanPolicy(URLParser.getScanPolicy());
         scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
-        Exp expression = ExpressionBuilder.buildExp(query.getWhere());
-        scanPolicy.filterExp = Objects.isNull(expression) ? null : Exp.build(expression);
+        scanPolicy.filterExp = Objects.isNull(query.getPredicate())
+                ? null : Exp.build(query.getPredicate().toFilterExpression());
         return scanPolicy;
     }
 

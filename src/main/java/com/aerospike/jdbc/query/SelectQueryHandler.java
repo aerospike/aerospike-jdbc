@@ -43,12 +43,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
-        Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
+        Object keyObject = query.getPrimaryKey();
         Pair<ResultSet, Integer> result;
         if (isCount(query)) {
             result = executeCountQuery(query);
         } else if (Objects.nonNull(keyObject)) {
-            result = executeSelectByPrimaryKey(query, getBinValue(keyObject.toString()));
+            result = executeSelectByPrimaryKey(query, Value.get(keyObject));
         } else {
             result = executeScanQuery(query);
         }
@@ -60,7 +60,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         logger.info("SELECT count");
         String countLabel = query.getColumns().get(0);
         int recordNumber;
-        if (Objects.isNull(query.getWhere())) {
+        if (Objects.isNull(query.getPredicate())) {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
             ScanPolicy policy = buildScanNoBinDataPolicy(query);
@@ -123,5 +123,4 @@ public class SelectQueryHandler extends BaseQueryHandler {
         List<String> list = Arrays.stream(selected).map(IOUtils::stripQuotes).collect(Collectors.toList());
         return columns.stream().filter(c -> list.contains(c.getName())).collect(Collectors.toList());
     }
-
 }

@@ -28,31 +28,19 @@ public abstract class BaseQueryHandler implements QueryHandler {
         List<String> columns = query.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)),
-                    getBinValue(query.getValues().get(i))));
+                    Value.get(query.getValues().get(i))));
         }
         return bins.toArray(new Bin[0]);
     }
 
-    protected Value getBinValue(String strValue) {
-        if (ExpressionBuilder.isStringValue(strValue)) {
-            return Value.get(ExpressionBuilder.stripQuotes(strValue));
+    protected Bin[] getInsertBins(AerospikeQuery query, int n) {
+        List<Bin> bins = new ArrayList<>();
+        List<String> columns = query.getColumns();
+        for (int i = 0; i < columns.size(); i++) {
+            bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)),
+                    Value.get(((List<Object>) query.getValues().get(n)).get(i))));
         }
-        try {
-            return new Value.LongValue(Long.parseLong(strValue));
-        } catch (NumberFormatException ignore) {
-        }
-        try {
-            return new Value.DoubleValue(Double.parseDouble(strValue));
-        } catch (NumberFormatException ignore) {
-        }
-        if (strValue.equalsIgnoreCase("true") ||
-                strValue.equalsIgnoreCase("false")) {
-            return Value.get(Boolean.parseBoolean(strValue));
-        }
-        if (strValue.equalsIgnoreCase("null")) {
-            return Value.NULL;
-        }
-        return Value.get(strValue);
+        return bins.toArray(new Bin[0]);
     }
 
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {
