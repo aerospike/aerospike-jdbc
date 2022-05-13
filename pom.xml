@@ -28,7 +28,7 @@
         <aerospike-client.version>5.1.11</aerospike-client.version>
         <netty.version>4.1.72.Final</netty.version>
         <jackson.version>2.13.1</jackson.version>
-        <trino-parser.version>362</trino-parser.version>
+        <calcite.version>1.30.0</calcite.version>
         <httpclient.version>4.5.13</httpclient.version>
     </properties>
 
@@ -100,9 +100,14 @@
         </dependency>
 
         <dependency>
-            <groupId>io.trino</groupId>
-            <artifactId>trino-parser</artifactId>
-            <version>${trino-parser.version}</version>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-core</artifactId>
+            <version>${calcite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-server</artifactId>
+            <version>${calcite.version}</version>
         </dependency>
 
         <dependency>
@@ -215,6 +220,17 @@
                 </executions>
                 <configuration>
                     <finalName>uber-${artifactId}-${version}</finalName>
+                    <minimizeJar>true</minimizeJar>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
             </plugin>
 
