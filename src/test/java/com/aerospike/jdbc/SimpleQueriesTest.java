@@ -31,7 +31,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
     }
 
     @AfterMethod
@@ -67,7 +67,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
 
                 total++;
             }
-            assertEquals(1, total);
+            assertEquals(total, 1);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -85,7 +85,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
     }
 
     @Test
@@ -99,7 +99,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
 
         query = String.format("update %s set int1=100 where bin1>20000", tableName);
         try {
@@ -108,7 +108,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(0, count);
+        assertEquals(count, 0);
     }
 
     @Test
@@ -120,7 +120,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
             resultSet.next();
-            assertEquals(1, resultSet.getObject(1));
+            assertEquals(resultSet.getObject(1), 1);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
