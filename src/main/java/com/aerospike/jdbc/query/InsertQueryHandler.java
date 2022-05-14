@@ -48,7 +48,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
                 .collect(Collectors.toList());
 
         FutureWriteListener listener = new FutureWriteListener(query.getValues().size());
-        WritePolicy writePolicy = buildCreateOnlyPolicy(query);
+        WritePolicy writePolicy = buildCreateOnlyPolicy();
         for (Object record : query.getValues()) {
             @SuppressWarnings("unchecked")
             List<Object> values = (List<Object>) record;

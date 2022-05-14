@@ -1,18 +1,21 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
+import com.aerospike.jdbc.async.FutureDeleteListener;
 import com.aerospike.jdbc.async.ScanRecordSequenceListener;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Objects;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -29,15 +32,27 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        logger.info("DELETE statement");
-        Object keyObject = query.getPrimaryKey();
+        List<Object> keyObjects = query.getPrimaryKeys();
         final WritePolicy writePolicy = buildWritePolicy(query);
-        if (Objects.nonNull(keyObject)) {
-            Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
-            int count = client.delete(writePolicy, key) ? 1 : 0;
-
-            return new Pair<>(emptyRecordSet(query), count);
+        if (!keyObjects.isEmpty()) {
+            logger.info("DELETE primary key");
+            FutureDeleteListener listener = new FutureDeleteListener(keyObjects.size());
+            for (Object keyObject : keyObjects) {
+                Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+                try {
+                    client.delete(EventLoopProvider.getEventLoop(), listener, writePolicy, key);
+                } catch (AerospikeException e) {
+                    logger.severe("Error on database call: " + e.getMessage());
+                    listener.onFailure(e);
+                }
+            }
+            try {
+                return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
+            } catch (InterruptedException | ExecutionException e) {
+                return new Pair<>(emptyRecordSet(query), 0);
+            }
         } else {
+            logger.info("DELETE scan");
             ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
             ScanPolicy scanPolicy = buildScanPolicy(query);
             scanPolicy.includeBinData = false;

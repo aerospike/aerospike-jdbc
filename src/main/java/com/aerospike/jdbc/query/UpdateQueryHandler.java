@@ -8,13 +8,15 @@ import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
+import com.aerospike.jdbc.async.FutureWriteListener;
 import com.aerospike.jdbc.async.ScanRecordSequenceListener;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Objects;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -31,20 +33,28 @@ public class UpdateQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        logger.info("UPDATE statement");
-        Object keyObject = query.getPrimaryKey();
+        List<Object> keyObjects = query.getPrimaryKeys();
         final Bin[] bins = getBins(query);
-        final WritePolicy writePolicy = buildUpdateOnlyPolicy(query);
-        if (Objects.nonNull(keyObject)) {
-            Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+        final WritePolicy writePolicy = buildUpdateOnlyPolicy();
+        if (!keyObjects.isEmpty()) {
+            logger.info("UPDATE primary key");
+            FutureWriteListener listener = new FutureWriteListener(keyObjects.size());
+            for (Object keyObject : keyObjects) {
+                Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+                try {
+                    client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
+                } catch (AerospikeException e) {
+                    logger.severe("Error on database call: " + e.getMessage());
+                    listener.onFailure(e);
+                }
+            }
             try {
-                client.put(writePolicy, key, bins);
-            } catch (AerospikeException e) {
+                return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
+            } catch (InterruptedException | ExecutionException e) {
                 return new Pair<>(emptyRecordSet(query), 0);
             }
-
-            return new Pair<>(emptyRecordSet(query), 1);
         } else {
+            logger.info("UPDATE scan");
             ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
             ScanPolicy scanPolicy = buildScanPolicy(query);
             scanPolicy.includeBinData = false;

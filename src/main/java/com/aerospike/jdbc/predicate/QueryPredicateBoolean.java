@@ -56,6 +56,15 @@ public class QueryPredicateBoolean implements QueryPredicate {
         return Collections.emptyList();
     }
 
+    @Override
+    public List<Object> getPrimaryKeys() {
+        if (operator == OperatorBinary.AND) {
+            return Stream.concat(left.getPrimaryKeys().stream(), right.getPrimaryKeys().stream())
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     private static <T> Optional<T> or(Optional<T> optional, Optional<T> fallback) {
         return optional.isPresent() ? optional : fallback;

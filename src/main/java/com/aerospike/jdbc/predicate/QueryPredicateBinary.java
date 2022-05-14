@@ -3,6 +3,8 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
@@ -63,10 +65,10 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     }
 
     @Override
-    public Object getPrimaryKey() {
+    public List<Object> getPrimaryKeys() {
         if (binName.equals(defaultKeyName)) {
-            return value;
+            return Collections.singletonList(value);
         }
-        return null;
+        return Collections.emptyList();
     }
 }

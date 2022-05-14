@@ -3,6 +3,7 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +17,7 @@ public interface QueryPredicate {
 
     List<String> getBinNames();
 
-    default Object getPrimaryKey() {
-        return null;
+    default List<Object> getPrimaryKeys() {
+        return Collections.emptyList();
     }
 }

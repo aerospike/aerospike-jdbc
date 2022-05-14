@@ -1,12 +1,16 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.BatchRead;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
 import com.aerospike.client.Value;
+import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.RecordSet;
+import com.aerospike.jdbc.async.RecordSetBatchSequenceListener;
 import com.aerospike.jdbc.async.ScanQueryHandler;
 import com.aerospike.jdbc.async.SecondaryIndexQueryHandler;
 import com.aerospike.jdbc.model.AerospikeQuery;
@@ -42,13 +46,13 @@ public class SelectQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
-        Object keyObject = query.getPrimaryKey();
+        List<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
         if (isCount(query)) {
             result = executeCountQuery(query);
-        } else if (Objects.nonNull(keyObject)) {
-            result = executeSelectByPrimaryKey(query, Value.get(keyObject));
+        } else if (!keyObjects.isEmpty()) {
+            result = executeSelectByPrimaryKey(query, keyObjects);
         } else {
             result = sIndex.map(secondaryIndex -> executeQuery(query, secondaryIndex))
                     .orElseGet(() -> executeScan(query));
@@ -84,22 +88,17 @@ public class SelectQueryHandler extends BaseQueryHandler {
                 query.getTable(), columnList), -1);
     }
 
-    private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Value primaryKey) {
+    private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, List<Object> keyObjects) {
         logger.info("SELECT primary key");
-        Key key = new Key(query.getSchema(), query.getTable(), primaryKey);
-        com.aerospike.client.Record record = client.get(null, key, query.getBinNames());
+        final BatchReadPolicy policy = buildBatchReadPolicy(query);
+        List<BatchRead> batchReadList = keyObjects.stream()
+                .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getTable(), Value.get(k)), true))
+                .collect(Collectors.toList());
 
-        RecordSet recordSet;
-        if (Objects.nonNull(record)) {
-            recordSet = new RecordSet(2);
-            KeyRecord keyRecord = new KeyRecord(key, record);
-            recordSet.put(keyRecord);
-        } else {
-            recordSet = new RecordSet(1);
-        }
-        recordSet.end();
+        RecordSetBatchSequenceListener listener = new RecordSetBatchSequenceListener();
+        client.get(EventLoopProvider.getEventLoop(), listener, null, batchReadList);
 
-        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
+        return new Pair<>(new AerospikeRecordResultSet(listener.getRecordSet(), statement, query.getSchema(),
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);
     }
 
