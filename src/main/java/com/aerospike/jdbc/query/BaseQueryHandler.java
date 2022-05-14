@@ -5,10 +5,8 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.sql.ListRecordSet;
-import com.aerospike.jdbc.util.IOUtils;
 
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 
 import static java.util.Collections.emptyList;
@@ -24,23 +22,12 @@ public abstract class BaseQueryHandler implements QueryHandler {
     }
 
     protected Bin[] getBins(AerospikeQuery query) {
-        List<Bin> bins = new ArrayList<>();
         List<String> columns = query.getColumns();
+        Bin[] bins = new Bin[columns.size()];
         for (int i = 0; i < columns.size(); i++) {
-            bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)),
-                    Value.get(query.getValues().get(i))));
+            bins[i] = new Bin(columns.get(i), Value.get(query.getValues().get(i)));
         }
-        return bins.toArray(new Bin[0]);
-    }
-
-    protected Bin[] getInsertBins(AerospikeQuery query, int n) {
-        List<Bin> bins = new ArrayList<>();
-        List<String> columns = query.getColumns();
-        for (int i = 0; i < columns.size(); i++) {
-            bins.add(new Bin(IOUtils.stripQuotes(columns.get(i)),
-                    Value.get(((List<Object>) query.getValues().get(n)).get(i))));
-        }
-        return bins.toArray(new Bin[0]);
+        return bins;
     }
 
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {

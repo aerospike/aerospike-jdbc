@@ -20,6 +20,7 @@ public final class PolicyBuilder {
         scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
         scanPolicy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
+        scanPolicy.sendKey = true;
         return scanPolicy;
     }
 
