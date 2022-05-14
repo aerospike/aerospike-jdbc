@@ -7,10 +7,10 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
-import com.aerospike.jdbc.model.AerospikeQuery;
-import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.ScanRecordSequenceListener;
+import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -56,7 +56,8 @@ public class UpdateQueryHandler extends BaseQueryHandler {
                 try {
                     client.put(writePolicy, r.key, bins);
                     count.incrementAndGet();
-                } catch (AerospikeException ignore) {
+                } catch (AerospikeException e) {
+                    logger.warning("Failed to update record: " + e.getMessage());
                 }
             });
 

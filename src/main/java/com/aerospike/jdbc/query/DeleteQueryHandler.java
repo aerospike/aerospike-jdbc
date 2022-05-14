@@ -5,10 +5,10 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
-import com.aerospike.jdbc.model.AerospikeQuery;
-import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.ScanRecordSequenceListener;
+import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -46,8 +46,12 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
-                if (client.delete(writePolicy, r.key))
-                    count.incrementAndGet();
+                try {
+                    if (client.delete(writePolicy, r.key))
+                        count.incrementAndGet();
+                } catch (Exception e) {
+                    logger.warning("Failed to delete record: " + e.getMessage());
+                }
             });
 
             return new Pair<>(emptyRecordSet(query), count.get());
