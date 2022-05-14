@@ -16,7 +16,6 @@ import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 import com.aerospike.jdbc.util.AerospikeUtils;
-import com.aerospike.jdbc.util.IOUtils;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
@@ -159,7 +158,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private List<DataColumn> filterColumns(List<DataColumn> columns, String[] selected) {
         if (Objects.isNull(selected)) return columns;
-        List<String> list = Arrays.stream(selected).map(IOUtils::stripQuotes).collect(Collectors.toList());
+        List<String> list = Arrays.stream(selected).collect(Collectors.toList());
         return columns.stream().filter(c -> list.contains(c.getName())).collect(Collectors.toList());
     }
 }
