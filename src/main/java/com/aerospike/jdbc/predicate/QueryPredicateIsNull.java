@@ -27,7 +27,7 @@ public class QueryPredicateIsNull implements QueryPredicate {
 
     @Override
     public boolean isIndexable() {
-        return false;
+        return true;
     }
 
     @Override
