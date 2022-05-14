@@ -55,7 +55,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     public Optional<Filter> toFilter(String binName) {
         if (binName.equals(this.binName) && operator == OperatorBinary.EQ) {
             if (valueType == Exp.Type.INT) {
-                return Optional.of(Filter.equal(binName, (long) value));
+                return Optional.of(Filter.equal(binName, (int) value));
             }
             return Optional.of(Filter.equal(binName, (String) value));
         }

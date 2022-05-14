@@ -4,10 +4,11 @@ import com.aerospike.client.Host;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.AuthMode;
 import com.aerospike.client.policy.ClientPolicy;
+import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.TlsPolicy;
 import com.aerospike.client.policy.WritePolicy;
-import com.aerospike.jdbc.scan.EventLoopProvider;
+import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
 
@@ -36,6 +37,7 @@ public final class URLParser {
     private static ClientPolicy clientPolicy;
     private static WritePolicy writePolicy;
     private static ScanPolicy scanPolicy;
+    private static QueryPolicy queryPolicy;
 
     public static Host[] getHosts() {
         return hosts;
@@ -61,6 +63,10 @@ public final class URLParser {
         return scanPolicy;
     }
 
+    public static QueryPolicy getQueryPolicy() {
+        return queryPolicy;
+    }
+
     public static void parseUrl(String url, Properties props) {
         logger.info("URL properties: " + props);
         schema = parseSchema(url);
@@ -75,6 +81,7 @@ public final class URLParser {
         if (scanPolicy.recordsPerSecond == 0) {
             scanPolicy.recordsPerSecond = defaultRecordsPerSecond;
         }
+        queryPolicy = copy(clientInfo, new QueryPolicy());
         Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
                 .map(Boolean::parseBoolean).orElse(true);
         logger.info("Value.UseBoolBin = " + Value.UseBoolBin);

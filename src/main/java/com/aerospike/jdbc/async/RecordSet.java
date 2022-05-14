@@ -1,4 +1,4 @@
-package com.aerospike.jdbc.scan;
+package com.aerospike.jdbc.async;
 
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Key;
@@ -22,7 +22,7 @@ public final class RecordSet
         this.queue = new ArrayBlockingQueue<>(capacity);
     }
 
-    public final boolean next()
+    public boolean next()
             throws AerospikeException {
         try {
             this.record = this.queue.take();
@@ -40,7 +40,7 @@ public final class RecordSet
         }
     }
 
-    public final void close() {
+    public void close() {
         this.valid = false;
     }
 
@@ -48,15 +48,15 @@ public final class RecordSet
         return new RecordSetIterator(this);
     }
 
-    public final Key getKey() {
+    public Key getKey() {
         return this.record.key;
     }
 
-    public final Record getRecord() {
+    public Record getRecord() {
         return this.record.record;
     }
 
-    public final boolean put(KeyRecord record) {
+    public boolean put(KeyRecord record) {
         if (!this.valid) {
             return false;
         } else {
@@ -73,11 +73,11 @@ public final class RecordSet
         }
     }
 
-    public final boolean end() {
+    public boolean end() {
         return put(END);
     }
 
-    protected final void abort() {
+    private void abort() {
         this.valid = false;
         this.queue.clear();
 

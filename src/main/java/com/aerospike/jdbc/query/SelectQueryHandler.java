@@ -3,31 +3,31 @@ package com.aerospike.jdbc.query;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
 import com.aerospike.client.Value;
+import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.jdbc.async.RecordSet;
+import com.aerospike.jdbc.async.ScanQueryHandler;
+import com.aerospike.jdbc.async.SecondaryIndexQueryHandler;
 import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.scan.PartitionScanHandler;
-import com.aerospike.jdbc.scan.RecordSet;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
+import com.aerospike.jdbc.util.AerospikeUtils;
 import com.aerospike.jdbc.util.IOUtils;
+import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanNoBinDataPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.*;
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
 
 public class SelectQueryHandler extends BaseQueryHandler {
@@ -44,15 +44,16 @@ public class SelectQueryHandler extends BaseQueryHandler {
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
         Object keyObject = query.getPrimaryKey();
+        Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
         if (isCount(query)) {
             result = executeCountQuery(query);
         } else if (Objects.nonNull(keyObject)) {
             result = executeSelectByPrimaryKey(query, Value.get(keyObject));
         } else {
-            result = executeScanQuery(query);
+            result = sIndex.map(secondaryIndex -> executeQuery(query, secondaryIndex))
+                    .orElseGet(() -> executeScan(query));
         }
-
         return result;
     }
 
@@ -64,7 +65,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
             ScanPolicy policy = buildScanNoBinDataPolicy(query);
-            RecordSet recordSet = PartitionScanHandler.create(client).scanPartition(policy, query);
+            RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
 
             final AtomicInteger count = new AtomicInteger();
             recordSet.forEach(r -> count.incrementAndGet());
@@ -85,7 +86,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Value primaryKey) {
-        logger.info("SELECT PK");
+        logger.info("SELECT primary key");
         Key key = new Key(query.getSchema(), query.getTable(), primaryKey);
         com.aerospike.client.Record record = client.get(null, key, query.getBinNames());
 
@@ -103,14 +104,52 @@ public class SelectQueryHandler extends BaseQueryHandler {
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);
     }
 
-    private Pair<ResultSet, Integer> executeScanQuery(AerospikeQuery query) {
-        logger.info("SELECT scan");
+    private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
+        logger.info("SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
         ScanPolicy policy = buildScanPolicy(query);
-        RecordSet recordSet = PartitionScanHandler.create(client).scanPartition(policy, query);
+        RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+    }
+
+    private Pair<ResultSet, Integer> executeQuery(AerospikeQuery query,
+                                                  AerospikeSecondaryIndex secondaryIndex) {
+        logger.info("SELECT secondary index query for column: " + secondaryIndex.getBinName());
+
+        QueryPolicy policy = buildQueryPolicy(query);
+        RecordSet recordSet = SecondaryIndexQueryHandler.create(client).execute(policy, query, secondaryIndex);
+
+        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
+                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+    }
+
+    private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
+        if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
+                && query.getPredicate().isIndexable()) {
+            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeUtils.getSecondaryIndexes(client);
+            List<String> binNames = query.getPredicate().getBinNames();
+            if (!binNames.isEmpty() && !indexMap.isEmpty()) {
+                if (binNames.size() == 1) {
+                    String binName = binNames.get(0);
+                    for (AerospikeSecondaryIndex index : indexMap.values()) {
+                        if (index.getBinName().equals(binName)) {
+                            return Optional.of(index);
+                        }
+                    }
+                } else {
+                    List<AerospikeSecondaryIndex> indexList = new ArrayList<>(indexMap.values());
+                    indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+                    for (AerospikeSecondaryIndex index : indexList) {
+                        if (binNames.contains(index.getBinName())) {
+                            return Optional.of(index);
+                        }
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private boolean isCount(AerospikeQuery query) {

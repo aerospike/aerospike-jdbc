@@ -1,6 +1,7 @@
 package com.aerospike.jdbc.query;
 
 import com.aerospike.client.exp.Exp;
+import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
@@ -20,6 +21,13 @@ public final class PolicyBuilder {
         scanPolicy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
         return scanPolicy;
+    }
+
+    public static QueryPolicy buildQueryPolicy(AerospikeQuery query) {
+        QueryPolicy queryPolicy = new QueryPolicy(URLParser.getQueryPolicy());
+        queryPolicy.filterExp = Objects.isNull(query.getPredicate())
+                ? null : Exp.build(query.getPredicate().toFilterExpression());
+        return queryPolicy;
     }
 
     public static ScanPolicy buildScanNoBinDataPolicy(AerospikeQuery query) {
