@@ -151,7 +151,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
 
     private Object getNumeric(BigDecimal bd) {
         if (bd.signum() == 0 || bd.scale() <= 0 || bd.stripTrailingZeros().scale() <= 0) {
-            return bd.intValue();
+            return bd.longValue();
         }
         return bd.doubleValue();
     }

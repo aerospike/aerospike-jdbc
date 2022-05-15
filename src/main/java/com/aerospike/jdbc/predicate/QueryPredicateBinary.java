@@ -23,7 +23,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     private static Exp.Type getValueType(Object value) {
         if (value instanceof String) {
             return Exp.Type.STRING;
-        } else if (value instanceof Integer) {
+        } else if (value instanceof Long) {
             return Exp.Type.INT;
         } else if (value instanceof Double) {
             return Exp.Type.FLOAT;
@@ -37,8 +37,8 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     private Exp getValueExp() {
         if (value instanceof String) {
             return Exp.val((String) value);
-        } else if (value instanceof Integer) {
-            return Exp.val((int) value);
+        } else if (value instanceof Long) {
+            return Exp.val((long) value);
         } else if (value instanceof Double) {
             return Exp.val((double) value);
         } else if (value instanceof Boolean) {
@@ -57,7 +57,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     public Optional<Filter> toFilter(String binName) {
         if (binName.equals(this.binName) && operator == OperatorBinary.EQ) {
             if (valueType == Exp.Type.INT) {
-                return Optional.of(Filter.equal(binName, (int) value));
+                return Optional.of(Filter.equal(binName, (long) value));
             }
             return Optional.of(Filter.equal(binName, (String) value));
         }
