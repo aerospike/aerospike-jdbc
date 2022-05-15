@@ -44,7 +44,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
         } else if (value instanceof Boolean) {
             return Exp.val((boolean) value);
         } else {
-            return Exp.stringBin(value.toString());
+            return Exp.val(value.toString());
         }
     }
 
