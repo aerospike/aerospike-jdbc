@@ -12,6 +12,8 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import java.util.Objects;
 import java.util.logging.Logger;
 
+import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+
 public class ScanQueryHandler {
 
     private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
@@ -28,6 +30,10 @@ public class ScanQueryHandler {
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {
+        if (query.getBinNames() != null && query.getBinNames().length == 1
+                && query.getBinNames()[0].equals(defaultKeyName)) {
+            scanPolicy.includeBinData = false;
+        }
         if (Objects.nonNull(query.getOffset())) {
             long maxRecords = scanPolicy.maxRecords;
             PartitionFilter filter = getPartitionFilter(query);
