@@ -19,14 +19,14 @@ public class ScanQueryHandler {
     private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
 
     private final IAerospikeClient client;
-    private ScanRecordSequenceListener listener;
+    private RecordSetRecordSequenceListener listener;
 
     private int currentPartition;
     private int count;
 
     public ScanQueryHandler(IAerospikeClient client) {
         this.client = client;
-        this.listener = new ScanRecordSequenceListener();
+        this.listener = new RecordSetRecordSequenceListener();
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {

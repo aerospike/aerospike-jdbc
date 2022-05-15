@@ -8,7 +8,7 @@ import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.FutureDeleteListener;
-import com.aerospike.jdbc.async.ScanRecordSequenceListener;
+import com.aerospike.jdbc.async.RecordSetRecordSequenceListener;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
 
@@ -53,7 +53,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             }
         } else {
             logger.info("DELETE scan");
-            ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
+            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener();
             ScanPolicy scanPolicy = buildScanPolicy(query);
             scanPolicy.includeBinData = false;
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),

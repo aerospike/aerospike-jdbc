@@ -6,13 +6,13 @@ import com.aerospike.client.Record;
 import com.aerospike.client.listener.RecordSequenceListener;
 import com.aerospike.client.query.KeyRecord;
 
-public class ScanRecordSequenceListener
+public class RecordSetRecordSequenceListener
         implements RecordSequenceListener {
 
     private static final int defaultCapacity = 8192;
     private final RecordSet recordSet;
 
-    public ScanRecordSequenceListener() {
+    public RecordSetRecordSequenceListener() {
         recordSet = new RecordSet(defaultCapacity);
     }
 

@@ -14,11 +14,11 @@ public class SecondaryIndexQueryHandler {
     private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
 
     private final IAerospikeClient client;
-    private final QueryRecordSequenceListener listener;
+    private final RecordSetRecordSequenceListener listener;
 
     public SecondaryIndexQueryHandler(IAerospikeClient client) {
         this.client = client;
-        this.listener = new QueryRecordSequenceListener();
+        this.listener = new RecordSetRecordSequenceListener();
     }
 
     public RecordSet execute(QueryPolicy queryPolicy, AerospikeQuery query,
