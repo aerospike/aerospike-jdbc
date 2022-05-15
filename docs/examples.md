@@ -35,6 +35,21 @@ created upon insertion of a new row.
 For more on the [Aerospike data model](https://www.aerospike.com/docs/architecture/data-model.html)
 see the Aerospike documentation.
 
+### Table and column naming
+You should be aware of the [known limitations](https://docs.aerospike.com/guide/limitations)
+on table (set) and column (bin) names in Aerospike.
+
+> Names can include only Latin lowercase and uppercase letters with no diacritical marks (a-z, A-Z), digits 0-9, underscores (_), hyphens (-), and dollar signs ($). This naming guideline is not enforced; however, if you do not follow it, some Aerospike features and tools might not function properly.
+
+Table names are limited to 63 characters and column names to 15 characters.
+
+In the JDBC driver it is recommended that you use quotes around table names. For
+example
+
+```sql
+SELECT * FROM "top-users";
+```
+
 ## INSERT
 
 Let's add some rows with explicit primary keys:
@@ -49,8 +64,11 @@ INSERT INTO port_list (__key, port, description) VALUES ("ror", 3000, "Ruby on R
 INSERT INTO port_list (__key, port, description) VALUES ("dis", 3000, "Distributed Interactive Simulation (DIS)");
 INSERT INTO port_list (__key, port, description) VALUES ("fcip", 3225, "Fibre Channel over IP (FCIP)");
 INSERT INTO port_list (__key, port, description) VALUES ("metasys", 11001, "Johnson Controls Metasys java AC control environment");
-INSERT INTO port_list (__key, port, description) VALUES ("memcache", 11211, "Memcached");
-INSERT INTO port_list (__key, port, description) VALUES ("battlefield2", 16567, "Battlefield 2");
+```
+
+Multiple rows can be inserted at once:
+```sql
+INSERT INTO port_list (__key, port, description) VALUES ("memcache", 11211, "Memcached"), ("battlefield2", 16567, "Battlefield 2");
 ```
 
 As an Aerospike row (_record_) must have a primary key, if none is provided
@@ -97,6 +115,8 @@ SELECT * FROM port_list WHERE __key="memcache";
 __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
+
+
 
 ### Multiple predicates
 Query for rows that satisfy a `WHERE` with more than one predicate
