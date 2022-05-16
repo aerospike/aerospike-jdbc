@@ -20,37 +20,9 @@ public class QueryPredicateBinary extends QueryPredicateBase {
         this.value = value;
     }
 
-    private static Exp.Type getValueType(Object value) {
-        if (value instanceof String) {
-            return Exp.Type.STRING;
-        } else if (value instanceof Long) {
-            return Exp.Type.INT;
-        } else if (value instanceof Double) {
-            return Exp.Type.FLOAT;
-        } else if (value instanceof Boolean) {
-            return Exp.Type.BOOL;
-        } else {
-            return Exp.Type.STRING;
-        }
-    }
-
-    private Exp getValueExp() {
-        if (value instanceof String) {
-            return Exp.val((String) value);
-        } else if (value instanceof Long) {
-            return Exp.val((long) value);
-        } else if (value instanceof Double) {
-            return Exp.val((double) value);
-        } else if (value instanceof Boolean) {
-            return Exp.val((boolean) value);
-        } else {
-            return Exp.val(value.toString());
-        }
-    }
-
     @Override
     public Exp toFilterExpression() {
-        return operator.exp(buildLeftExp(), getValueExp());
+        return operator.exp(buildLeftExp(), getValueExp(value));
     }
 
     @Override

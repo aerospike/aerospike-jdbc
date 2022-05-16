@@ -1,6 +1,7 @@
 package com.aerospike.jdbc.predicate;
 
 import com.aerospike.client.exp.Exp;
+import com.google.common.base.Preconditions;
 
 import java.util.function.BiFunction;
 
@@ -11,7 +12,7 @@ public enum OperatorBinary implements Operator {
     LE(Exp::le),
     GT(Exp::gt),
     GE(Exp::ge),
-    NE(null),
+    NE((exp1, exp2) -> Exp.not(Exp.eq(exp1, exp2))),
 
     OR(Exp::or),
     AND(Exp::and);
@@ -22,7 +23,9 @@ public enum OperatorBinary implements Operator {
         this.func = expFunc;
     }
 
-    public Exp exp(Exp left, Exp right) {
-        return func.apply(left, right);
+    @Override
+    public Exp exp(Exp... expressions) {
+        Preconditions.checkArgument(expressions.length == 2);
+        return func.apply(expressions[0], expressions[1]);
     }
 }

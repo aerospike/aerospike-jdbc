@@ -102,23 +102,18 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                         operator,
                         parseWhere((SqlBasicCall) where.getOperandList().get(1))
                 );
+            } else if (Operator.isVarArgs(operator)) {
+                return new QueryPredicateList(
+                        where.getOperandList().get(0).toString(),
+                        operator,
+                        ((SqlNodeList) where.getOperandList().get(1)).stream().map(this::parseValue).distinct().toArray()
+                );
             } else {
-                if (operator == OperatorBinary.NE) {
-                    return new QueryPredicatePrefix(
-                            OperatorUnary.NOT,
-                            new QueryPredicateBinary(
-                                    where.getOperandList().get(0).toString(),
-                                    OperatorBinary.EQ,
-                                    parseValue(where.getOperandList().get(1))
-                            )
-                    );
-                } else {
-                    return new QueryPredicateBinary(
-                            where.getOperandList().get(0).toString(),
-                            operator,
-                            parseValue(where.getOperandList().get(1))
-                    );
-                }
+                return new QueryPredicateBinary(
+                        where.getOperandList().get(0).toString(),
+                        operator,
+                        parseValue(where.getOperandList().get(1))
+                );
             }
         } else if (where.getOperator() instanceof SqlPrefixOperator) {
             Operator operator = Operator.parsed(where.getOperator());

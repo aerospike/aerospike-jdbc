@@ -22,7 +22,7 @@ public class QueryPredicatePrefix implements QueryPredicate {
 
     @Override
     public Exp toFilterExpression() {
-        return operator.exp(right.toFilterExpression(), null);
+        return operator.exp(right.toFilterExpression());
     }
 
     @Override

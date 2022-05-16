@@ -6,10 +6,11 @@ import org.apache.calcite.sql.SqlOperator;
 
 import static com.aerospike.jdbc.predicate.OperatorBinary.*;
 import static com.aerospike.jdbc.predicate.OperatorUnary.NOT;
+import static com.aerospike.jdbc.predicate.OperatorVarArgs.IN;
 
 public interface Operator {
 
-    Exp exp(Exp left, Exp right);
+    Exp exp(Exp... expressions);
 
     static Operator parsed(SqlOperator op) {
         if (op.kind == SqlKind.EQUALS) return EQ;
@@ -24,10 +25,16 @@ public interface Operator {
 
         if (op.kind == SqlKind.NOT) return NOT;
 
+        if (op.kind == SqlKind.IN) return IN;
+
         throw new UnsupportedOperationException("Unsupported operator type");
     }
 
     static boolean isBoolean(Operator operator) {
         return operator == OR || operator == AND;
+    }
+
+    static boolean isVarArgs(Operator operator) {
+        return operator == IN;
     }
 }
