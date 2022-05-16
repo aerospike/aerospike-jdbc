@@ -17,6 +17,7 @@ public interface Operator {
         if (op.kind == SqlKind.LESS_THAN_OR_EQUAL) return LE;
         if (op.kind == SqlKind.GREATER_THAN) return GT;
         if (op.kind == SqlKind.GREATER_THAN_OR_EQUAL) return GE;
+        if (op.kind == SqlKind.NOT_EQUALS) return NE;
 
         if (op.kind == SqlKind.OR) return OR;
         if (op.kind == SqlKind.AND) return AND;

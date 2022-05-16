@@ -11,6 +11,7 @@ public enum OperatorBinary implements Operator {
     LE(Exp::le),
     GT(Exp::gt),
     GE(Exp::ge),
+    NE(null),
 
     OR(Exp::or),
     AND(Exp::and);
