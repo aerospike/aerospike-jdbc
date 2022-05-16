@@ -5,6 +5,7 @@ import com.google.common.base.CharMatcher;
 import org.apache.calcite.sql.*;
 import org.apache.calcite.sql.ddl.SqlDropSchema;
 import org.apache.calcite.sql.ddl.SqlDropTable;
+import org.apache.calcite.sql.fun.SqlBetweenOperator;
 import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlVisitor;
@@ -133,6 +134,12 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
             String binName = where.getOperandList().get(0).toString();
             String expression = unwrapString(where.getOperandList().get(1).toString());
             return new QueryPredicateLike(binName, expression);
+        } else if (where.getOperator() instanceof SqlBetweenOperator) {
+            return new QueryPredicateRange(
+                    where.getOperandList().get(0).toString(),
+                    parseValue(where.getOperandList().get(1)),
+                    parseValue(where.getOperandList().get(2))
+            );
         }
         throw unsupportedException;
     }
