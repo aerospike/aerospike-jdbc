@@ -4,6 +4,7 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
+import com.aerospike.jdbc.util.URLParser;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -25,7 +26,7 @@ public class SecondaryIndexQueryHandler {
                              AerospikeSecondaryIndex secondaryIndex) {
         com.aerospike.client.query.Statement statement = new com.aerospike.client.query.Statement();
         Optional.ofNullable(query.getLimit()).ifPresent(statement::setMaxRecords);
-        statement.setRecordsPerSecond(512); // TODO: take from configuration
+        statement.setRecordsPerSecond(URLParser.getScanPolicy().recordsPerSecond);
 
         statement.setIndexName(secondaryIndex.getIndexName());
         statement.setNamespace(query.getSchema());

@@ -26,7 +26,6 @@ public final class URLParser {
     private static final Logger logger = Logger.getLogger(URLParser.class.getName());
 
     private static final String defaultAerospikePort = "3000";
-    private static final int defaultRecordsPerSecond = 512;
 
     private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
@@ -78,9 +77,6 @@ public final class URLParser {
 
         writePolicy = copy(clientInfo, new WritePolicy());
         scanPolicy = copy(clientInfo, new ScanPolicy());
-        if (scanPolicy.recordsPerSecond == 0) {
-            scanPolicy.recordsPerSecond = defaultRecordsPerSecond;
-        }
         queryPolicy = copy(clientInfo, new QueryPolicy());
         Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
                 .map(Boolean::parseBoolean).orElse(true);
