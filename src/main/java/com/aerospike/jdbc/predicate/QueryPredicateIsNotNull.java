@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+
 public class QueryPredicateIsNotNull implements QueryPredicate {
 
     private final String binName;
@@ -17,7 +19,7 @@ public class QueryPredicateIsNotNull implements QueryPredicate {
 
     @Override
     public Exp toFilterExpression() {
-        return Exp.binExists(binName);
+        return binName.equals(defaultKeyName) ? Exp.keyExists() : Exp.binExists(binName);
     }
 
     @Override

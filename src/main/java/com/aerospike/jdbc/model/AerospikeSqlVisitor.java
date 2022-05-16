@@ -44,7 +44,9 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 SqlUpdate sql = (SqlUpdate) sqlCall;
                 query.setQueryType(QueryType.UPDATE);
                 query.setTable(Objects.requireNonNull(sql.getTargetTable()).toString());
-                query.setPredicate(parseWhere((SqlBasicCall) Objects.requireNonNull(sql.getCondition())));
+                if (sql.getCondition() != null) {
+                    query.setPredicate(parseWhere((SqlBasicCall) sql.getCondition()));
+                }
                 query.setColumns(sql.getTargetColumnList().stream().map(SqlNode::toString).collect(Collectors.toList()));
                 query.setValues(sql.getSourceExpressionList().stream().map(this::parseValue).collect(Collectors.toList()));
             } else if (sqlCall instanceof SqlInsert) {
