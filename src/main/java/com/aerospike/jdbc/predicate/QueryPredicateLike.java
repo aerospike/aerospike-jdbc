@@ -4,6 +4,8 @@ import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.RegexFlag;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class QueryPredicateLike extends QueryPredicateBase {
@@ -25,12 +27,17 @@ public class QueryPredicateLike extends QueryPredicateBase {
     }
 
     @Override
+    public Optional<Filter> toFilter(String binName) {
+        return Optional.empty();
+    }
+
+    @Override
     public boolean isIndexable() {
         return false;
     }
 
     @Override
-    public Optional<Filter> toFilter(String binName) {
-        return Optional.empty();
+    public List<String> getBinNames() {
+        return Collections.emptyList();
     }
 }

@@ -14,7 +14,7 @@ import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -32,7 +32,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        List<Object> keyObjects = query.getPrimaryKeys();
+        Collection<Object> keyObjects = query.getPrimaryKeys();
         final WritePolicy writePolicy = buildWritePolicy(query);
         if (!keyObjects.isEmpty()) {
             logger.info("DELETE primary key");
@@ -42,7 +42,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
                 try {
                     client.delete(EventLoopProvider.getEventLoop(), listener, writePolicy, key);
                 } catch (AerospikeException e) {
-                    logger.severe("Error on database call: " + e.getMessage());
+                    logger.warning("Error on database call: " + e.getMessage());
                     listener.onFailure(e);
                 }
             }

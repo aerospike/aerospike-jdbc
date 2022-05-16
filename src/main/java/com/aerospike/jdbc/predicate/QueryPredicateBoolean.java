@@ -3,6 +3,7 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -44,7 +45,7 @@ public class QueryPredicateBoolean implements QueryPredicate {
 
     @Override
     public boolean isIndexable() {
-        return operator != OperatorBinary.OR && left.isIndexable() && right.isIndexable();
+        return operator == OperatorBinary.AND && (left.isIndexable() || right.isIndexable());
     }
 
     @Override
@@ -57,10 +58,10 @@ public class QueryPredicateBoolean implements QueryPredicate {
     }
 
     @Override
-    public List<Object> getPrimaryKeys() {
+    public Collection<Object> getPrimaryKeys() {
         if (operator == OperatorBinary.AND) {
             return Stream.concat(left.getPrimaryKeys().stream(), right.getPrimaryKeys().stream())
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
         }
         return Collections.emptyList();
     }

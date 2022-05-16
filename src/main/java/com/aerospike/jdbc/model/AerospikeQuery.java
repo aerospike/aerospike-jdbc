@@ -10,6 +10,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -143,7 +144,7 @@ public class AerospikeQuery {
         return columns.toArray(new String[0]);
     }
 
-    public List<Object> getPrimaryKeys() {
+    public Collection<Object> getPrimaryKeys() {
         if (predicate != null) {
             return predicate.getPrimaryKeys();
         }

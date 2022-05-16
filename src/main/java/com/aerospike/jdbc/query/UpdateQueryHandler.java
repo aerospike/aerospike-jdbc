@@ -15,7 +15,7 @@ import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
@@ -33,7 +33,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        List<Object> keyObjects = query.getPrimaryKeys();
+        Collection<Object> keyObjects = query.getPrimaryKeys();
         final Bin[] bins = getBins(query);
         final WritePolicy writePolicy = buildUpdateOnlyPolicy();
         if (!keyObjects.isEmpty()) {
@@ -44,7 +44,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
                 try {
                     client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
                 } catch (AerospikeException e) {
-                    logger.severe("Error on database call: " + e.getMessage());
+                    logger.warning("Error on database call: " + e.getMessage());
                     listener.onFailure(e);
                 }
             }

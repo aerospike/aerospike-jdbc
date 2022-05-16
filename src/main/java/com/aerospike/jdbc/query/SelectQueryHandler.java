@@ -46,7 +46,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
-        List<Object> keyObjects = query.getPrimaryKeys();
+        Collection<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
         if (isCount(query)) {
@@ -88,7 +88,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
                 query.getTable(), columnList), -1);
     }
 
-    private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, List<Object> keyObjects) {
+    private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Collection<Object> keyObjects) {
         logger.info("SELECT primary key");
         final BatchReadPolicy policy = buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
@@ -125,7 +125,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
-                && query.getPredicate().isIndexable()) {
+                && query.getPredicate().isIndexable() && Objects.isNull(query.getOffset())) {
             Map<String, AerospikeSecondaryIndex> indexMap = AerospikeUtils.getSecondaryIndexes(client);
             List<String> binNames = query.getPredicate().getBinNames();
             if (!binNames.isEmpty() && !indexMap.isEmpty()) {

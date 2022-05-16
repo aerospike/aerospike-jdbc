@@ -3,8 +3,8 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
@@ -58,15 +58,16 @@ public class QueryPredicateBinary extends QueryPredicateBase {
         if (binName.equals(this.binName) && operator == OperatorBinary.EQ) {
             if (valueType == Exp.Type.INT) {
                 return Optional.of(Filter.equal(binName, (long) value));
+            } else if (valueType == Exp.Type.STRING) {
+                return Optional.of(Filter.equal(binName, (String) value));
             }
-            return Optional.of(Filter.equal(binName, (String) value));
         }
         return Optional.empty();
     }
 
     @Override
-    public List<Object> getPrimaryKeys() {
-        if (binName.equals(defaultKeyName)) {
+    public Collection<Object> getPrimaryKeys() {
+        if (binName.equals(defaultKeyName) && operator == OperatorBinary.EQ) {
             return Collections.singletonList(value);
         }
         return Collections.emptyList();

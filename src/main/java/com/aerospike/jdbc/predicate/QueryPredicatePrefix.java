@@ -3,6 +3,7 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.query.Filter;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,11 +32,11 @@ public class QueryPredicatePrefix implements QueryPredicate {
 
     @Override
     public boolean isIndexable() {
-        return true;
+        return false;
     }
 
     @Override
     public List<String> getBinNames() {
-        return right.getBinNames();
+        return Collections.emptyList();
     }
 }

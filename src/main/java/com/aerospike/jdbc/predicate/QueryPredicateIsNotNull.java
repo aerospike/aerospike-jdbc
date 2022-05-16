@@ -27,11 +27,11 @@ public class QueryPredicateIsNotNull implements QueryPredicate {
 
     @Override
     public boolean isIndexable() {
-        return true;
+        return false;
     }
 
     @Override
     public List<String> getBinNames() {
-        return Collections.singletonList(binName);
+        return Collections.emptyList();
     }
 }
