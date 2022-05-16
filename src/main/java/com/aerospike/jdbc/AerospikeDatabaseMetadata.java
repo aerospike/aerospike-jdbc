@@ -1278,7 +1278,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private ResultSetMetaData getMetadata(String namespace, String table) {
         try {
             return connection.createStatement().executeQuery(format(
-                    "select * from %s.%s limit %d", namespace, table, schemaScanRecords)).getMetaData();
+                    "select * from \"%s.%s\" limit %d", namespace, table, schemaScanRecords)).getMetaData();
         } catch (SQLException e) {
             logger.severe(String.format("Exception in getMetadata, namespace: %s, table: %s",
                     namespace, table));
