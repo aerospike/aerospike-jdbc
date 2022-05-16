@@ -117,4 +117,32 @@ public class QueryParserTest {
         assertNull(query.getTable());
         assertNull(query.getPredicate());
     }
+
+    @Test
+    public void testSelectInQuery() throws SqlParseException {
+        SqlParser parser = SqlParser.create(
+                "select trip_distance from \"test.nyc-data\" where id in (1234, 1235)", AerospikeQuery.sqlParserConfig);
+        SqlNode parsed = parser.parseQuery();
+        AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
+
+        assertEquals(query.getQueryType(), QueryType.SELECT);
+        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getTable(), "nyc-data");
+        assertNotNull(query.getPredicate());
+        assertEquals(query.getColumns(), Collections.singletonList("trip_distance"));
+    }
+
+    @Test
+    public void testSelectBetweenQuery() throws SqlParseException {
+        SqlParser parser = SqlParser.create(
+                "select trip_distance from \"test.nyc-data\" where id between 1234 and 1245", AerospikeQuery.sqlParserConfig);
+        SqlNode parsed = parser.parseQuery();
+        AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
+
+        assertEquals(query.getQueryType(), QueryType.SELECT);
+        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getTable(), "nyc-data");
+        assertNotNull(query.getPredicate());
+        assertEquals(query.getColumns(), Collections.singletonList("trip_distance"));
+    }
 }
