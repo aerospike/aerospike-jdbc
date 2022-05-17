@@ -116,6 +116,16 @@ __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
 
+Batch query for rows in a list of primary keys:
+
+```sql
+SELECT * FROM port_list WHERE __key IN ("ntp", "ror");
+```
+
+__key|description                                        |extra|port|
+-----|---------------------------------------------------|-----|----|
+ror  |Ruby on Rails development default                  |     |3000|
+ntp  |Network Time Protocol used for time synchronization|     | 123|
 
 
 ### Multiple predicates
@@ -148,11 +158,42 @@ cloud9ide|Cloud9 IDE Server                       |3000|
 dis      |Distributed Interactive Simulation (DIS)|3000|
 ror      |Ruby on Rails development default       |3000|
 
+Range queries are done using `BETWEEN`.
+
+```sql
+SELECT * FROM port_list WHERE port BETWEEN 100 AND 200;
+```
+
+__key   |description                                        |port|
+--------|---------------------------------------------------|----|
+snmp    |Simple Network Management Protocol (SNMP)          | 161|
+snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
+ntp     |Network Time Protocol used for time synchronization| 123|
+
+### Secondary Indexes
+
+[Secondary indexes](https://docs.aerospike.com/server/guide/queries)
+can be [optionally added](https://docs.aerospike.com/tools/asadm/user_guide/live_cluster_mode_guide#secondary-indexes-1)
+to accelerate `BETWEEN` range queries on integer values or equality predicates
+on integer or string values. The JDBC driver will create an SI query if a
+secondary index is available.
+
+You can use asadm to [add a secondary index](https://docs.aerospike.com/tools/asadm/user_guide/live_cluster_mode_guide#secondary-indexes-1).
+```
+Admin> enable
+Admin+> manage sindex create numeric port-idx ns test set port_list bin port
+Admin+> show sindex
+~~~~~~Secondary Indexes (2022-05-17 07:12:58 UTC)~~~~~~
+   Index|Namespace|      Set| Bin|    Bin|  Index|State
+    Name|         |         |    |   Type|   Type|     
+port-idx|test     |port_list|port|NUMERIC|DEFAULT|RW  
+```
+
 ## Aggregate functions
 Count the records in the table that don't use port 3000:
 
 ```sql
-SELECT COUNT(*) FROM port_list WHERE port != 3000;
+SELECT COUNT(*) FROM port_list WHERE port <> 3000;
 ```
 
 COUNT(*)|
@@ -206,6 +247,19 @@ snmptrap    |Simple Network Management Protocol Trap(SNMPTRAP)   |    1|  162|
 
 Since Aerospike is schemaless, the data browser may need to be refreshed for it
 to pick up the new _extra_ column.
+
+Aerospike columns (bins) can be dropped by assinging a `NULL` to them.
+
+```sql
+UPDATE port_list SET extra=NULL;
+SELECT * FROM port_list WHERE port < 200;
+```
+
+__key   |description                                        |port|
+--------|---------------------------------------------------|----|
+ntp     |Network Time Protocol used for time synchronization| 123|
+snmp    |Simple Network Management Protocol (SNMP)          | 161|
+snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
 
 ## DELETE
 
