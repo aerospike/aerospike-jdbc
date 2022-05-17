@@ -2,7 +2,7 @@ package com.aerospike.jdbc.sql;
 
 import com.aerospike.client.Record;
 import com.aerospike.jdbc.model.DataColumn;
-import com.aerospike.jdbc.scan.RecordSet;
+import com.aerospike.jdbc.async.RecordSet;
 
 import java.math.BigDecimal;
 import java.sql.Statement;

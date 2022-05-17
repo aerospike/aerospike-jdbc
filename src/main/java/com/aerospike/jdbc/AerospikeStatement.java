@@ -3,12 +3,10 @@ package com.aerospike.jdbc;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AuxStatementParser;
-import io.trino.sql.parser.ParsingOptions;
-import io.trino.sql.parser.SqlParser;
+import org.apache.calcite.sql.parser.SqlParseException;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -18,16 +16,12 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.logging.Logger;
 
-import static io.trino.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
 import static java.lang.String.format;
 import static java.sql.ResultSet.*;
 
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
-
-    public static final SqlParser SQL_PARSER = new SqlParser();
-    public static final ParsingOptions parsingOptions = new ParsingOptions(AS_DOUBLE);
 
     protected final IAerospikeClient client;
     private final Connection connection;
@@ -48,7 +42,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public ResultSet executeQuery(String sql) {
+    public ResultSet executeQuery(String sql) throws SQLException {
         logger.info("executeQuery: " + sql);
         AerospikeQuery query = parseQuery(sql);
 
@@ -59,12 +53,14 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         return resultSet;
     }
 
-    private AerospikeQuery parseQuery(String sql) {
-        final String sqlEscape = sql.replaceAll("\n", " ");
-        AerospikeQuery query = AuxStatementParser.hack(sqlEscape).orElseGet(() -> {
-            io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(sqlEscape, parsingOptions);
-            return AerospikeQueryParser.parseSql(statement);
-        });
+    private AerospikeQuery parseQuery(String sql) throws SQLException {
+        sql = sql.replaceAll("\n", " ");
+        AerospikeQuery query;
+        try {
+            query = AerospikeQuery.parse(sql);
+        } catch (SqlParseException e) {
+            query = AuxStatementParser.hack(sql);
+        }
         if (query.getSchema() == null) {
             query.setSchema(schema);
         }
@@ -72,7 +68,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public int executeUpdate(String sql) {
+    public int executeUpdate(String sql) throws SQLException {
         executeQuery(sql);
         return updateCount;
     }
@@ -129,7 +125,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void clearWarnings() {
-        // TODO make use of warnings
+        // TODO: make use of warnings
     }
 
     @Override
@@ -138,7 +134,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public boolean execute(String sql) {
+    public boolean execute(String sql) throws SQLException {
         resultSet = executeQuery(sql);
         return true;
     }

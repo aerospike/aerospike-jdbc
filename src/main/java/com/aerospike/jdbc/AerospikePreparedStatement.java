@@ -4,14 +4,13 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
-import com.aerospike.jdbc.query.AerospikeQueryParser;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeResultSetMetaData;
 import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.IOUtils;
-import io.trino.sql.parser.ParsingOptions;
+import org.apache.calcite.sql.parser.SqlParseException;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -28,8 +27,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import static com.aerospike.jdbc.util.Constants.unsupportedException;
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
-import static io.trino.sql.parser.ParsingOptions.DecimalLiteralTreatment.AS_DOUBLE;
 import static java.lang.String.format;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
@@ -44,23 +43,25 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     public AerospikePreparedStatement(IAerospikeClient client, Connection connection, String sql) {
         super(client, connection);
         this.sql = sql;
-        int n = parseParameters(sql, 0).getValue();
-        parameterValues = new Object[n];
+        int params = parseParameters(sql, 0).getValue();
+        parameterValues = new Object[params];
         Arrays.fill(parameterValues, Optional.empty());
-        ParsingOptions parsingOptions = new ParsingOptions(AS_DOUBLE);
-        io.trino.sql.tree.Statement statement = SQL_PARSER.createStatement(sql, parsingOptions);
-        query = AerospikeQueryParser.parseSql(statement);
+        try {
+            query = AerospikeQuery.parse(sql);
+        } catch (SqlParseException e) {
+            throw unsupportedException;
+        }
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
     }
 
     @Override
-    public ResultSet executeQuery() {
+    public ResultSet executeQuery() throws SQLException {
         logger.info("AerospikePreparedStatement executeQuery");
         return super.executeQuery(sql);
     }
 
     @Override
-    public int executeUpdate() {
+    public int executeUpdate() throws SQLException {
         logger.info("AerospikePreparedStatement executeUpdate");
         return super.executeUpdate(sql);
     }
@@ -176,7 +177,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
-    public boolean execute() {
+    public boolean execute() throws SQLException {
         String preparedQuery = prepareQuery();
         logger.info(preparedQuery);
         return execute(preparedQuery);

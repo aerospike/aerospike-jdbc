@@ -1,4 +1,4 @@
-package com.aerospike.jdbc.scan;
+package com.aerospike.jdbc.async;
 
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
@@ -12,23 +12,28 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import java.util.Objects;
 import java.util.logging.Logger;
 
-public class PartitionScanHandler {
+import static com.aerospike.jdbc.util.Constants.defaultKeyName;
 
-    private static final Logger logger = Logger.getLogger(PartitionScanHandler.class.getName());
+public class ScanQueryHandler {
+
+    private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
 
     private final IAerospikeClient client;
-
-    private ScanRecordSequenceListener listener;
+    private RecordSetRecordSequenceListener listener;
 
     private int currentPartition;
     private int count;
 
-    public PartitionScanHandler(IAerospikeClient client) {
+    public ScanQueryHandler(IAerospikeClient client) {
         this.client = client;
-        this.listener = new ScanRecordSequenceListener();
+        this.listener = new RecordSetRecordSequenceListener();
     }
 
-    public RecordSet scanPartition(ScanPolicy scanPolicy, AerospikeQuery query) {
+    public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {
+        if (query.getBinNames() != null && query.getBinNames().length == 1
+                && query.getBinNames()[0].equals(defaultKeyName)) {
+            scanPolicy.includeBinData = false;
+        }
         if (Objects.nonNull(query.getOffset())) {
             long maxRecords = scanPolicy.maxRecords;
             PartitionFilter filter = getPartitionFilter(query);
@@ -40,8 +45,7 @@ public class PartitionScanHandler {
             }
             listener.onSuccess();
         } else {
-            logger.info("scanAll");
-            client.scanAll(null, listener, scanPolicy, query.getSchema(),
+            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
                     query.getTable(), query.getBinNames());
         }
         return listener.getRecordSet();
@@ -66,7 +70,7 @@ public class PartitionScanHandler {
         count++;
     });
 
-    public static PartitionScanHandler create(IAerospikeClient client) {
-        return new PartitionScanHandler(client);
+    public static ScanQueryHandler create(IAerospikeClient client) {
+        return new ScanQueryHandler(client);
     }
 }

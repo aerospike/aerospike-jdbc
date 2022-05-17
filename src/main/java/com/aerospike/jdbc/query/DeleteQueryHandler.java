@@ -1,17 +1,21 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
+import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
+import com.aerospike.jdbc.async.EventLoopProvider;
+import com.aerospike.jdbc.async.FutureDeleteListener;
+import com.aerospike.jdbc.async.RecordSetRecordSequenceListener;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.scan.EventLoopProvider;
-import com.aerospike.jdbc.scan.ScanRecordSequenceListener;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Objects;
+import java.util.Collection;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -28,16 +32,28 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        logger.info("DELETE statement");
-        Object keyObject = ExpressionBuilder.fetchPrimaryKey(query.getWhere());
+        Collection<Object> keyObjects = query.getPrimaryKeys();
         final WritePolicy writePolicy = buildWritePolicy(query);
-        if (Objects.nonNull(keyObject)) {
-            Key key = new Key(query.getSchema(), query.getTable(), getBinValue(keyObject.toString()));
-            int count = client.delete(writePolicy, key) ? 1 : 0;
-
-            return new Pair<>(emptyRecordSet(query), count);
+        if (!keyObjects.isEmpty()) {
+            logger.info("DELETE primary key");
+            FutureDeleteListener listener = new FutureDeleteListener(keyObjects.size());
+            for (Object keyObject : keyObjects) {
+                Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+                try {
+                    client.delete(EventLoopProvider.getEventLoop(), listener, writePolicy, key);
+                } catch (AerospikeException e) {
+                    logger.warning("Error on database call: " + e.getMessage());
+                    listener.onFailure(e);
+                }
+            }
+            try {
+                return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
+            } catch (InterruptedException | ExecutionException e) {
+                return new Pair<>(emptyRecordSet(query), 0);
+            }
         } else {
-            ScanRecordSequenceListener listener = new ScanRecordSequenceListener();
+            logger.info("DELETE scan");
+            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener();
             ScanPolicy scanPolicy = buildScanPolicy(query);
             scanPolicy.includeBinData = false;
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
@@ -45,8 +61,12 @@ public class DeleteQueryHandler extends BaseQueryHandler {
 
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
-                if (client.delete(writePolicy, r.key))
-                    count.incrementAndGet();
+                try {
+                    if (client.delete(writePolicy, r.key))
+                        count.incrementAndGet();
+                } catch (Exception e) {
+                    logger.warning("Failed to delete record: " + e.getMessage());
+                }
             });
 
             return new Pair<>(emptyRecordSet(query), count.get());

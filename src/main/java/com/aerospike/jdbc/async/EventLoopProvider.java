@@ -1,4 +1,4 @@
-package com.aerospike.jdbc.scan;
+package com.aerospike.jdbc.async;
 
 import com.aerospike.client.async.EventLoop;
 import com.aerospike.client.async.EventLoops;

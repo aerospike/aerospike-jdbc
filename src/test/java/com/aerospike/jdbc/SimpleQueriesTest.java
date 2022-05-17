@@ -12,6 +12,7 @@ import java.util.Objects;
 
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 public class SimpleQueriesTest extends JdbcBaseTest {
 
@@ -31,7 +32,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
     }
 
     @AfterMethod
@@ -67,7 +68,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
 
                 total++;
             }
-            assertEquals(1, total);
+            assertEquals(total, 1);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -78,14 +79,14 @@ public class SimpleQueriesTest extends JdbcBaseTest {
     public void testInsertQuery() throws SQLException {
         Statement statement = null;
         int count;
-        String query = String.format("insert into %s (bin1, int1) values (11101, 3)", tableName);
+        String query = String.format("insert into %s (bin1, int1) values (11101, 3), (11102, 4)", tableName);
         try {
             statement = connection.createStatement();
             count = statement.executeUpdate(query);
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 2);
     }
 
     @Test
@@ -99,7 +100,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(1, count);
+        assertEquals(count, 1);
 
         query = String.format("update %s set int1=100 where bin1>20000", tableName);
         try {
@@ -108,7 +109,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         } finally {
             closeQuietly(statement);
         }
-        assertEquals(0, count);
+        assertEquals(count, 0);
     }
 
     @Test
@@ -119,8 +120,104 @@ public class SimpleQueriesTest extends JdbcBaseTest {
         try {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
-            resultSet.next();
-            assertEquals(1, resultSet.getObject(1));
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getObject(1), 1);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectEqualsQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select __key from %s where int1 = 1", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getString(1).length(), 36);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectNotEqualsQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select __key, int1 from %s where int1 <> 2", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getInt(2), 1);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectOrQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select int1, str1 from %s where int1<>1 or str1 like 'bar' or bin1 is null", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getInt(1), 1);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectAndQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select * from %s where int1<=2 and bin1>=1000 and str1 is not null", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getInt(2), 11100);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectInQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select * from %s where int1 in (1, 2) and str1 is not null", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getInt(2), 11100);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectBetweenQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format("select * from %s where int1 between 1 and 3", tableName);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+            assertEquals(resultSet.getInt(2), 11100);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

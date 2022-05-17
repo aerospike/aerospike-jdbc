@@ -1,6 +1,10 @@
 package com.aerospike.jdbc.util;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringWriter;
 
 public final class IOUtils {
 

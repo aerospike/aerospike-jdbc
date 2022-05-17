@@ -35,6 +35,21 @@ created upon insertion of a new row.
 For more on the [Aerospike data model](https://www.aerospike.com/docs/architecture/data-model.html)
 see the Aerospike documentation.
 
+### Table and column naming
+You should be aware of the [known limitations](https://docs.aerospike.com/guide/limitations)
+on table (set) and column (bin) names in Aerospike.
+
+> Names can include only Latin lowercase and uppercase letters with no diacritical marks (a-z, A-Z), digits 0-9, underscores (_), hyphens (-), and dollar signs ($). This naming guideline is not enforced; however, if you do not follow it, some Aerospike features and tools might not function properly.
+
+Table names are limited to 63 characters and column names to 15 characters.
+
+In the JDBC driver it is recommended that you use quotes around table names. For
+example
+
+```sql
+SELECT * FROM "top-users";
+```
+
 ## INSERT
 
 Let's add some rows with explicit primary keys:
@@ -49,8 +64,11 @@ INSERT INTO port_list (__key, port, description) VALUES ("ror", 3000, "Ruby on R
 INSERT INTO port_list (__key, port, description) VALUES ("dis", 3000, "Distributed Interactive Simulation (DIS)");
 INSERT INTO port_list (__key, port, description) VALUES ("fcip", 3225, "Fibre Channel over IP (FCIP)");
 INSERT INTO port_list (__key, port, description) VALUES ("metasys", 11001, "Johnson Controls Metasys java AC control environment");
-INSERT INTO port_list (__key, port, description) VALUES ("memcache", 11211, "Memcached");
-INSERT INTO port_list (__key, port, description) VALUES ("battlefield2", 16567, "Battlefield 2");
+```
+
+Multiple rows can be inserted at once:
+```sql
+INSERT INTO port_list (__key, port, description) VALUES ("memcache", 11211, "Memcached"), ("battlefield2", 16567, "Battlefield 2");
 ```
 
 As an Aerospike row (_record_) must have a primary key, if none is provided
@@ -98,6 +116,18 @@ __key   |description|port |
 --------|-----------|-----|
 memcache|Memcached  |11211|
 
+Batch query for rows in a list of primary keys:
+
+```sql
+SELECT * FROM port_list WHERE __key IN ("ntp", "ror");
+```
+
+__key|description                                        |extra|port|
+-----|---------------------------------------------------|-----|----|
+ror  |Ruby on Rails development default                  |     |3000|
+ntp  |Network Time Protocol used for time synchronization|     | 123|
+
+
 ### Multiple predicates
 Query for rows that satisfy a `WHERE` with more than one predicate
 
@@ -128,11 +158,42 @@ cloud9ide|Cloud9 IDE Server                       |3000|
 dis      |Distributed Interactive Simulation (DIS)|3000|
 ror      |Ruby on Rails development default       |3000|
 
+Range queries are done using `BETWEEN`.
+
+```sql
+SELECT * FROM port_list WHERE port BETWEEN 100 AND 200;
+```
+
+__key   |description                                        |port|
+--------|---------------------------------------------------|----|
+snmp    |Simple Network Management Protocol (SNMP)          | 161|
+snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
+ntp     |Network Time Protocol used for time synchronization| 123|
+
+### Secondary Indexes
+
+[Secondary indexes](https://docs.aerospike.com/server/guide/queries)
+can be [optionally added](https://docs.aerospike.com/tools/asadm/user_guide/live_cluster_mode_guide#secondary-indexes-1)
+to accelerate `BETWEEN` range queries on integer values or equality predicates
+on integer or string values. The JDBC driver will create an SI query if a
+secondary index is available.
+
+You can use asadm to [add a secondary index](https://docs.aerospike.com/tools/asadm/user_guide/live_cluster_mode_guide#secondary-indexes-1).
+```
+Admin> enable
+Admin+> manage sindex create numeric port-idx ns test set port_list bin port
+Admin+> show sindex
+~~~~~~Secondary Indexes (2022-05-17 07:12:58 UTC)~~~~~~
+   Index|Namespace|      Set| Bin|    Bin|  Index|State
+    Name|         |         |    |   Type|   Type|     
+port-idx|test     |port_list|port|NUMERIC|DEFAULT|RW  
+```
+
 ## Aggregate functions
 Count the records in the table that don't use port 3000:
 
 ```sql
-SELECT COUNT(*) FROM port_list WHERE port != 3000;
+SELECT COUNT(*) FROM port_list WHERE port <> 3000;
 ```
 
 COUNT(*)|
@@ -186,6 +247,19 @@ snmptrap    |Simple Network Management Protocol Trap(SNMPTRAP)   |    1|  162|
 
 Since Aerospike is schemaless, the data browser may need to be refreshed for it
 to pick up the new _extra_ column.
+
+Aerospike columns (bins) can be dropped by assinging a `NULL` to them.
+
+```sql
+UPDATE port_list SET extra=NULL;
+SELECT * FROM port_list WHERE port < 200;
+```
+
+__key   |description                                        |port|
+--------|---------------------------------------------------|----|
+ntp     |Network Time Protocol used for time synchronization| 123|
+snmp    |Simple Network Management Protocol (SNMP)          | 161|
+snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
 
 ## DELETE
 
