@@ -14,7 +14,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.*;
+import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+import static com.aerospike.jdbc.util.Constants.schemaCacheTTLMinutes;
+import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 
 public final class AerospikeSchemaBuilder {
 
@@ -94,7 +97,7 @@ public final class AerospikeSchemaBuilder {
         } else if (value instanceof Map<?, ?> || value instanceof Value.MapValue) {
             t = Types.STRUCT;
         } else {
-            logger.info("Unknown bin type: " + value);
+            logger.info(() -> "Unknown bin type: " + value);
         }
         return t;
     }

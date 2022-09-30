@@ -54,7 +54,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     private AerospikeQuery parseQuery(String sql) throws SQLException {
-        sql = sql.replaceAll("\n", " ");
+        sql = sql.replace("\n", " ");
         AerospikeQuery query;
         try {
             query = AerospikeQuery.parse(sql);

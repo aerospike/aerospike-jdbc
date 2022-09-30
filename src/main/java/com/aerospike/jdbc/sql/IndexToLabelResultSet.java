@@ -82,6 +82,7 @@ public interface IndexToLabelResultSet extends ResultSet {
     }
 
     @Override
+    @Deprecated
     default InputStream getUnicodeStream(int columnIndex) throws SQLException {
         return getUnicodeStream(getColumnLabel(columnIndex));
     }

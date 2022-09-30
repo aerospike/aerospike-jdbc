@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedException;
+import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
 
 public final class AuxStatementParser {
 
@@ -36,6 +36,6 @@ public final class AuxStatementParser {
             return query;
         }
 
-        throw new SQLException(unsupportedException);
+        throw new SQLException(unsupportedQueryType);
     }
 }

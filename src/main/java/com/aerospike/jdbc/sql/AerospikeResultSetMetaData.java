@@ -17,11 +17,11 @@ import static com.aerospike.jdbc.util.SqlLiterals.sqlTypeNames;
 
 public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrapper {
 
+    protected static final Map<Integer, Integer> precisionByType = new HashMap<>();
     private static final Logger logger = Logger.getLogger(AerospikeResultSetMetaData.class.getName());
 
     private static final int MAX_BLOCK_SIZE = 128 * 1024;
     private static final int MAX_DATE_SIZE = 32;
-    public static final Map<Integer, Integer> precisionByType = new HashMap<>();
 
     static {
         precisionByType.put(Types.BIT, 8);
@@ -85,7 +85,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public int getColumnCount() {
-        logger.fine("getColumnCount: " + getVisibleColumns().count());
+        logger.fine(() -> "getColumnCount: " + getVisibleColumns().count());
         return (int) getVisibleColumns().count();
     }
 
@@ -131,7 +131,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public String getColumnName(int column) {
-        logger.fine("getColumnName: " + column);
+        logger.fine(() -> "getColumnName: " + column);
         return columns.get(column - 1).getName();
     }
 
@@ -198,5 +198,4 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
     public String getColumnClassName(int column) {
         return SqlLiterals.sqlToJavaTypes.get(getColumnType(column)).getName();
     }
-
 }

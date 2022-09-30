@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
@@ -31,7 +32,9 @@ import static java.sql.Connection.TRANSACTION_NONE;
 import static java.sql.JDBCType.OTHER;
 import static java.sql.Types.*;
 import static java.util.Arrays.asList;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.synchronizedSet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 
@@ -1276,12 +1279,11 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     private ResultSetMetaData getMetadata(String namespace, String table) {
-        try {
-            return connection.createStatement().executeQuery(format(
+        try (Statement statement = connection.createStatement()) {
+            return statement.executeQuery(format(
                     "select * from \"%s.%s\" limit %d", namespace, table, schemaScanRecords)).getMetaData();
         } catch (SQLException e) {
-            logger.severe(String.format("Exception in getMetadata, namespace: %s, table: %s",
-                    namespace, table));
+            logger.severe(String.format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
             throw new RuntimeException(e);
         }
     }
