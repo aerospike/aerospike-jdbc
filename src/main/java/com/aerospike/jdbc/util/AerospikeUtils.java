@@ -9,6 +9,7 @@ import com.google.common.base.Splitter;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -37,7 +38,7 @@ public final class AerospikeUtils {
     }
 
     public static Map<String, String> getSchemaInfo(IAerospikeClient client, String ns) {
-        String schemaInfo = Info.request(null, client.getNodes()[0], "namespace/" + ns);
+        String schemaInfo = Info.request(null, client.getCluster().getRandomNode(), "namespace/" + ns);
         return Splitter.on(";").trimResults().splitToList(schemaInfo).stream()
                 .map(s -> s.split("=", 2))
                 .collect(Collectors.toMap(e -> e[0], e -> e[1]));
@@ -59,18 +60,20 @@ public final class AerospikeUtils {
                 if (indexMap == null) {
                     logger.info("Fetching secondary indexes");
 
-                    String indexData = Info.request(null, client.getNodes()[0], "sindex");
+                    String indexData = Info.request(null, client.getCluster().getRandomNode(), "sindex");
                     try {
                         indexMap = Splitter.on(";").trimResults().splitToList(indexData).stream()
                                 .map(index -> Splitter.on(":").trimResults().splitToList(index).stream()
                                         .map(prop -> Splitter.on("=").trimResults().splitToList(prop))
                                         .collect(Collectors.toMap(t -> t.get(0), t -> t.get(1))))
+                                .filter(AerospikeUtils::isSupportedIndexType)
                                 .map(i -> new AerospikeSecondaryIndex(
                                         i.get("ns"),
                                         i.get("set"),
                                         i.get("bin"),
                                         i.get("indexname"),
-                                        IndexType.valueOf(i.get("type"))))
+                                        IndexType.valueOf(i.get("type").toUpperCase(Locale.ENGLISH)),
+                                        getIndexBinValuesRatio(client, i.get("ns"), i.get("indexname"))))
                                 .collect(Collectors.toMap(AerospikeSecondaryIndex::toKey, Function.identity()));
                     } catch (Exception e) {
                         indexMap = Collections.emptyMap();
@@ -80,5 +83,28 @@ public final class AerospikeUtils {
             }
         }
         return indexMap;
+    }
+
+    private static boolean isSupportedIndexType(Map<String, String> indexData) {
+        String indexType = indexData.get("type");
+        return indexType.equalsIgnoreCase(IndexType.NUMERIC.toString())
+                || indexType.equalsIgnoreCase(IndexType.STRING.toString());
+    }
+
+    private static Integer getIndexBinValuesRatio(IAerospikeClient client, String namespace, String indexName) {
+        if (VersionUtils.isSIndexCardinalitySupported(client)) {
+            try {
+                String indexStatData = Info.request(null, client.getCluster().getRandomNode(),
+                        String.format("sindex-stat:ns=%s;indexname=%s", namespace, indexName));
+
+                return Integer.valueOf(Splitter.on(";").trimResults().splitToList(indexStatData).stream()
+                        .map(stat -> Splitter.on("=").trimResults().splitToList(stat))
+                        .collect(Collectors.toMap(t -> t.get(0), t -> t.get(1)))
+                        .get("entries_per_bval"));
+            } catch (Exception e) {
+                logger.warning(String.format("Failed to fetch secondary index %s cardinality", indexName));
+            }
+        }
+        return null;
     }
 }

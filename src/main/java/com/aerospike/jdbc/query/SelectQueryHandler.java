@@ -30,7 +30,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.*;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildBatchReadPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildQueryPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildScanNoBinDataPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
 
 public class SelectQueryHandler extends BaseQueryHandler {
@@ -74,11 +77,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
             recordSet.forEach(r -> count.incrementAndGet());
             recordNumber = count.get();
         }
-        com.aerospike.client.Record record = new com.aerospike.client.Record(Collections.singletonMap(
+        com.aerospike.client.Record aeroRecord = new com.aerospike.client.Record(Collections.singletonMap(
                 countLabel, recordNumber), 1, 0);
 
         RecordSet recordSet = new RecordSet(2);
-        recordSet.put(new KeyRecord(null, record));
+        recordSet.put(new KeyRecord(null, aeroRecord));
         recordSet.end();
 
         List<DataColumn> columnList = Collections.singletonList(new DataColumn(query.getSchema(),
@@ -138,7 +141,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
                     }
                 } else {
                     List<AerospikeSecondaryIndex> indexList = new ArrayList<>(indexMap.values());
-                    indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+                    if (VersionUtils.isSIndexCardinalitySupported(client)) {
+                        indexList.sort(Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio));
+                    } else {
+                        indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+                    }
                     for (AerospikeSecondaryIndex index : indexList) {
                         if (binNames.contains(index.getBinName())) {
                             return Optional.of(index);
