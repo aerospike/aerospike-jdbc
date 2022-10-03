@@ -64,7 +64,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeCountQuery(AerospikeQuery query) {
-        logger.info("SELECT count");
+        logger.info(() -> "SELECT count");
         String countLabel = query.getColumns().get(0);
         int recordNumber;
         if (Objects.isNull(query.getPredicate())) {
@@ -92,7 +92,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Collection<Object> keyObjects) {
-        logger.info("SELECT primary key");
+        logger.info(() -> "SELECT primary key");
         final BatchReadPolicy policy = buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
                 .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getTable(), Value.get(k)), true))
@@ -106,7 +106,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
-        logger.info("SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
+        logger.info(() -> "SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
         ScanPolicy policy = buildScanPolicy(query);
         RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
@@ -117,7 +117,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Pair<ResultSet, Integer> executeQuery(AerospikeQuery query,
                                                   AerospikeSecondaryIndex secondaryIndex) {
-        logger.info("SELECT secondary index query for column: " + secondaryIndex.getBinName());
+        logger.info(() -> "SELECT secondary index query for column: " + secondaryIndex.getBinName());
 
         QueryPolicy policy = buildQueryPolicy(query);
         RecordSet recordSet = SecondaryIndexQueryHandler.create(client).execute(policy, query, secondaryIndex);

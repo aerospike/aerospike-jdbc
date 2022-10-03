@@ -13,7 +13,8 @@ public abstract class QueryPredicateBase implements QueryPredicate {
 
     protected QueryPredicateBase(
             String binName,
-            Exp.Type valueType) {
+            Exp.Type valueType
+    ) {
         this.binName = binName;
         this.valueType = valueType;
     }

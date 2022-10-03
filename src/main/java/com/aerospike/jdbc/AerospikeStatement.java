@@ -17,7 +17,10 @@ import java.sql.Statement;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
-import static java.sql.ResultSet.*;
+import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
+import static java.sql.ResultSet.CONCUR_READ_ONLY;
+import static java.sql.ResultSet.FETCH_FORWARD;
+import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
@@ -43,7 +46,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
-        logger.info("executeQuery: " + sql);
+        logger.info(() -> "executeQuery: " + sql);
         AerospikeQuery query = parseQuery(sql);
 
         Pair<ResultSet, Integer> result = QueryPerformer.executeQuery(client, this, query);
@@ -155,6 +158,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
+    public int getFetchDirection() {
+        return FETCH_FORWARD;
+    }
+
+    @Override
     public void setFetchDirection(int direction) throws SQLException {
         if (direction != FETCH_FORWARD) {
             throw new SQLException(format("Attempt to set unsupported fetch direction %d. " +
@@ -163,18 +171,13 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public int getFetchDirection() {
-        return FETCH_FORWARD;
+    public int getFetchSize() {
+        return 1;
     }
 
     @Override
     public void setFetchSize(int rows) {
         // do nothing supported size = 1.
-    }
-
-    @Override
-    public int getFetchSize() {
-        return 1;
     }
 
     @Override
@@ -258,15 +261,15 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
+    public boolean isPoolable() {
+        return false;
+    }
+
+    @Override
     public void setPoolable(boolean poolable) throws SQLException {
         if (poolable) {
             throw new SQLFeatureNotSupportedException("Statement does not support pools");
         }
-    }
-
-    @Override
-    public boolean isPoolable() {
-        return false;
     }
 
     @Override

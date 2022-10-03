@@ -38,6 +38,9 @@ public final class URLParser {
     private static ScanPolicy scanPolicy;
     private static QueryPolicy queryPolicy;
 
+    private URLParser() {
+    }
+
     public static Host[] getHosts() {
         return hosts;
     }
@@ -67,7 +70,7 @@ public final class URLParser {
     }
 
     public static void parseUrl(String url, Properties props) {
-        logger.info("URL properties: " + props);
+        logger.info(() -> "URL properties: " + props);
         schema = parseSchema(url);
         clientInfo = parseClientInfo(url, props);
         hosts = parseHosts(url, clientInfo.getProperty("tlsName"));
@@ -80,7 +83,7 @@ public final class URLParser {
         queryPolicy = copy(clientInfo, new QueryPolicy());
         Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
                 .map(Boolean::parseBoolean).orElse(true);
-        logger.info("Value.UseBoolBin = " + Value.UseBoolBin);
+        logger.info(() -> "Value.UseBoolBin = " + Value.UseBoolBin);
     }
 
     public static <T> T copy(Properties props, T object) {

@@ -185,7 +185,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
         return false;
     }
 
-    protected void setCurrentRecord(T record) {
+    protected void setCurrentRecord(T rec) {
         // default empty implementation
     }
 

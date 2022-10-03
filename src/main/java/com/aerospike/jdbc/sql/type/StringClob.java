@@ -9,6 +9,7 @@ import java.util.Objects;
 import static java.lang.String.format;
 
 public class StringClob implements NClob {
+
     private String data;
 
     public StringClob() {
@@ -44,18 +45,18 @@ public class StringClob implements NClob {
     }
 
     @Override
-    public long position(String searchstr, long start) throws SQLException {
+    public long position(String searchStr, long start) throws SQLException {
         if (start > Integer.MAX_VALUE || start < 1) {
             throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, start));
         }
         int from = (int) start - 1;
-        int foundIndex = data.indexOf(searchstr, from);
+        int foundIndex = data.indexOf(searchStr, from);
         return foundIndex < 0 ? foundIndex : foundIndex + 1;
     }
 
     @Override
-    public long position(Clob searchstr, long start) throws SQLException {
-        return position(((StringClob) searchstr).data, start);
+    public long position(Clob searchStr, long start) throws SQLException {
+        return position(((StringClob) searchStr).data, start);
     }
 
     @Override
@@ -96,7 +97,6 @@ public class StringClob implements NClob {
 
     @Override
     public Writer setCharacterStream(long pos) {
-
         return new StringWriter() {
             @Override
             public void close() throws IOException {

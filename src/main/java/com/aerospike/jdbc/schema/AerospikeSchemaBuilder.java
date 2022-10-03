@@ -35,8 +35,8 @@ public final class AerospikeSchemaBuilder {
 
     public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
         return cache.get(schemaTableName).orElseGet(() -> {
-            logger.info("Fetching SchemaTableName: " + schemaTableName);
-            Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
+            logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
+            final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
             ScanPolicy policy = new ScanPolicy();
             policy.maxRecords = schemaScanRecords;
 
@@ -45,10 +45,10 @@ public final class AerospikeSchemaBuilder {
                     new DataColumn(schemaTableName.getSchemaName(),
                             schemaTableName.getTableName(), Types.VARCHAR, defaultKeyName, defaultKeyName));
 
-            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, record) -> {
-                Map<String, Object> bins = record.bins;
+            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, rec) -> {
+                Map<String, Object> bins = rec.bins;
                 bins.forEach((k, value) -> {
-                    logger.fine(String.format("Bin: %s -> %s", k, value));
+                    logger.fine(() -> String.format("Bin: %s -> %s", k, value));
                     int t = getBinType(value);
                     if (t != 0) {
                         columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),

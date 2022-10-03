@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.sql.Wrapper;
 
 public interface SimpleWrapper extends Wrapper {
+
     @Override
     default <T> T unwrap(Class<T> iface) throws SQLException {
         // The implementation is taken from MySQL driver
