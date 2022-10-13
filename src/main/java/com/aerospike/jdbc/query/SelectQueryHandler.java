@@ -19,7 +19,6 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
-import com.aerospike.jdbc.util.AerospikeUtils;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
@@ -129,9 +128,9 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
                 && query.getPredicate().isIndexable() && Objects.isNull(query.getOffset())) {
-            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeUtils.getSecondaryIndexes(client);
+            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeQuery.secondaryIndexes;
             List<String> binNames = query.getPredicate().getBinNames();
-            if (!binNames.isEmpty() && !indexMap.isEmpty()) {
+            if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
                 if (binNames.size() == 1) {
                     String binName = binNames.get(0);
                     for (AerospikeSecondaryIndex index : indexMap.values()) {
