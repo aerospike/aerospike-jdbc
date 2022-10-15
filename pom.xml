@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.6.0</version>
+    <version>1.7.0</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -120,7 +120,7 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.22.0</version>
+            <version>3.23.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -134,7 +134,7 @@
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
-            <version>3.28.0</version>
+            <version>3.33.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
