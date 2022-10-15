@@ -1,6 +1,5 @@
 package com.aerospike.jdbc.sql.type;
 
-
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.util.SqlLiterals;
 
@@ -22,8 +21,9 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 public class BasicArray extends SerialArray {
-    private String schema;
+
     private final List<DataColumn> columns;
+    private String schema;
 
     public BasicArray(Array array, Map<String, Class<?>> map) throws SQLException {
         super(array, map);

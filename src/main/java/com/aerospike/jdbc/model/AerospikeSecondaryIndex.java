@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AerospikeSecondaryIndex {
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     private @interface Order {
@@ -44,17 +45,23 @@ public class AerospikeSecondaryIndex {
     @JsonProperty("table_name")
     private final String set;
 
+    @Order(5)
+    @JsonProperty("sindex_ratio")
+    private final Integer binValuesRatio;
+
     public AerospikeSecondaryIndex(
             String namespace,
             String set,
             String binName,
             String indexName,
-            IndexType indexType) {
+            IndexType indexType,
+            Integer binValuesRatio) {
         this.namespace = namespace;
         this.set = set;
         this.binName = binName;
         this.indexName = indexName;
         this.indexType = indexType;
+        this.binValuesRatio = binValuesRatio;
     }
 
     public String getBinName() {
@@ -77,6 +84,11 @@ public class AerospikeSecondaryIndex {
         return set;
     }
 
+    public Integer getBinValuesRatio()
+    {
+        return binValuesRatio;
+    }
+
     public String toKey() {
         return key(namespace, set, indexName);
     }
@@ -85,7 +97,7 @@ public class AerospikeSecondaryIndex {
         return String.format("%s/%s/%s", namespace, set, indexName);
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("all")
     public Map<String, Object> toMap() {
         ObjectMapper mapper = new ObjectMapper();
         return (Map<String, Object>) mapper.convertValue(this, Map.class);

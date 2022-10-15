@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedException;
+import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
 
@@ -49,7 +49,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         try {
             query = AerospikeQuery.parse(sql);
         } catch (SqlParseException e) {
-            throw unsupportedException;
+            throw new UnsupportedOperationException(unsupportedQueryType);
         }
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
     }
@@ -148,7 +148,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     @Override
     @Deprecated
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-        throw new SQLFeatureNotSupportedException("setUnicodeStream() is deprecated");
+        throw new SQLFeatureNotSupportedException("setUnicodeStream is deprecated");
     }
 
     @Override
@@ -374,5 +374,4 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     public void setNClob(int parameterIndex, Reader reader) throws SQLException {
         setClob(parameterIndex, reader);
     }
-
 }

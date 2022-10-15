@@ -1,6 +1,10 @@
 package com.aerospike.jdbc.sql.type;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -8,6 +12,7 @@ import java.util.Arrays;
 import static java.lang.String.format;
 
 public class ByteArrayBlob implements Blob {
+
     private static final byte[] EMPTY = new byte[0];
     private volatile byte[] data;
 
@@ -17,6 +22,43 @@ public class ByteArrayBlob implements Blob {
 
     public ByteArrayBlob(byte[] data) {
         this.data = data;
+    }
+
+    // Source: https://stackoverflow.com/questions/21341027/find-indexof-a-byte-array-within-another-byte-array
+    private static int indexOf(byte[] source, int sourceOffset, int sourceCount, byte[] target,
+                               int targetOffset, int targetCount, int fromIndex) {
+        if (fromIndex >= sourceCount) {
+            return (targetCount == 0 ? sourceCount : -1);
+        }
+        if (fromIndex < 0) {
+            fromIndex = 0;
+        }
+        if (targetCount == 0) {
+            return fromIndex;
+        }
+
+        byte first = target[targetOffset];
+        int max = sourceOffset + (sourceCount - targetCount);
+
+        for (int i = sourceOffset + fromIndex; i <= max; i++) {
+            /* Look for first character. */
+            if (source[i] != first) {
+                while (++i <= max && source[i] != first) ;
+            }
+
+            /* Found first character, now look at the rest of v2 */
+            if (i <= max) {
+                int j = i + 1;
+                int end = j + targetCount - 1;
+                for (int k = targetOffset + 1; j < end && source[j] == target[k]; j++, k++) ;
+
+                if (j == end) {
+                    /* Found whole string. */
+                    return i - sourceOffset;
+                }
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -37,12 +79,12 @@ public class ByteArrayBlob implements Blob {
     }
 
     @Override
-    public InputStream getBinaryStream() throws SQLException {
+    public InputStream getBinaryStream() {
         return new ByteArrayInputStream(data);
     }
 
     @Override
-    public long position(byte[] pattern, long start) throws SQLException {
+    public long position(byte[] pattern, long start) {
         if (start > length()) {
             return -1;
         }
@@ -51,7 +93,7 @@ public class ByteArrayBlob implements Blob {
     }
 
     @Override
-    public long position(Blob pattern, long start) throws SQLException {
+    public long position(Blob pattern, long start) {
         return position(((ByteArrayBlob) pattern).data, start);
     }
 
@@ -116,43 +158,6 @@ public class ByteArrayBlob implements Blob {
     @Override
     public InputStream getBinaryStream(long pos, long length) throws SQLException {
         return new ByteArrayInputStream(getBytes(pos, (int) length));
-    }
-
-    // Source: https://stackoverflow.com/questions/21341027/find-indexof-a-byte-array-within-another-byte-array
-    private static int indexOf(byte[] source, int sourceOffset, int sourceCount, byte[] target,
-                               int targetOffset, int targetCount, int fromIndex) {
-        if (fromIndex >= sourceCount) {
-            return (targetCount == 0 ? sourceCount : -1);
-        }
-        if (fromIndex < 0) {
-            fromIndex = 0;
-        }
-        if (targetCount == 0) {
-            return fromIndex;
-        }
-
-        byte first = target[targetOffset];
-        int max = sourceOffset + (sourceCount - targetCount);
-
-        for (int i = sourceOffset + fromIndex; i <= max; i++) {
-            /* Look for first character. */
-            if (source[i] != first) {
-                while (++i <= max && source[i] != first) ;
-            }
-
-            /* Found first character, now look at the rest of v2 */
-            if (i <= max) {
-                int j = i + 1;
-                int end = j + targetCount - 1;
-                for (int k = targetOffset + 1; j < end && source[j] == target[k]; j++, k++) ;
-
-                if (j == end) {
-                    /* Found whole string. */
-                    return i - sourceOffset;
-                }
-            }
-        }
-        return -1;
     }
 
     @Override

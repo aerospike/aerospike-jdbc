@@ -22,19 +22,17 @@ public abstract class BaseResultSet<T> implements ResultSet,
 
     private static final Logger logger = Logger.getLogger(BaseResultSet.class.getName());
 
-    private final Statement statement;
     protected final String schema;
     protected final String table;
-    private boolean wasNull = false;
+    protected final List<DataColumn> columns;
+    private final Statement statement;
+    private final ResultSetMetaData metadata;
     protected volatile int index;
+    protected boolean afterLast = false;
+    private boolean wasNull = false;
     private volatile boolean closed;
 
-    protected boolean afterLast = false;
-
-    protected final List<DataColumn> columns;
-    private final ResultSetMetaData metadata;
-
-    public BaseResultSet(Statement statement, String schema, String table, List<DataColumn> columns) {
+    protected BaseResultSet(Statement statement, String schema, String table, List<DataColumn> columns) {
         this.statement = statement;
         this.schema = schema;
         this.table = table;
@@ -187,7 +185,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
         return false;
     }
 
-    protected void setCurrentRecord(T record) {
+    protected void setCurrentRecord(T rec) {
         // default empty implementation
     }
 

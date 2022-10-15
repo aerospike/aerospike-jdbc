@@ -31,6 +31,7 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
                 .collect(toMap(i -> columns.get(i).getName(), i -> i));
     }
 
+    @Override
     protected List<?> getRecord() {
         return currentRecord;
     }
@@ -109,14 +110,15 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
         return !it.hasNext();
     }
 
+    @Override
     protected boolean moveToNext() {
         boolean hasNext = it.hasNext();
         currentRecord = hasNext ? it.next() : null;
         return hasNext;
     }
 
-    protected void setCurrentRecord(List<?> record) {
-        currentRecord = record;
+    @Override
+    protected void setCurrentRecord(List<?> rec) {
+        currentRecord = rec;
     }
-
 }

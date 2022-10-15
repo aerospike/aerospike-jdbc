@@ -13,6 +13,7 @@ import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class AerospikeQuery {
 
@@ -22,6 +23,8 @@ public class AerospikeQuery {
             .withCaseSensitive(true)
             .withUnquotedCasing(Casing.UNCHANGED)
             .withQuotedCasing(Casing.UNCHANGED);
+
+    public static volatile Map<String, AerospikeSecondaryIndex> secondaryIndexes;
 
     private String catalog;
     private String schema;
@@ -52,13 +55,17 @@ public class AerospikeQuery {
         this.catalog = catalog;
     }
 
+    public String getSchema() {
+        return schema;
+    }
+
     public void setSchema(String schema) {
         this.catalog = schema; // TODO ?
         this.schema = schema;
     }
 
-    public String getSchema() {
-        return schema;
+    public String getTable() {
+        return table;
     }
 
     public void setTable(String table) {
@@ -81,60 +88,56 @@ public class AerospikeQuery {
         }
     }
 
-    public String getTable() {
-        return table;
-    }
-
     public SchemaTableName getSchemaTable() {
         return new SchemaTableName(schema, table);
-    }
-
-    public void setQueryType(QueryType queryType) {
-        this.queryType = queryType;
     }
 
     public QueryType getQueryType() {
         return queryType;
     }
 
-    public void setOffset(int offset) {
-        this.offset = offset;
+    public void setQueryType(QueryType queryType) {
+        this.queryType = queryType;
     }
 
     public Integer getOffset() {
         return offset;
     }
 
-    public void setLimit(int limit) {
-        this.limit = limit;
+    public void setOffset(int offset) {
+        this.offset = offset;
     }
 
     public Integer getLimit() {
         return limit;
     }
 
-    public void setPredicate(QueryPredicate predicate) {
-        this.predicate = predicate;
+    public void setLimit(int limit) {
+        this.limit = limit;
     }
 
     public QueryPredicate getPredicate() {
         return predicate;
     }
 
-    public void setValues(List<Object> values) {
-        this.values = values;
+    public void setPredicate(QueryPredicate predicate) {
+        this.predicate = predicate;
     }
 
     public List<Object> getValues() {
         return values;
     }
 
-    public void setColumns(List<String> columns) {
-        this.columns = columns;
+    public void setValues(List<Object> values) {
+        this.values = values;
     }
 
     public List<String> getColumns() {
         return columns;
+    }
+
+    public void setColumns(List<String> columns) {
+        this.columns = columns;
     }
 
     public String[] getBinNames() {

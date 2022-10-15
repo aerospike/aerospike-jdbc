@@ -16,7 +16,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
     protected final IAerospikeClient client;
     protected final Statement statement;
 
-    public BaseQueryHandler(IAerospikeClient client, Statement statement) {
+    protected BaseQueryHandler(IAerospikeClient client, Statement statement) {
         this.client = client;
         this.statement = statement;
     }

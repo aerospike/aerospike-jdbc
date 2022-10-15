@@ -10,10 +10,10 @@ import static java.util.Objects.requireNonNull;
 
 public final class EventLoopProvider {
 
+    private static EventLoops eventLoops;
+
     private EventLoopProvider() {
     }
-
-    private static EventLoops eventLoops;
 
     public static EventLoop getEventLoop() {
         initEventLoops();
@@ -27,7 +27,8 @@ public final class EventLoopProvider {
 
     private static void initEventLoops() {
         if (null == eventLoops) {
-            eventLoops = new NettyEventLoops(new EventPolicy(), new NioEventLoopGroup(2));
+            int nThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
+            eventLoops = new NettyEventLoops(new EventPolicy(), new NioEventLoopGroup(nThreads));
             requireNonNull(eventLoops.get(0));
         }
     }

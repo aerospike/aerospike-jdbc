@@ -14,7 +14,10 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.*;
+import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+import static com.aerospike.jdbc.util.Constants.schemaCacheTTLMinutes;
+import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 
 public final class AerospikeSchemaBuilder {
 
@@ -32,8 +35,8 @@ public final class AerospikeSchemaBuilder {
 
     public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
         return cache.get(schemaTableName).orElseGet(() -> {
-            logger.info("Fetching SchemaTableName: " + schemaTableName);
-            Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
+            logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
+            final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
             ScanPolicy policy = new ScanPolicy();
             policy.maxRecords = schemaScanRecords;
 
@@ -42,10 +45,10 @@ public final class AerospikeSchemaBuilder {
                     new DataColumn(schemaTableName.getSchemaName(),
                             schemaTableName.getTableName(), Types.VARCHAR, defaultKeyName, defaultKeyName));
 
-            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, record) -> {
-                Map<String, Object> bins = record.bins;
+            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, rec) -> {
+                Map<String, Object> bins = rec.bins;
                 bins.forEach((k, value) -> {
-                    logger.fine(String.format("Bin: %s -> %s", k, value));
+                    logger.fine(() -> String.format("Bin: %s -> %s", k, value));
                     int t = getBinType(value);
                     if (t != 0) {
                         columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
@@ -94,7 +97,7 @@ public final class AerospikeSchemaBuilder {
         } else if (value instanceof Map<?, ?> || value instanceof Value.MapValue) {
             t = Types.STRUCT;
         } else {
-            logger.info("Unknown bin type: " + value);
+            logger.info(() -> "Unknown bin type: " + value);
         }
         return t;
     }

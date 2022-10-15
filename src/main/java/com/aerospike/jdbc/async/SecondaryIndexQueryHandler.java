@@ -12,7 +12,7 @@ import java.util.logging.Logger;
 
 public class SecondaryIndexQueryHandler {
 
-    private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
+    private static final Logger logger = Logger.getLogger(SecondaryIndexQueryHandler.class.getName());
 
     private final IAerospikeClient client;
     private final RecordSetRecordSequenceListener listener;
@@ -20,6 +20,10 @@ public class SecondaryIndexQueryHandler {
     public SecondaryIndexQueryHandler(IAerospikeClient client) {
         this.client = client;
         this.listener = new RecordSetRecordSequenceListener();
+    }
+
+    public static SecondaryIndexQueryHandler create(IAerospikeClient client) {
+        return new SecondaryIndexQueryHandler(client);
     }
 
     public RecordSet execute(QueryPolicy queryPolicy, AerospikeQuery query,
@@ -38,9 +42,5 @@ public class SecondaryIndexQueryHandler {
         client.query(EventLoopProvider.getEventLoop(), listener, queryPolicy, statement);
 
         return listener.getRecordSet();
-    }
-
-    public static SecondaryIndexQueryHandler create(IAerospikeClient client) {
-        return new SecondaryIndexQueryHandler(client);
     }
 }

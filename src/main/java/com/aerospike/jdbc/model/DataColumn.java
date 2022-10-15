@@ -3,9 +3,10 @@ package com.aerospike.jdbc.model;
 import java.util.Objects;
 
 public class DataColumn {
+
+    private final String name;
     private String catalog;
     private String table;
-    private final String name;
     private String label;
     private int type;
 

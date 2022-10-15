@@ -19,7 +19,7 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
-import com.aerospike.jdbc.util.AerospikeUtils;
+import com.aerospike.jdbc.util.URLParser;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
@@ -30,7 +30,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.*;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildBatchReadPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildQueryPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildScanNoBinDataPolicy;
+import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
 
 public class SelectQueryHandler extends BaseQueryHandler {
@@ -61,7 +64,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeCountQuery(AerospikeQuery query) {
-        logger.info("SELECT count");
+        logger.info(() -> "SELECT count");
         String countLabel = query.getColumns().get(0);
         int recordNumber;
         if (Objects.isNull(query.getPredicate())) {
@@ -74,12 +77,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
             recordSet.forEach(r -> count.incrementAndGet());
             recordNumber = count.get();
         }
-        com.aerospike.client.Record record = new com.aerospike.client.Record(Collections.singletonMap(
+        com.aerospike.client.Record aeroRecord = new com.aerospike.client.Record(Collections.singletonMap(
                 countLabel, recordNumber), 1, 0);
 
-        RecordSet recordSet = new RecordSet(2);
-        recordSet.put(new KeyRecord(null, record));
-        recordSet.end();
+        RecordSet recordSet = new RecordSet(2, URLParser.getDriverPolicy().getRecordSetTimeoutMs());
+        recordSet.put(new KeyRecord(null, aeroRecord));
+        recordSet.close();
 
         List<DataColumn> columnList = Collections.singletonList(new DataColumn(query.getSchema(),
                 query.getTable(), Types.INTEGER, countLabel, countLabel));
@@ -89,7 +92,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Collection<Object> keyObjects) {
-        logger.info("SELECT primary key");
+        logger.info(() -> "SELECT primary key");
         final BatchReadPolicy policy = buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
                 .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getTable(), Value.get(k)), true))
@@ -103,7 +106,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
-        logger.info("SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
+        logger.info(() -> "SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
         ScanPolicy policy = buildScanPolicy(query);
         RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
@@ -114,7 +117,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Pair<ResultSet, Integer> executeQuery(AerospikeQuery query,
                                                   AerospikeSecondaryIndex secondaryIndex) {
-        logger.info("SELECT secondary index query for column: " + secondaryIndex.getBinName());
+        logger.info(() -> "SELECT secondary index query for column: " + secondaryIndex.getBinName());
 
         QueryPolicy policy = buildQueryPolicy(query);
         RecordSet recordSet = SecondaryIndexQueryHandler.create(client).execute(policy, query, secondaryIndex);
@@ -126,9 +129,9 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
                 && query.getPredicate().isIndexable() && Objects.isNull(query.getOffset())) {
-            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeUtils.getSecondaryIndexes(client);
+            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeQuery.secondaryIndexes;
             List<String> binNames = query.getPredicate().getBinNames();
-            if (!binNames.isEmpty() && !indexMap.isEmpty()) {
+            if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
                 if (binNames.size() == 1) {
                     String binName = binNames.get(0);
                     for (AerospikeSecondaryIndex index : indexMap.values()) {
@@ -138,7 +141,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
                     }
                 } else {
                     List<AerospikeSecondaryIndex> indexList = new ArrayList<>(indexMap.values());
-                    indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+                    if (VersionUtils.isSIndexCardinalitySupported(client)) {
+                        indexList.sort(Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio));
+                    } else {
+                        indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+                    }
                     for (AerospikeSecondaryIndex index : indexList) {
                         if (binNames.contains(index.getBinName())) {
                             return Optional.of(index);

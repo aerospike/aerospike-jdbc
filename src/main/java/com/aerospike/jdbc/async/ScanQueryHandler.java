@@ -23,10 +23,18 @@ public class ScanQueryHandler {
 
     private int currentPartition;
     private int count;
+    private final ScanCallback callback = ((key, record) -> {
+        listener.onRecord(key, record);
+        count++;
+    });
 
     public ScanQueryHandler(IAerospikeClient client) {
         this.client = client;
         this.listener = new RecordSetRecordSequenceListener();
+    }
+
+    public static ScanQueryHandler create(IAerospikeClient client) {
+        return new ScanQueryHandler(client);
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {
@@ -63,14 +71,5 @@ public class ScanQueryHandler {
 
     private boolean isValidPartition() {
         return currentPartition >= 0 && currentPartition < Node.PARTITIONS;
-    }
-
-    private final ScanCallback callback = ((key, record) -> {
-        listener.onRecord(key, record);
-        count++;
-    });
-
-    public static ScanQueryHandler create(IAerospikeClient client) {
-        return new ScanQueryHandler(client);
     }
 }

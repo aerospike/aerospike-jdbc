@@ -10,7 +10,7 @@ public final class Constants {
 
     public static final int defaultQueryLimit = 10000;
 
-    public static RuntimeException unsupportedException = new UnsupportedOperationException("Unsupported query type");
+    public static final String unsupportedQueryType = "Unsupported query type";
 
     private Constants() {
     }

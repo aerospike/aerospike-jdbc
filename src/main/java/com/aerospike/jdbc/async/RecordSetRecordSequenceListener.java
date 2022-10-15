@@ -5,31 +5,32 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Record;
 import com.aerospike.client.listener.RecordSequenceListener;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.jdbc.util.URLParser;
 
-public class RecordSetRecordSequenceListener
-        implements RecordSequenceListener {
+public class RecordSetRecordSequenceListener implements RecordSequenceListener {
 
-    private static final int defaultCapacity = 8192;
     private final RecordSet recordSet;
 
     public RecordSetRecordSequenceListener() {
-        recordSet = new RecordSet(defaultCapacity);
+        recordSet = new RecordSet(
+                URLParser.getDriverPolicy().getRecordSetQueueCapacity(),
+                URLParser.getDriverPolicy().getRecordSetTimeoutMs()
+        );
     }
 
     @Override
-    public void onRecord(Key key, Record record)
-            throws AerospikeException {
-        recordSet.put(new KeyRecord(key, record));
+    public void onRecord(Key key, Record rec) throws AerospikeException {
+        recordSet.put(new KeyRecord(key, rec));
     }
 
     @Override
     public void onSuccess() {
-        recordSet.put(RecordSet.END);
+        recordSet.close();
     }
 
     @Override
     public void onFailure(AerospikeException exception) {
-        recordSet.close();
+        recordSet.abort();
     }
 
     public RecordSet getRecordSet() {

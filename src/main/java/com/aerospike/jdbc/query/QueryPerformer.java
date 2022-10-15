@@ -7,11 +7,18 @@ import com.aerospike.jdbc.model.Pair;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
+
 public final class QueryPerformer {
 
-    public static Pair<ResultSet, Integer> executeQuery(IAerospikeClient client,
-                                                        Statement statement, AerospikeQuery query) {
+    private QueryPerformer() {
+    }
 
+    public static Pair<ResultSet, Integer> executeQuery(
+            IAerospikeClient client,
+            Statement statement,
+            AerospikeQuery query
+    ) {
         QueryHandler queryHandler;
         switch (query.getQueryType()) {
             case SELECT:
@@ -35,7 +42,7 @@ public final class QueryPerformer {
                 return queryHandler.execute(query);
 
             default:
-                throw new RuntimeException("Unsupported query type");
+                throw new UnsupportedOperationException(unsupportedQueryType);
         }
     }
 }
