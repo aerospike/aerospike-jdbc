@@ -4,14 +4,17 @@ import com.aerospike.client.AerospikeException;
 import com.aerospike.client.BatchRead;
 import com.aerospike.client.listener.BatchSequenceListener;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.jdbc.util.URLParser;
 
 public class RecordSetBatchSequenceListener implements BatchSequenceListener {
 
-    private static final int defaultCapacity = 8192;
     private final RecordSet recordSet;
 
     public RecordSetBatchSequenceListener() {
-        recordSet = new RecordSet(defaultCapacity);
+        recordSet = new RecordSet(
+                URLParser.getDriverPolicy().getRecordSetQueueCapacity(),
+                URLParser.getDriverPolicy().getRecordSetTimeoutMs()
+        );
     }
 
     @Override
@@ -23,12 +26,12 @@ public class RecordSetBatchSequenceListener implements BatchSequenceListener {
 
     @Override
     public void onSuccess() {
-        recordSet.put(RecordSet.END);
+        recordSet.close();
     }
 
     @Override
     public void onFailure(AerospikeException e) {
-        recordSet.close();
+        recordSet.abort();
     }
 
     public RecordSet getRecordSet() {

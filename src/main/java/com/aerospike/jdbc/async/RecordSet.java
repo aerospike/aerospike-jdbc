@@ -5,87 +5,100 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Record;
 import com.aerospike.client.query.KeyRecord;
 
+import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public final class RecordSet
         implements Iterable<KeyRecord>, Closeable {
 
-    public static final KeyRecord END = new KeyRecord(null, null);
-    private final BlockingQueue<KeyRecord> queue;
-    private KeyRecord record;
-    private volatile boolean valid = true;
+    private static final Logger logger = Logger.getLogger(RecordSet.class.getName());
 
-    public RecordSet(int capacity) {
+    private static final KeyRecord END = new KeyRecord(null, null);
+    private static final KeyRecord FAILURE = new KeyRecord(null, null);
+
+    private final BlockingQueue<KeyRecord> queue;
+    private final int timeoutMs;
+    private KeyRecord keyRecord;
+    private volatile boolean valid = true;
+    private volatile boolean interrupted;
+
+    public RecordSet(int capacity, int timeoutMs) {
         this.queue = new ArrayBlockingQueue<>(capacity);
+        this.timeoutMs = timeoutMs;
     }
 
     public boolean next()
             throws AerospikeException {
-        try {
-            this.record = this.queue.take();
-        } catch (InterruptedException e) {
-            this.valid = false;
-            return false;
+        if (valid) {
+            try {
+                keyRecord = queue.take();
+            } catch (InterruptedException e) {
+                logger.info(() -> "InterruptedException in next");
+                interrupt();
+            }
+            if (keyRecord == FAILURE) {
+                throw new AerospikeException("Aerospike asynchronous command failure");
+            }
+            if (keyRecord == END) {
+                valid = false;
+            }
         }
-
-        if (this.record == END) {
-            this.record = null;
-            this.valid = false;
-            return false;
-        } else {
-            return true;
-        }
+        return valid;
     }
 
+    private void interrupt() {
+        interrupted = true;
+        queue.clear();
+    }
+
+    @Override
     public void close() {
-        this.valid = false;
+        put(END);
     }
 
+    @Override
+    @Nonnull
     public Iterator<KeyRecord> iterator() {
         return new RecordSetIterator(this);
     }
 
     public Key getKey() {
-        return this.record.key;
+        return keyRecord.key;
     }
 
     public Record getRecord() {
-        return this.record.record;
+        return keyRecord.record;
     }
 
-    public boolean put(KeyRecord record) {
-        if (!this.valid) {
-            return false;
-        } else {
+    public boolean put(KeyRecord keyRecord) {
+        if (valid) {
             try {
-                this.queue.put(record);
-                return true;
-            } catch (InterruptedException e) {
-                if (this.valid) {
-                    this.abort();
+                if (!queue.offer(keyRecord, timeoutMs, TimeUnit.MILLISECONDS)) {
+                    logger.fine(() -> "Timeout in put");
+                    abort();
+                    throw new AerospikeException.QueryTerminated();
                 }
-
-                return false;
+            } catch (InterruptedException e) {
+                logger.info(() -> "InterruptedException in put");
+                abort();
+                throw new AerospikeException.QueryTerminated(e);
+            }
+            if (interrupted) {
+                logger.info(() -> "Interrupted in put");
+                throw new AerospikeException.QueryTerminated();
             }
         }
+        return valid;
     }
 
-    public boolean end() {
-        return put(END);
-    }
-
-    private void abort() {
-        this.valid = false;
-        this.queue.clear();
-
-        while (true) {
-            if (this.queue.offer(END) && this.queue.poll() == null) {
-                break;
-            }
-        }
+    public void abort() {
+        queue.clear();
+        put(FAILURE);
     }
 
     private static class RecordSetIterator
@@ -98,21 +111,21 @@ public final class RecordSet
             this.more = this.recordSet.next();
         }
 
+        @Override
         public boolean hasNext() {
-            return this.more;
+            return more;
         }
 
+        @Override
         public KeyRecord next() {
-            KeyRecord kr = this.recordSet.record;
-            this.more = this.recordSet.next();
-            return kr;
+            KeyRecord nextKeyRecord = recordSet.keyRecord;
+            more = recordSet.next();
+            return nextKeyRecord;
         }
 
-        public void remove() {
-        }
-
+        @Override
         public void close() {
-            this.recordSet.close();
+            recordSet.close();
         }
     }
 }

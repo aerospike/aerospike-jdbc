@@ -19,6 +19,7 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
+import com.aerospike.jdbc.util.URLParser;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
@@ -79,9 +80,9 @@ public class SelectQueryHandler extends BaseQueryHandler {
         com.aerospike.client.Record aeroRecord = new com.aerospike.client.Record(Collections.singletonMap(
                 countLabel, recordNumber), 1, 0);
 
-        RecordSet recordSet = new RecordSet(2);
+        RecordSet recordSet = new RecordSet(2, URLParser.getDriverPolicy().getRecordSetTimeoutMs());
         recordSet.put(new KeyRecord(null, aeroRecord));
-        recordSet.end();
+        recordSet.close();
 
         List<DataColumn> columnList = Collections.singletonList(new DataColumn(query.getSchema(),
                 query.getTable(), Types.INTEGER, countLabel, countLabel));

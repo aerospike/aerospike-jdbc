@@ -9,6 +9,7 @@ import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.TlsPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
+import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
 
@@ -25,7 +26,7 @@ public final class URLParser {
 
     private static final Logger logger = Logger.getLogger(URLParser.class.getName());
 
-    private static final String defaultAerospikePort = "3000";
+    private static final String DEFAULT_AEROSPIKE_PORT = "3000";
 
     private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
@@ -37,6 +38,7 @@ public final class URLParser {
     private static WritePolicy writePolicy;
     private static ScanPolicy scanPolicy;
     private static QueryPolicy queryPolicy;
+    private static DriverPolicy driverPolicy;
 
     private URLParser() {
     }
@@ -69,6 +71,10 @@ public final class URLParser {
         return queryPolicy;
     }
 
+    public static DriverPolicy getDriverPolicy() {
+        return driverPolicy;
+    }
+
     public static void parseUrl(String url, Properties props) {
         logger.info(() -> "URL properties: " + props);
         schema = parseSchema(url);
@@ -83,6 +89,7 @@ public final class URLParser {
         queryPolicy = copy(clientInfo, new QueryPolicy());
         Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
                 .map(Boolean::parseBoolean).orElse(true);
+        driverPolicy = new DriverPolicy(clientInfo);
         logger.info(() -> "Value.UseBoolBin = " + Value.UseBoolBin);
     }
 
@@ -122,7 +129,7 @@ public final class URLParser {
         }
         return Arrays.stream(m.group(1).split(","))
                 .map(p -> p.split(":"))
-                .map(a -> a.length > 1 ? a : new String[]{a[0], defaultAerospikePort})
+                .map(a -> a.length > 1 ? a : new String[]{a[0], DEFAULT_AEROSPIKE_PORT})
                 .map(hostPort -> new Host(hostPort[0], tlsName, Integer.parseInt(hostPort[1])))
                 .toArray(Host[]::new);
     }
