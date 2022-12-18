@@ -26,7 +26,7 @@
         <maven-shade-plugin.version>3.4.0</maven-shade-plugin.version>
 
         <aerospike-client.version>6.1.2</aerospike-client.version>
-        <netty.version>4.1.82.Final</netty.version>
+        <netty.version>4.1.86.Final</netty.version>
         <jackson.version>2.13.4</jackson.version>
         <calcite.version>1.32.0</calcite.version>
         <httpclient.version>4.5.13</httpclient.version>
@@ -244,7 +244,7 @@
                     <doctitle>A JDBC driver for the Aerospike database</doctitle>
                     <show>public</show>
                     <splitindex>true</splitindex>
-                    <bottom>Copyright &#169; 2021-{currentYear} Aerospike, Inc. All rights reserved.</bottom>
+                    <bottom>Copyright © 2021-{currentYear} Aerospike, Inc. All rights reserved.</bottom>
                     <sourcepath>${project.basedir}/src/main/java</sourcepath>
                     <source>8</source>
                 </configuration>
