@@ -10,13 +10,12 @@ import java.util.logging.Logger;
 
 public abstract class JdbcBaseTest {
 
-    private static final Logger logger = Logger.getLogger(JdbcBaseTest.class.getName());
-
-    private static final String hostname = "localhost";
-    private static final int port = 3000;
-
     protected static final String namespace = "test";
     protected static final String tableName = "jdbc";
+
+    private static final Logger logger = Logger.getLogger(JdbcBaseTest.class.getName());
+    private static final String hostname = "localhost";
+    private static final int port = 3000;
 
     protected static Connection connection;
 
