@@ -28,11 +28,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     protected final IAerospikeClient client;
     private final Connection connection;
+    protected String schema;
     private int maxRows = Integer.MAX_VALUE;
     private int queryTimeout;
     private ResultSet resultSet;
     private int updateCount;
-    private String schema;
 
     public AerospikeStatement(IAerospikeClient client, Connection connection) {
         this.client = client;
@@ -56,7 +56,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         return resultSet;
     }
 
-    private AerospikeQuery parseQuery(String sql) throws SQLException {
+    protected AerospikeQuery parseQuery(String sql) throws SQLException {
         sql = sql.replace("\n", " ");
         AerospikeQuery query;
         try {

@@ -10,7 +10,6 @@ import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.IOUtils;
-import org.apache.calcite.sql.parser.SqlParseException;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -27,7 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
 
@@ -47,9 +45,9 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         parameterValues = new Object[params];
         Arrays.fill(parameterValues, Optional.empty());
         try {
-            query = AerospikeQuery.parse(sql);
-        } catch (SqlParseException e) {
-            throw new UnsupportedOperationException(unsupportedQueryType);
+            query = parseQuery(sql);
+        } catch (SQLException e) {
+            throw new UnsupportedOperationException(e);
         }
         columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
     }
