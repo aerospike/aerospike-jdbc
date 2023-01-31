@@ -747,24 +747,22 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     @Override
     public ResultSet getSchemas() {
         return new ListRecordSet(null, "system", "schemas",
-                systemColumns(new String[]{"TABLE_SCHEM", "TABLE_CATALOG"}, new int[]{VARCHAR, VARCHAR}), emptyList());
+                systemColumns(new String[]{"TABLE_SCHEM", "TABLE_CATALOG"}, new int[]{VARCHAR, VARCHAR}),
+                catalogs.stream().map(ns -> Arrays.asList(ns, ns)).collect(toList()));
     }
 
     @Override
     public ResultSet getCatalogs() {
-        Iterable<List<?>> catalogList = getCatalogNames().stream().map(Collections::singletonList).collect(toList());
         return new ListRecordSet(null, "system", "catalogs",
-                systemColumns(new String[]{"TABLE_CAT"}, new int[]{VARCHAR}), catalogList);
-    }
-
-    public List<String> getCatalogNames() {
-        return catalogs;
+                systemColumns(new String[]{"TABLE_CAT"}, new int[]{VARCHAR}),
+                catalogs.stream().map(Collections::singletonList).collect(toList()));
     }
 
     @Override
     public ResultSet getTableTypes() {
         return new ListRecordSet(null, "system", "table_types",
-                systemColumns(new String[]{"TABLE_TYPE"}, new int[]{VARCHAR}), singletonList(singletonList("TABLE")));
+                systemColumns(new String[]{"TABLE_TYPE"}, new int[]{VARCHAR}),
+                singletonList(singletonList("TABLE")));
     }
 
     @Override
@@ -775,15 +773,16 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         Pattern tableNameRegex = tableNamePattern == null || "".equals(tableNamePattern) ? null
                 : Pattern.compile(tableNamePattern.replace("%", ".*"));
 
-        final Iterable<ResultSetMetaData> mds;
-        if (catalog == null) {
+        final String namespace = catalog == null ? schemaPattern : catalog;
+        final List<ResultSetMetaData> mds;
+        if (namespace == null) {
             mds = tables.entrySet().stream()
                     .flatMap(p -> p.getValue().stream().map(t -> getMetadata(p.getKey(), t)))
                     .collect(toList());
         } else {
-            mds = tables.getOrDefault(catalog, Collections.emptyList()).stream()
+            mds = tables.getOrDefault(namespace, Collections.emptyList()).stream()
                     .filter(t -> tableNameRegex == null || tableNameRegex.matcher(t).matches())
-                    .map(t -> getMetadata(catalog, t))
+                    .map(t -> getMetadata(namespace, t))
                     .collect(toList());
         }
 
@@ -809,7 +808,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 INTEGER, INTEGER, VARCHAR, VARCHAR, INTEGER, INTEGER, INTEGER, INTEGER, VARCHAR, VARCHAR, VARCHAR,
                 VARCHAR, SMALLINT, VARCHAR, VARCHAR};
 
-        return new ListRecordSet(null, "system", "columns", systemColumns(columns, sqlTypes), result);
+        return new ListRecordSet(null, "system", "columns",
+                systemColumns(columns, sqlTypes), result);
     }
 
     @Override
@@ -866,13 +866,6 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         int[] sqlTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, SMALLINT, VARCHAR};
         return new ListRecordSet(null, "system", "primary_keys",
                 systemColumns(columns, sqlTypes), tablesData);
-    }
-
-    public List<String> getTableNames(String catalog) {
-        if (catalog == null) {
-            return tables.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
-        }
-        return new ArrayList<>(tables.getOrDefault(catalog, Collections.emptyList()));
     }
 
     @Override
@@ -1270,6 +1263,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         return Optional.ofNullable(map.getOrDefault(key, defaultValue)).orElse(defaultValue);
     }
 
+    @SuppressWarnings("SameParameterValue")
     private String join(String defaultValue, String delimiter, Collection<String> elements) {
         return elements.isEmpty() ? defaultValue : String.join(delimiter, elements);
     }
@@ -1296,7 +1290,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                     "select * from \"%s.%s\" limit %d", namespace, table, schemaScanRecords)).getMetaData();
         } catch (SQLException e) {
             logger.severe(() -> String.format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException(e);
         }
     }
 
