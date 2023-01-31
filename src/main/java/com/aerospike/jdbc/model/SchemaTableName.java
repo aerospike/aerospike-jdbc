@@ -33,4 +33,9 @@ public class SchemaTableName {
     public int hashCode() {
         return Objects.hash(schemaName, tableName);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s(%s, %s)", getClass().getSimpleName(), schemaName, tableName);
+    }
 }

@@ -82,4 +82,10 @@ public class DataColumn {
     public int hashCode() {
         return Objects.hash(catalog, table, name, label, type);
     }
+
+    @Override
+    public String toString() {
+        return String.format("%s(%s, %s, %s, %s, %d)",
+                getClass().getSimpleName(), name, catalog, table, label, type);
+    }
 }
