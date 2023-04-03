@@ -245,17 +245,17 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public String getStringFunctions() {
-        return null;
+        return "";
     }
 
     @Override
     public String getSystemFunctions() {
-        return null;
+        return "";
     }
 
     @Override
     public String getTimeDateFunctions() {
-        return null;
+        return "";
     }
 
     @Override
