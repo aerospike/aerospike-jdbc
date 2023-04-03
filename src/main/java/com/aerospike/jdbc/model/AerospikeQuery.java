@@ -15,6 +15,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+
 public class AerospikeQuery {
 
     @VisibleForTesting
@@ -86,6 +88,13 @@ public class AerospikeQuery {
             default:
                 throw new IllegalArgumentException("Invalid table name");
         }
+    }
+
+    public String getSetName() {
+        if (table.equals(defaultSchemaName)) {
+            return null;
+        }
+        return table;
     }
 
     public SchemaTableName getSchemaTable() {

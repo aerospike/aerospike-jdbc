@@ -95,7 +95,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         logger.info(() -> "SELECT primary key");
         final BatchReadPolicy policy = buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
-                .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getTable(), Value.get(k)), true))
+                .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getSetName(), Value.get(k)), true))
                 .collect(Collectors.toList());
 
         RecordSetBatchSequenceListener listener = new RecordSetBatchSequenceListener();
