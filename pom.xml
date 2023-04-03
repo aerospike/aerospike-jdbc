@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.7.1</version>
+    <version>1.7.2</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -26,11 +26,15 @@
         <maven-shade-plugin.version>3.4.0</maven-shade-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
 
-        <aerospike-client.version>6.1.6</aerospike-client.version>
-        <netty.version>4.1.87.Final</netty.version>
+        <aerospike-client.version>6.1.8</aerospike-client.version>
+        <netty.version>4.1.90.Final</netty.version>
         <jackson.version>2.14.2</jackson.version>
-        <calcite.version>1.32.0</calcite.version>
+        <calcite.version>1.34.0</calcite.version>
         <httpclient.version>4.5.14</httpclient.version>
+
+        <assertj.version>3.24.2</assertj.version>
+        <testng.version>7.5</testng.version> <!-- latest for JDK 8 -->
+        <jdbi.version>3.37.1</jdbi.version>
     </properties>
 
     <licenses>
@@ -121,21 +125,21 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>3.23.1</version>
+            <version>${assertj.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>7.5</version>
+            <version>${testng.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
-            <version>3.33.0</version>
+            <version>${jdbi.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
