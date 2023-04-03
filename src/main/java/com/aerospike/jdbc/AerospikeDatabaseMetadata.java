@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 
 import static com.aerospike.jdbc.util.AerospikeUtils.getIndexBinValuesRatio;
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
 import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 import static java.lang.String.format;
 import static java.sql.Connection.TRANSACTION_NONE;
@@ -78,7 +79,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                     namespaces.addAll(asList(getOrDefault(r, "namespaces", "").split(";")));
                     streamOfSubProperties(r, "sets").forEach(p ->
                             tables.computeIfAbsent(p.getProperty("ns"), s -> new HashSet<>())
-                                    .add(p.getProperty("set"))
+                                    .addAll(Arrays.asList(p.getProperty("set"), defaultSchemaName))
                     );
                     streamOfSubProperties(r, "sindex")
                             .filter(AerospikeUtils::isSupportedIndexType)
@@ -949,14 +950,16 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) {
-        final Iterable<List<?>> indicesData;
+        Stream<AerospikeSecondaryIndex> secondaryIndexStream;
         if (catalog == null) {
-            indicesData = indices.entrySet().stream().flatMap(p -> p.getValue().stream())
-                    .map(this::indexInfoAsList).collect(Collectors.toList());
+            secondaryIndexStream = indices.entrySet().stream().flatMap(p -> p.getValue().stream());
         } else {
-            indicesData = getOrDefault(indices, catalog, Collections.emptyList()).stream()
-                    .map(this::indexInfoAsList).collect(Collectors.toList());
+            secondaryIndexStream = getOrDefault(indices, catalog, Collections.emptyList()).stream();
         }
+        final Iterable<List<?>> indicesData = secondaryIndexStream
+                .filter(i -> i.getNamespace().equals(schema) && i.getSet().equals(table))
+                .map(this::indexInfoAsList)
+                .collect(Collectors.toList());
 
         String[] columns = new String[]{"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "NON_UNIQUE", "INDEX_QUALIFIER",
                 "INDEX_NAME", "TYPE", "ORDINAL_POSITION", "COLUMN_NAME", "ASC_OR_DESC", "CARDINALITY",

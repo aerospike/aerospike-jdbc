@@ -76,6 +76,40 @@ public class SimpleQueriesTest extends JdbcBaseTest {
     }
 
     @Test
+    public void testSelectByPrimaryKeyQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = String.format(
+                "insert into %s (__key, bin1, int1, str1, bool1) values (\"key1\", 11101, 2, \"bar\", true)",
+                tableName
+        );
+        try {
+            statement = connection.createStatement();
+            statement.executeUpdate(query);
+        } finally {
+            closeQuietly(statement);
+        }
+        query = String.format("select * from %s where __key='%s'", tableName, "key1");
+        int total = 0;
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            while (resultSet.next()) {
+                assertEquals(resultSet.getInt("bin1"), 11101);
+                assertEquals(resultSet.getInt("int1"), 2);
+                assertEquals(resultSet.getString("str1"), "bar");
+                assertEquals(resultSet.getInt("bool1"), 1);
+
+                total++;
+            }
+            assertEquals(total, 1);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
     public void testInsertQuery() throws SQLException {
         Statement statement = null;
         int count;
