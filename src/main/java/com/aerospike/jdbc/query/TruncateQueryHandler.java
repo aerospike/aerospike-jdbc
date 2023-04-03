@@ -19,7 +19,7 @@ public class TruncateQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         logger.info("TRUNCATE/DROP statement");
-        client.truncate(null, query.getSchema(), query.getTable(), null);
+        client.truncate(null, query.getSchema(), query.getSetName(), null);
 
         return new Pair<>(emptyRecordSet(query), 1);
     }

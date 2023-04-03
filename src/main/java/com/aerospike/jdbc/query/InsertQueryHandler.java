@@ -53,7 +53,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
             @SuppressWarnings("unchecked")
             List<Object> values = (List<Object>) record;
             Value recordKey = extractInsertKey(query, values);
-            Key key = new Key(query.getSchema(), query.getTable(), recordKey);
+            Key key = new Key(query.getSchema(), query.getSetName(), recordKey);
             Bin[] bins = buildBinArray(binNames, values);
 
             try {
@@ -85,7 +85,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
             @SuppressWarnings("unchecked")
             List<Object> values = (List<Object>) record;
             Value recordKey = extractInsertKey(query, values);
-            Key key = new Key(query.getSchema(), query.getTable(), recordKey);
+            Key key = new Key(query.getSchema(), query.getSetName(), recordKey);
             batchRecords.add(
                     new BatchWrite(
                             batchWritePolicy,

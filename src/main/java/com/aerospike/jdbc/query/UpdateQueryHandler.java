@@ -40,7 +40,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
             logger.info("UPDATE primary key");
             FutureWriteListener listener = new FutureWriteListener(keyObjects.size());
             for (Object keyObject : keyObjects) {
-                Key key = new Key(query.getSchema(), query.getTable(), Value.get(keyObject));
+                Key key = new Key(query.getSchema(), query.getSetName(), Value.get(keyObject));
                 try {
                     client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
                 } catch (AerospikeException e) {
@@ -59,7 +59,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
             ScanPolicy scanPolicy = buildScanPolicy(query);
             scanPolicy.includeBinData = false;
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
-                    query.getTable());
+                    query.getSetName());
 
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
