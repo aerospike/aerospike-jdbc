@@ -115,7 +115,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
     protected Bin[] buildBinArray(List<String> binNames, List<Object> values) {
         Bin[] bins = new Bin[binNames.size()];
         for (int i = 0; i < binNames.size(); i++) {
-            bins[i] = new Bin(binNames.get(i), values.get(i));
+            bins[i] = new Bin(binNames.get(i), Value.get(values.get(i)));
         }
         return bins;
     }
