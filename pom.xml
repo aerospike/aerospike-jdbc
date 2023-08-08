@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.7.2</version>
+    <version>1.7.3</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -27,14 +27,15 @@
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
 
         <aerospike-client.version>7.0.0</aerospike-client.version>
-        <netty.version>4.1.90.Final</netty.version>
-        <jackson.version>2.14.2</jackson.version>
-        <calcite.version>1.34.0</calcite.version>
+        <netty.version>4.1.96.Final</netty.version>
+        <jackson.version>2.15.2</jackson.version>
+        <calcite.version>1.35.0</calcite.version>
+        <guava.version>32.1.2-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
         <assertj.version>3.24.2</assertj.version>
-        <testng.version>7.5</testng.version> <!-- latest for JDK 8 -->
-        <jdbi.version>3.37.1</jdbi.version>
+        <testng.version>7.5.1</testng.version> <!-- latest for JDK 8 -->
+        <jdbi.version>3.37.1</jdbi.version> <!-- latest for JDK 8 -->
     </properties>
 
     <licenses>
@@ -113,6 +114,12 @@
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-server</artifactId>
             <version>${calcite.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
