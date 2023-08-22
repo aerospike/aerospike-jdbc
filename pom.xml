@@ -26,7 +26,7 @@
         <maven-shade-plugin.version>3.4.0</maven-shade-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
 
-        <aerospike-client.version>7.0.0</aerospike-client.version>
+        <aerospike-client.version>7.1.0</aerospike-client.version>
         <netty.version>4.1.96.Final</netty.version>
         <jackson.version>2.15.2</jackson.version>
         <calcite.version>1.35.0</calcite.version>
