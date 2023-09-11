@@ -3,6 +3,7 @@
 The Aerospike JDBC driver can be configured to use SSL through the JDBC connection URL. 
 
 Below are the tls-related configs for aerospike-jdbc (example with value):
+
 ```tlsEnabled true
 tlsName TLS_NAME
 tlsStoreType (like jks)
@@ -13,8 +14,8 @@ The full list of the valid values can be found at [AerospikeTLSPolicyConfig](htt
 
 The configuration expects a standard Java truststore. An example of adding a CA certificate to the Java Truststore can be found at [Add CA certificate to Java TrustStore on client nodes](https://docs.aerospike.com/server/operations/configure/network/tls/mtls_java#add-ca-certificate-to-java-truststore-on-client-nodes).
 
-```keytool -import -alias tls1 -file /etc/aerospike/ssl/tls1/cert.pem -keystore //usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts -storePass changeit
-```
+`keytool -import -alias tls1 -file /etc/aerospike/ssl/tls1/cert.pem -keystore //usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts -storePass changeit`
+
 Here are some working URL examples using the above configuration properties:
 
 ```//aerospike server detail
