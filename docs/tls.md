@@ -11,7 +11,7 @@ tlsTruststorePath  ./../XXX.jks (the full path)
 ```
 The full list of the valid values can be found at [AerospikeTLSPolicyConfig](https://github.com/aerospike/aerospike-jdbc/blob/main/src/main/java/com/aerospike/jdbc/tls/AerospikeTLSPolicyConfig.java).
 
-The configuration expects a standard Java truststore. The example to add CA certificate to Java Truststore can be found at [Add CA certificate to Java TrustStore on client nodes](https://docs.aerospike.com/server/operations/configure/network/tls/mtls_java#add-ca-certificate-to-java-truststore-on-client-nodes).
+The configuration expects a standard Java truststore. An example of adding a CA certificate to the Java Truststore can be found at [Add CA certificate to Java TrustStore on client nodes](https://docs.aerospike.com/server/operations/configure/network/tls/mtls_java#add-ca-certificate-to-java-truststore-on-client-nodes).
 
 ```keytool -import -alias tls1 -file /etc/aerospike/ssl/tls1/cert.pem -keystore //usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts -storePass changeit
 ```
