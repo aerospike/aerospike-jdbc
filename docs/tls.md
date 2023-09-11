@@ -6,8 +6,8 @@ Below are the tls-related configs for aerospike-jdbc (example with value):
 ```tlsEnabled true
 tlsName TLS_NAME
 tlsStoreType (like jks)
-tlsTruststorePassword.   ******* (if required)
-tlsTruststorePath.  ./../XXX.jks (the full path)
+tlsTruststorePassword   ******* (if required)
+tlsTruststorePath  ./../XXX.jks (the full path)
 ```
 The full list of the valid values can be found at [AerospikeTLSPolicyConfig](https://github.com/aerospike/aerospike-jdbc/blob/main/src/main/java/com/aerospike/jdbc/tls/AerospikeTLSPolicyConfig.java).
 
