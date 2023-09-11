@@ -15,7 +15,7 @@ The configuration expects a standard Java truststore. An example of adding a CA 
 
 ```keytool -import -alias tls1 -file /etc/aerospike/ssl/tls1/cert.pem -keystore //usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts -storePass changeit
 ```
-Here are some working URL example using the above configs:
+Here are some working URL examples using the above configuration properties:
 
 ```//aerospike server detail
 //host:172.17.0.9 port:4333 namespace:test tlsname:tls1 (as per the CN, same used in the truststore alias as well)
