@@ -31,14 +31,14 @@ public final class URLParser {
     private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
 
-    private static Host[] hosts;
-    private static String schema;
-    private static Properties clientInfo;
-    private static ClientPolicy clientPolicy;
-    private static WritePolicy writePolicy;
-    private static ScanPolicy scanPolicy;
-    private static QueryPolicy queryPolicy;
-    private static DriverPolicy driverPolicy;
+    private static volatile Host[] hosts;
+    private static volatile String schema;
+    private static volatile Properties clientInfo;
+    private static volatile ClientPolicy clientPolicy;
+    private static volatile WritePolicy writePolicy;
+    private static volatile ScanPolicy scanPolicy;
+    private static volatile QueryPolicy queryPolicy;
+    private static volatile DriverPolicy driverPolicy;
 
     private URLParser() {
     }
