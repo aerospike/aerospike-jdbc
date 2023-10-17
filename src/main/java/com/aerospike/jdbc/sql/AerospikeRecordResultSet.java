@@ -1,6 +1,7 @@
 package com.aerospike.jdbc.sql;
 
 import com.aerospike.client.Record;
+import com.aerospike.client.Value;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.model.DataColumn;
 
@@ -8,6 +9,7 @@ import java.math.BigDecimal;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
@@ -43,34 +45,33 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public Object getObject(String columnLabel) {
         logger.fine(() -> "getObject: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return recordSet.getKey().userKey;
+            return getUserKey().map(Value::getObject).orElse(null);
         }
-        return recordSet.getRecord().bins.get(columnLabel);
+        return getBin(columnLabel).orElse(null);
     }
 
     @Override
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return recordSet.getKey().userKey.toString();
+            return getUserKey().map(Value::toString).orElse(null);
         }
-        Object bin = recordSet.getRecord().bins.get(columnLabel);
-        return Objects.isNull(bin) ? null : bin.toString();
+        return getBin(columnLabel).map(Objects::toString).orElse(null);
     }
 
     @Override
     public boolean getBoolean(String columnLabel) {
         logger.fine(() -> "getBoolean: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return Boolean.parseBoolean(recordSet.getKey().userKey.toString());
+            return getUserKey().map(Value::toString).map(Boolean::parseBoolean).orElse(false);
         }
-        return Boolean.parseBoolean(recordSet.getRecord().bins.get(columnLabel).toString());
+        return getBin(columnLabel).map(Object::toString).map(Boolean::parseBoolean).orElse(false);
     }
 
     @Override
     public byte getByte(String columnLabel) {
         logger.fine(() -> "getByte: " + columnLabel);
-        return 0;
+        return (byte) getInt(columnLabel);
     }
 
     @Override
@@ -83,18 +84,18 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public int getInt(String columnLabel) {
         logger.fine(() -> "getInt: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return recordSet.getKey().userKey.toInteger();
+            return getUserKey().map(Value::toInteger).orElse(0);
         }
-        return Integer.parseInt(recordSet.getRecord().bins.get(columnLabel).toString());
+        return getBin(columnLabel).map(Object::toString).map(Integer::parseInt).orElse(0);
     }
 
     @Override
     public long getLong(String columnLabel) {
         logger.fine(() -> "getLong: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return recordSet.getKey().userKey.toLong();
+            return getUserKey().map(Value::toLong).orElse(0L);
         }
-        return Long.parseLong(recordSet.getRecord().bins.get(columnLabel).toString());
+        return getBin(columnLabel).map(Object::toString).map(Long::parseLong).orElse(0L);
     }
 
     @Override
@@ -107,9 +108,9 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public double getDouble(String columnLabel) {
         logger.fine(() -> "getDouble: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return Double.parseDouble(recordSet.getKey().userKey.toString());
+            return getUserKey().map(Value::toString).map(Double::parseDouble).orElse(0.0d);
         }
-        return Double.parseDouble(recordSet.getRecord().bins.get(columnLabel).toString());
+        return getBin(columnLabel).map(Object::toString).map(Double::parseDouble).orElse(0.0d);
     }
 
     @Override
@@ -122,8 +123,16 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public byte[] getBytes(String columnLabel) {
         logger.fine(() -> "getBytes: " + columnLabel);
         if (columnLabel.equals(defaultKeyName)) {
-            return recordSet.getKey().userKey.toString().getBytes();
+            return getUserKey().map(Value::toString).map(String::getBytes).orElse(null);
         }
-        return (byte[]) recordSet.getRecord().bins.get(columnLabel);
+        return getBin(columnLabel).map(byte[].class::cast).orElse(null);
+    }
+
+    private Optional<Value> getUserKey() {
+        return Optional.ofNullable(recordSet.getKey().userKey);
+    }
+
+    private Optional<Object> getBin(String columnLabel) {
+        return Optional.ofNullable(recordSet.getRecord().bins.get(columnLabel));
     }
 }
