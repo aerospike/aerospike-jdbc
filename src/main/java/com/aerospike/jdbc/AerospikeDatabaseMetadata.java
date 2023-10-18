@@ -34,6 +34,7 @@ import static com.aerospike.jdbc.util.AerospikeUtils.getIndexBinValuesRatio;
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
 import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
 import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static java.sql.Connection.TRANSACTION_NONE;
 import static java.sql.JDBCType.OTHER;
@@ -720,8 +721,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types) {
-        Pattern tableNameRegex = tableNamePattern == null || "".equals(tableNamePattern) ?
-                null : Pattern.compile(tableNamePattern.replace("%", ".*"));
+        Pattern tableNameRegex = isNullOrEmpty(tableNamePattern) ? null
+                : Pattern.compile(tableNamePattern.replace("%", ".*"));
 
         final Iterable<List<?>> tablesData;
         if (catalog == null) {
@@ -771,7 +772,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                                 String columnNamePattern) throws SQLException {
         logger.info(() -> String.format("AerospikeDatabaseMetadata getColumns; %s, %s, %s, %s", catalog,
                 schemaPattern, tableNamePattern, columnNamePattern));
-        Pattern tableNameRegex = tableNamePattern == null || "".equals(tableNamePattern) ? null
+        Pattern tableNameRegex = isNullOrEmpty(tableNamePattern) ? null
                 : Pattern.compile(tableNamePattern.replace("%", ".*"));
 
         final String namespace = catalog == null ? schemaPattern : catalog;

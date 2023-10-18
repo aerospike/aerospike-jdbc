@@ -3,15 +3,15 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.google.common.base.Preconditions;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 public enum OperatorUnary implements Operator {
 
     NOT(Exp::not);
 
-    private final Function<Exp, Exp> func;
+    private final UnaryOperator<Exp> func;
 
-    OperatorUnary(Function<Exp, Exp> expFunc) {
+    OperatorUnary(UnaryOperator<Exp> expFunc) {
         this.func = expFunc;
     }
 

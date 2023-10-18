@@ -3,7 +3,7 @@ package com.aerospike.jdbc.predicate;
 import com.aerospike.client.exp.Exp;
 import com.google.common.base.Preconditions;
 
-import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 
 public enum OperatorBinary implements Operator {
 
@@ -17,9 +17,9 @@ public enum OperatorBinary implements Operator {
     OR(Exp::or),
     AND(Exp::and);
 
-    private final BiFunction<Exp, Exp, Exp> func;
+    private final BinaryOperator<Exp> func;
 
-    OperatorBinary(BiFunction<Exp, Exp, Exp> expFunc) {
+    OperatorBinary(BinaryOperator<Exp> expFunc) {
         this.func = expFunc;
     }
 
