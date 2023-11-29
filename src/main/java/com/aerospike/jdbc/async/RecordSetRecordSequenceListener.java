@@ -5,16 +5,16 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Record;
 import com.aerospike.client.listener.RecordSequenceListener;
 import com.aerospike.client.query.KeyRecord;
-import com.aerospike.jdbc.util.URLParser;
+import com.aerospike.jdbc.model.DriverPolicy;
 
 public class RecordSetRecordSequenceListener implements RecordSequenceListener {
 
     private final RecordSet recordSet;
 
-    public RecordSetRecordSequenceListener() {
+    public RecordSetRecordSequenceListener(DriverPolicy driverPolicy) {
         recordSet = new RecordSet(
-                URLParser.getDriverPolicy().getRecordSetQueueCapacity(),
-                URLParser.getDriverPolicy().getRecordSetTimeoutMs()
+                driverPolicy.getRecordSetQueueCapacity(),
+                driverPolicy.getRecordSetTimeoutMs()
         );
     }
 

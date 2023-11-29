@@ -12,7 +12,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import static java.lang.String.format;
@@ -20,16 +19,14 @@ import static java.lang.String.format;
 public abstract class BaseResultSet<T> implements ResultSet,
         IndexToLabelResultSet, UpdateResultSet, SimpleWrapper {
 
-    private static final Logger logger = Logger.getLogger(BaseResultSet.class.getName());
-
     protected final String schema;
     protected final String table;
     protected final List<DataColumn> columns;
     private final Statement statement;
     private final ResultSetMetaData metadata;
     protected volatile int index;
-    protected boolean afterLast = false;
-    private boolean wasNull = false;
+    protected boolean afterLast;
+    private boolean wasNull;
     private volatile boolean closed;
 
     protected BaseResultSet(Statement statement, String schema, String table, List<DataColumn> columns) {
@@ -232,7 +229,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("getBlob"); // TODO check cast
+        throw new SQLFeatureNotSupportedException("getBlob");
     }
 
     @Override

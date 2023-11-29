@@ -1,4 +1,4 @@
-package com.aerospike.jdbc.util;
+package com.aerospike.jdbc.model;
 
 import com.aerospike.client.Host;
 import com.aerospike.client.Value;
@@ -9,7 +9,6 @@ import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.TlsPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
-import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
 
@@ -18,85 +17,61 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class URLParser {
+public final class DriverConfiguration {
 
-    private static final Logger logger = Logger.getLogger(URLParser.class.getName());
+    private static final Logger logger = Logger.getLogger(DriverConfiguration.class.getName());
 
     private static final String DEFAULT_AEROSPIKE_PORT = "3000";
 
     private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
 
-    private static volatile Host[] hosts;
-    private static volatile String schema;
-    private static volatile Properties clientInfo;
-    private static volatile ClientPolicy clientPolicy;
-    private static volatile WritePolicy writePolicy;
-    private static volatile ScanPolicy scanPolicy;
-    private static volatile QueryPolicy queryPolicy;
-    private static volatile DriverPolicy driverPolicy;
+    private final ConcurrentHashMap<Object, Object> clientInfo = new ConcurrentHashMap<>();
+    private Host[] hosts;
+    private String schema;
+    private volatile ClientPolicy clientPolicy;
+    private volatile WritePolicy writePolicy;
+    private volatile ScanPolicy scanPolicy;
+    private volatile QueryPolicy queryPolicy;
+    private volatile DriverPolicy driverPolicy;
 
-    private URLParser() {
+    public DriverConfiguration(Properties props) {
+        logger.info(() -> "Configuration properties: " + props);
+        clientInfo.putAll(props);
     }
 
-    public static Host[] getHosts() {
-        return hosts;
-    }
-
-    public static String getSchema() {
-        return schema;
-    }
-
-    public static Properties getClientInfo() {
-        return clientInfo;
-    }
-
-    public static ClientPolicy getClientPolicy() {
-        return clientPolicy;
-    }
-
-    public static WritePolicy getWritePolicy() {
-        return writePolicy;
-    }
-
-    public static ScanPolicy getScanPolicy() {
-        return scanPolicy;
-    }
-
-    public static QueryPolicy getQueryPolicy() {
-        return queryPolicy;
-    }
-
-    public static DriverPolicy getDriverPolicy() {
-        return driverPolicy;
-    }
-
-    public static void parseUrl(String url, Properties props) {
-        logger.info(() -> "URL properties: " + props);
+    @SuppressWarnings("java:S2696")
+    public void parse(String url) {
         schema = parseSchema(url);
-        clientInfo = parseClientInfo(url, props);
-        hosts = parseHosts(url, clientInfo.getProperty("tlsName"));
-        clientPolicy = copy(clientInfo, new ClientPolicy());
-        clientPolicy.eventLoops = EventLoopProvider.getEventLoops();
-        clientPolicy.tlsPolicy = parseTlsPolicy(clientInfo);
-
-        writePolicy = copy(clientInfo, new WritePolicy());
-        scanPolicy = copy(clientInfo, new ScanPolicy());
-        queryPolicy = copy(clientInfo, new QueryPolicy());
-        Value.UseBoolBin = Optional.ofNullable(clientInfo.getProperty("useBoolBin"))
-                .map(Boolean::parseBoolean).orElse(true);
-        driverPolicy = new DriverPolicy(clientInfo);
+        updateClientInfo(url);
+        hosts = parseHosts(url, Optional.ofNullable(clientInfo.get("tlsName"))
+                .map(Object::toString).orElse(null));
+        resetPolicies();
+        Value.UseBoolBin = Optional.ofNullable(clientInfo.get("useBoolBin"))
+                .map(Object::toString).map(Boolean::parseBoolean).orElse(true);
         logger.info(() -> "Value.UseBoolBin = " + Value.UseBoolBin);
     }
 
-    public static <T> T copy(Properties props, T object) {
+    private void resetPolicies() {
+        clientPolicy = copy(new ClientPolicy());
+        clientPolicy.eventLoops = EventLoopProvider.getEventLoops();
+        clientPolicy.tlsPolicy = buildTlsPolicy();
+
+        writePolicy = copy(new WritePolicy());
+        scanPolicy = copy(new ScanPolicy());
+        queryPolicy = copy(new QueryPolicy());
+        driverPolicy = new DriverPolicy(getClientInfo());
+    }
+
+    private <T> T copy(T object) {
         @SuppressWarnings("unchecked")
         Class<T> clazz = (Class<T>) object.getClass();
-        props.forEach((key, value) -> {
+        clientInfo.forEach((key, value) -> {
             try {
                 Field field = clazz.getField((String) key);
                 if (field.getType().equals(Integer.TYPE)) {
@@ -117,12 +92,12 @@ public final class URLParser {
         return object;
     }
 
-    private static TlsPolicy parseTlsPolicy(Properties props) {
-        AerospikeTLSPolicyConfig config = AerospikeTLSPolicyConfig.fromProperties(props);
+    private TlsPolicy buildTlsPolicy() {
+        AerospikeTLSPolicyConfig config = AerospikeTLSPolicyConfig.fromProperties(getClientInfo());
         return new AerospikeTLSPolicyBuilder(config).build();
     }
 
-    private static Host[] parseHosts(String url, final String tlsName) {
+    private Host[] parseHosts(String url, final String tlsName) {
         Matcher m = AS_JDBC_URL.matcher(url);
         if (!m.find()) {
             throw new IllegalArgumentException("Cannot parse URL " + url);
@@ -134,23 +109,64 @@ public final class URLParser {
                 .toArray(Host[]::new);
     }
 
-    private static String parseSchema(String url) {
+    private String parseSchema(String url) {
         Matcher m = AS_JDBC_SCHEMA.matcher(url);
         return m.find() ? m.group(1) : null;
     }
 
-    private static Properties parseClientInfo(String url, Properties props) {
-        Properties all = new Properties();
-        all.putAll(props);
+    private void updateClientInfo(String url) {
         int questionPos = url.indexOf('?');
         if (questionPos > 0 && questionPos < url.length() - 1) {
             Arrays.stream(url.substring(questionPos + 1).split("&")).forEach(p -> {
                 String[] kv = p.split("=");
                 if (kv.length > 1) {
-                    all.setProperty(kv[0], kv[1]);
+                    clientInfo.put(kv[0], kv[1]);
                 }
             });
         }
-        return all;
+    }
+
+    public Host[] getHosts() {
+        return hosts;
+    }
+
+    public String getSchema() {
+        return schema;
+    }
+
+    public Properties getClientInfo() {
+        Properties properties = new Properties();
+        properties.putAll(clientInfo);
+        return properties;
+    }
+
+    public void put(String name, String value) {
+        clientInfo.put(name, value);
+        resetPolicies();
+    }
+
+    public void putAll(Properties properties) {
+        clientInfo.putAll(properties);
+        resetPolicies();
+    }
+
+    public ClientPolicy getClientPolicy() {
+        return clientPolicy;
+    }
+
+    public WritePolicy getWritePolicy() {
+        return writePolicy;
+    }
+
+    public ScanPolicy getScanPolicy() {
+        return scanPolicy;
+    }
+
+    public QueryPolicy getQueryPolicy() {
+        return queryPolicy;
+    }
+
+    public DriverPolicy getDriverPolicy() {
+        return driverPolicy;
     }
 }

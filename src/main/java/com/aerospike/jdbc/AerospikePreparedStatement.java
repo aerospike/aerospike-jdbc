@@ -38,7 +38,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     private final AerospikeQuery query;
     private final Object[] parameterValues;
 
-    public AerospikePreparedStatement(IAerospikeClient client, Connection connection, String sql) {
+    public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection, String sql) {
         super(client, connection);
         this.sql = sql;
         int params = parseParameters(sql, 0).getValue();
@@ -49,7 +49,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         } catch (SQLException e) {
             throw new UnsupportedOperationException(e);
         }
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
+        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client,
+                connection.getConfiguration().getScanPolicy());
     }
 
     @Override
@@ -143,6 +144,9 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         setAsciiStream(parameterIndex, x, (long) length);
     }
 
+    /**
+     * @deprecated Use {@code setCharacterStream}
+     */
     @Override
     @Deprecated
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {

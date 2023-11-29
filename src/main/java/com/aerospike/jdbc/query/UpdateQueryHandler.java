@@ -20,9 +20,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildUpdateOnlyPolicy;
-
 public class UpdateQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(UpdateQueryHandler.class.getName());
@@ -35,7 +32,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         Collection<Object> keyObjects = query.getPrimaryKeys();
         final Bin[] bins = getBins(query);
-        final WritePolicy writePolicy = buildUpdateOnlyPolicy();
+        final WritePolicy writePolicy = policyBuilder.buildUpdateOnlyPolicy();
         if (!keyObjects.isEmpty()) {
             logger.info("UPDATE primary key");
             FutureWriteListener listener = new FutureWriteListener(keyObjects.size());
@@ -55,8 +52,8 @@ public class UpdateQueryHandler extends BaseQueryHandler {
             }
         } else {
             logger.info("UPDATE scan");
-            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener();
-            ScanPolicy scanPolicy = buildScanPolicy(query);
+            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
+            ScanPolicy scanPolicy = policyBuilder.buildScanPolicy(query);
             scanPolicy.includeBinData = false;
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
                     query.getSetName());

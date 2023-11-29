@@ -7,17 +7,20 @@ import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
-import com.aerospike.jdbc.util.URLParser;
+import com.aerospike.jdbc.model.DriverConfiguration;
 
 import java.util.Objects;
 
-public final class PolicyBuilder {
+public class PolicyBuilder {
 
-    private PolicyBuilder() {
+    protected final DriverConfiguration config;
+
+    public PolicyBuilder(DriverConfiguration config) {
+        this.config = config;
     }
 
-    public static ScanPolicy buildScanPolicy(AerospikeQuery query) {
-        ScanPolicy scanPolicy = new ScanPolicy(URLParser.getScanPolicy());
+    public ScanPolicy buildScanPolicy(AerospikeQuery query) {
+        ScanPolicy scanPolicy = new ScanPolicy(config.getScanPolicy());
         scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
         scanPolicy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
@@ -25,43 +28,43 @@ public final class PolicyBuilder {
         return scanPolicy;
     }
 
-    public static QueryPolicy buildQueryPolicy(AerospikeQuery query) {
-        QueryPolicy queryPolicy = new QueryPolicy(URLParser.getQueryPolicy());
+    public QueryPolicy buildQueryPolicy(AerospikeQuery query) {
+        QueryPolicy queryPolicy = new QueryPolicy(config.getQueryPolicy());
         queryPolicy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
         return queryPolicy;
     }
 
-    public static ScanPolicy buildScanNoBinDataPolicy(AerospikeQuery query) {
+    public ScanPolicy buildScanNoBinDataPolicy(AerospikeQuery query) {
         ScanPolicy scanPolicy = buildScanPolicy(query);
         scanPolicy.includeBinData = false;
         return scanPolicy;
     }
 
-    public static WritePolicy buildWritePolicy(AerospikeQuery query) {
-        WritePolicy writePolicy = new WritePolicy(URLParser.getWritePolicy());
+    public WritePolicy buildWritePolicy(AerospikeQuery query) {
+        WritePolicy writePolicy = new WritePolicy(config.getWritePolicy());
         writePolicy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
         writePolicy.sendKey = true;
         return writePolicy;
     }
 
-    public static BatchReadPolicy buildBatchReadPolicy(AerospikeQuery query) {
+    public BatchReadPolicy buildBatchReadPolicy(AerospikeQuery query) {
         BatchReadPolicy policy = new BatchReadPolicy();
         policy.filterExp = Objects.isNull(query.getPredicate())
                 ? null : Exp.build(query.getPredicate().toFilterExpression());
         return policy;
     }
 
-    public static WritePolicy buildCreateOnlyPolicy() {
-        WritePolicy writePolicy = new WritePolicy(URLParser.getWritePolicy());
+    public WritePolicy buildCreateOnlyPolicy() {
+        WritePolicy writePolicy = new WritePolicy(config.getWritePolicy());
         writePolicy.sendKey = true;
         writePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
         return writePolicy;
     }
 
-    public static WritePolicy buildUpdateOnlyPolicy() {
-        WritePolicy writePolicy = new WritePolicy(URLParser.getWritePolicy());
+    public WritePolicy buildUpdateOnlyPolicy() {
+        WritePolicy writePolicy = new WritePolicy(config.getWritePolicy());
         writePolicy.sendKey = true;
         writePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
         return writePolicy;

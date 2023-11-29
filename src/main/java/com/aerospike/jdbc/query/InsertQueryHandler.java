@@ -22,7 +22,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildCreateOnlyPolicy;
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
 
 public class InsertQueryHandler extends BaseQueryHandler {
@@ -48,10 +47,10 @@ public class InsertQueryHandler extends BaseQueryHandler {
                 .collect(Collectors.toList());
 
         FutureWriteListener listener = new FutureWriteListener(query.getValues().size());
-        WritePolicy writePolicy = buildCreateOnlyPolicy();
-        for (Object record : query.getValues()) {
+        WritePolicy writePolicy = policyBuilder.buildCreateOnlyPolicy();
+        for (Object aerospikeRecord : query.getValues()) {
             @SuppressWarnings("unchecked")
-            List<Object> values = (List<Object>) record;
+            List<Object> values = (List<Object>) aerospikeRecord;
             Value recordKey = extractInsertKey(query, values);
             Key key = new Key(query.getSchema(), query.getSetName(), recordKey);
             Bin[] bins = buildBinArray(binNames, values);
@@ -81,9 +80,9 @@ public class InsertQueryHandler extends BaseQueryHandler {
         batchWritePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
         batchWritePolicy.sendKey = true;
 
-        for (Object record : query.getValues()) {
+        for (Object aerospikeRecord : query.getValues()) {
             @SuppressWarnings("unchecked")
-            List<Object> values = (List<Object>) record;
+            List<Object> values = (List<Object>) aerospikeRecord;
             Value recordKey = extractInsertKey(query, values);
             Key key = new Key(query.getSchema(), query.getSetName(), recordKey);
             batchRecords.add(
