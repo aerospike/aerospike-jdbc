@@ -8,7 +8,6 @@ import com.aerospike.jdbc.model.DataColumn;
 import java.math.BigDecimal;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
 
@@ -56,7 +55,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
         if (columnLabel.equals(defaultKeyName)) {
             return getUserKey().map(Value::toString).orElse(null);
         }
-        return getBin(columnLabel).map(Objects::toString).orElse(null);
+        return getBin(columnLabel).map(Object::toString).orElse(null);
     }
 
     @Override

@@ -51,7 +51,7 @@ public final class AerospikeSchemaBuilder {
                 bins.forEach((k, value) -> {
                     logger.fine(() -> String.format("Bin: %s -> %s", k, value));
                     int t = getBinType(value);
-                    if (t != 0) {
+                    if (k != null && t != 0) {
                         columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
                                 schemaTableName.getTableName(), t, k, k));
                     }
