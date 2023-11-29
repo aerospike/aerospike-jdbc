@@ -48,14 +48,16 @@ public final class AerospikeSchemaBuilder {
 
             client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, rec) -> {
                 Map<String, Object> bins = rec.bins;
-                bins.forEach((k, value) -> {
-                    logger.fine(() -> String.format("Bin: %s -> %s", k, value));
-                    int t = getBinType(value);
-                    if (k != null && t != 0) {
-                        columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
-                                schemaTableName.getTableName(), t, k, k));
-                    }
-                });
+                if (bins != null) {
+                    bins.forEach((k, value) -> {
+                        logger.fine(() -> String.format("Bin: %s -> %s", k, value));
+                        int t = getBinType(value);
+                        if (k != null && t != 0) {
+                            columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
+                                    schemaTableName.getTableName(), t, k, k));
+                        }
+                    });
+                }
             });
 
             List<DataColumn> columns = new ArrayList<>(columnHandles.values());
