@@ -8,6 +8,7 @@ import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.jdbc.AerospikeDatabaseMetadata;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.async.RecordSetBatchSequenceListener;
@@ -22,6 +23,7 @@ import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.*;
@@ -35,10 +37,17 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(SelectQueryHandler.class.getName());
 
+    protected final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
     protected List<DataColumn> columns;
 
     public SelectQueryHandler(IAerospikeClient client, Statement statement) {
         super(client, statement);
+        try {
+            secondaryIndexes = ((AerospikeDatabaseMetadata) statement.getConnection().getMetaData())
+                    .getSecondaryIndexes();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to get secondary indexes", e);
+        }
     }
 
     @Override
@@ -125,7 +134,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
                 && query.getPredicate().isIndexable() && Objects.isNull(query.getOffset())) {
-            Map<String, AerospikeSecondaryIndex> indexMap = AerospikeQuery.secondaryIndexes;
+            Map<String, AerospikeSecondaryIndex> indexMap = secondaryIndexes;
             List<String> binNames = query.getPredicate().getBinNames();
             if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
                 if (binNames.size() == 1) {

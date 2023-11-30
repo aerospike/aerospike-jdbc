@@ -51,6 +51,8 @@ public class ParseJdbcUrlTest {
         Properties update = new Properties();
         update.setProperty("totalTimeout", "3000");
         update.setProperty("sendKey", "true");
+        update.setProperty("recordSetQueueCapacity", "1024");
+        update.setProperty("metadataCacheTtlSeconds", "7200");
         connection.setClientInfo(update);
         assertEquals(config.getQueryPolicy().totalTimeout, 3000);
         assertEquals(config.getWritePolicy().totalTimeout, 3000);
@@ -58,6 +60,8 @@ public class ParseJdbcUrlTest {
         assertTrue(config.getQueryPolicy().sendKey);
         assertTrue(config.getWritePolicy().sendKey);
         assertTrue(config.getScanPolicy().sendKey);
+        assertEquals(config.getDriverPolicy().getRecordSetQueueCapacity(), 1024);
+        assertEquals(config.getDriverPolicy().getMetadataCacheTtlSeconds(), 7200);
 
         connection.setClientInfo("recordSetTimeoutMs", "7000");
         assertEquals(config.getDriverPolicy().getRecordSetTimeoutMs(), 7000);
