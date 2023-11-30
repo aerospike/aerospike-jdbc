@@ -32,8 +32,8 @@ public final class DriverConfiguration {
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
 
     private final ConcurrentHashMap<Object, Object> clientInfo = new ConcurrentHashMap<>();
-    private Host[] hosts;
-    private String schema;
+    private volatile Host[] hosts;
+    private volatile String schema;
     private volatile ClientPolicy clientPolicy;
     private volatile WritePolicy writePolicy;
     private volatile ScanPolicy scanPolicy;
@@ -51,17 +51,21 @@ public final class DriverConfiguration {
         updateClientInfo(url);
         hosts = parseHosts(url, Optional.ofNullable(clientInfo.get("tlsName"))
                 .map(Object::toString).orElse(null));
+        clientPolicy = buildClientPolicy();
         resetPolicies();
         Value.UseBoolBin = Optional.ofNullable(clientInfo.get("useBoolBin"))
                 .map(Object::toString).map(Boolean::parseBoolean).orElse(true);
         logger.info(() -> "Value.UseBoolBin = " + Value.UseBoolBin);
     }
 
-    private void resetPolicies() {
-        clientPolicy = copy(new ClientPolicy());
-        clientPolicy.eventLoops = EventLoopProvider.getEventLoops();
-        clientPolicy.tlsPolicy = buildTlsPolicy();
+    private ClientPolicy buildClientPolicy() {
+        ClientPolicy policy = copy(new ClientPolicy());
+        policy.eventLoops = EventLoopProvider.getEventLoops();
+        policy.tlsPolicy = buildTlsPolicy();
+        return policy;
+    }
 
+    private void resetPolicies() {
         writePolicy = copy(new WritePolicy());
         scanPolicy = copy(new ScanPolicy());
         queryPolicy = copy(new QueryPolicy());

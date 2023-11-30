@@ -42,9 +42,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
         this.url = url;
         config = new DriverConfiguration(props);
         config.parse(url);
-        client = new AerospikeClient(
-                config.getClientPolicy(), config.getHosts()
-        );
+        client = new AerospikeClient(config.getClientPolicy(), config.getHosts());
         schema.set(config.getSchema()); // namespace
     }
 
