@@ -42,6 +42,7 @@ public final class RecordSet
                 interrupt();
             }
             if (keyRecord == FAILURE) {
+                logger.info(() -> String.format("timeoutMs: %d", timeoutMs));
                 throw new AerospikeException("Aerospike asynchronous command failure");
             }
             if (keyRecord == END) {

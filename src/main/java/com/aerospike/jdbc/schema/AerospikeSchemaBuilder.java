@@ -5,7 +5,6 @@ import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.SchemaTableName;
-import com.aerospike.jdbc.util.URLParser;
 
 import java.sql.Types;
 import java.time.Duration;
@@ -34,11 +33,12 @@ public final class AerospikeSchemaBuilder {
         cache.clear();
     }
 
-    public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
+    public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client,
+                                             ScanPolicy scanPolicy) {
         return cache.get(schemaTableName).orElseGet(() -> {
             logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
             final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
-            ScanPolicy policy = new ScanPolicy(URLParser.getScanPolicy());
+            ScanPolicy policy = new ScanPolicy(scanPolicy);
             policy.maxRecords = schemaScanRecords;
 
             // add record key column handler

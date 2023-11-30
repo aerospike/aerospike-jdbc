@@ -25,6 +25,7 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
+    private static final String BATCH_NOT_SUPPORTED_MESSAGE = "Batch update is not supported";
 
     protected final IAerospikeClient client;
     private final Connection connection;
@@ -34,7 +35,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     private ResultSet resultSet;
     private int updateCount;
 
-    public AerospikeStatement(IAerospikeClient client, Connection connection) {
+    public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
         this.client = client;
         this.connection = connection;
         try {
@@ -192,17 +193,17 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("Batch update is not supported");
+        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Batch update is not supported");
+        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Batch update is not supported");
+        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override

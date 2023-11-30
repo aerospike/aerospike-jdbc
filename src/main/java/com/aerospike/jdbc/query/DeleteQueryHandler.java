@@ -19,9 +19,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildWritePolicy;
-
 public class DeleteQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(DeleteQueryHandler.class.getName());
@@ -33,7 +30,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         Collection<Object> keyObjects = query.getPrimaryKeys();
-        final WritePolicy writePolicy = buildWritePolicy(query);
+        final WritePolicy writePolicy = policyBuilder.buildWritePolicy(query);
         if (!keyObjects.isEmpty()) {
             logger.info("DELETE primary key");
             FutureDeleteListener listener = new FutureDeleteListener(keyObjects.size());
@@ -53,8 +50,8 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             }
         } else {
             logger.info("DELETE scan");
-            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener();
-            ScanPolicy scanPolicy = buildScanPolicy(query);
+            RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
+            ScanPolicy scanPolicy = policyBuilder.buildScanPolicy(query);
             scanPolicy.includeBinData = false;
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
                     query.getSetName());

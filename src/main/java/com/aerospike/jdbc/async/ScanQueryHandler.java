@@ -8,33 +8,31 @@ import com.aerospike.client.cluster.Partition;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.PartitionFilter;
 import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.model.DriverConfiguration;
 
 import java.util.Objects;
-import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.Constants.defaultKeyName;
 
 public class ScanQueryHandler {
-
-    private static final Logger logger = Logger.getLogger(ScanQueryHandler.class.getName());
 
     private final IAerospikeClient client;
     private RecordSetRecordSequenceListener listener;
 
     private int currentPartition;
     private int count;
-    private final ScanCallback callback = ((key, record) -> {
-        listener.onRecord(key, record);
+    private final ScanCallback callback = ((key, rec) -> {
+        listener.onRecord(key, rec);
         count++;
     });
 
-    public ScanQueryHandler(IAerospikeClient client) {
+    public ScanQueryHandler(IAerospikeClient client, DriverConfiguration config) {
         this.client = client;
-        this.listener = new RecordSetRecordSequenceListener();
+        this.listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
     }
 
-    public static ScanQueryHandler create(IAerospikeClient client) {
-        return new ScanQueryHandler(client);
+    public static ScanQueryHandler create(IAerospikeClient client, DriverConfiguration config) {
+        return new ScanQueryHandler(client, config);
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {

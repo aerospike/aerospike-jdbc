@@ -81,6 +81,9 @@ public interface IndexToLabelResultSet extends ResultSet {
         return getAsciiStream(getColumnLabel(columnIndex));
     }
 
+    /**
+     * @deprecated use <code>getCharacterStream</code> in place of <code>getUnicodeStream</code>
+     */
     @Override
     @Deprecated
     default InputStream getUnicodeStream(int columnIndex) throws SQLException {

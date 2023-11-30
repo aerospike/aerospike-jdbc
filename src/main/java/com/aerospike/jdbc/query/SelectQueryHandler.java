@@ -19,7 +19,6 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
-import com.aerospike.jdbc.util.URLParser;
 import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
@@ -30,10 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.query.PolicyBuilder.buildBatchReadPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildQueryPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanNoBinDataPolicy;
-import static com.aerospike.jdbc.query.PolicyBuilder.buildScanPolicy;
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
 
 public class SelectQueryHandler extends BaseQueryHandler {
@@ -48,7 +43,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
+        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client, config.getScanPolicy());
         Collection<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
@@ -70,8 +65,8 @@ public class SelectQueryHandler extends BaseQueryHandler {
         if (Objects.isNull(query.getPredicate())) {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
-            ScanPolicy policy = buildScanNoBinDataPolicy(query);
-            RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
+            ScanPolicy policy = policyBuilder.buildScanNoBinDataPolicy(query);
+            RecordSet recordSet = ScanQueryHandler.create(client, config).execute(policy, query);
 
             final AtomicInteger count = new AtomicInteger();
             recordSet.forEach(r -> count.incrementAndGet());
@@ -80,7 +75,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         com.aerospike.client.Record aeroRecord = new com.aerospike.client.Record(Collections.singletonMap(
                 countLabel, recordNumber), 1, 0);
 
-        RecordSet recordSet = new RecordSet(2, URLParser.getDriverPolicy().getRecordSetTimeoutMs());
+        RecordSet recordSet = new RecordSet(2, config.getDriverPolicy().getRecordSetTimeoutMs());
         recordSet.put(new KeyRecord(null, aeroRecord));
         recordSet.close();
 
@@ -93,12 +88,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Collection<Object> keyObjects) {
         logger.info(() -> "SELECT primary key");
-        final BatchReadPolicy policy = buildBatchReadPolicy(query);
+        final BatchReadPolicy policy = policyBuilder.buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
                 .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getSetName(), Value.get(k)), true))
                 .collect(Collectors.toList());
 
-        RecordSetBatchSequenceListener listener = new RecordSetBatchSequenceListener();
+        RecordSetBatchSequenceListener listener = new RecordSetBatchSequenceListener(config.getDriverPolicy());
         client.get(EventLoopProvider.getEventLoop(), listener, null, batchReadList);
 
         return new Pair<>(new AerospikeRecordResultSet(listener.getRecordSet(), statement, query.getSchema(),
@@ -108,8 +103,8 @@ public class SelectQueryHandler extends BaseQueryHandler {
     private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
         logger.info(() -> "SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
-        ScanPolicy policy = buildScanPolicy(query);
-        RecordSet recordSet = ScanQueryHandler.create(client).execute(policy, query);
+        ScanPolicy policy = policyBuilder.buildScanPolicy(query);
+        RecordSet recordSet = ScanQueryHandler.create(client, config).execute(policy, query);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);
@@ -119,8 +114,9 @@ public class SelectQueryHandler extends BaseQueryHandler {
                                                   AerospikeSecondaryIndex secondaryIndex) {
         logger.info(() -> "SELECT secondary index query for column: " + secondaryIndex.getBinName());
 
-        QueryPolicy policy = buildQueryPolicy(query);
-        RecordSet recordSet = SecondaryIndexQueryHandler.create(client).execute(policy, query, secondaryIndex);
+        QueryPolicy policy = policyBuilder.buildQueryPolicy(query);
+        RecordSet recordSet = SecondaryIndexQueryHandler.create(client, config)
+                .execute(policy, query, secondaryIndex);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);

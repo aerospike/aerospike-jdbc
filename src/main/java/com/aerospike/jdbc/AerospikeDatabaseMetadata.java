@@ -11,7 +11,6 @@ import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.ListRecordSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AerospikeUtils;
-import com.aerospike.jdbc.util.URLParser;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -46,15 +45,14 @@ import static java.util.Collections.synchronizedSet;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.IntStream.range;
 
+@SuppressWarnings("java:S1192")
 public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeDatabaseMetadata.class.getName());
     private static final String NEW_LINE = System.lineSeparator();
 
     private final String url;
-    private final Properties clientInfo;
     private final Connection connection;
-    private final InfoPolicy infoPolicy;
     private final String dbBuild;
     private final String dbEdition;
     private final List<String> catalogs;
@@ -65,13 +63,12 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         logger.info("Init AerospikeDatabaseMetadata");
         AerospikeSchemaBuilder.cleanSchemaCache();
         this.url = url;
-        clientInfo = URLParser.getClientInfo();
         this.connection = connection;
-        infoPolicy = client.getInfoPolicyDefault();
 
         Collection<String> builds = synchronizedSet(new HashSet<>());
         Collection<String> editions = synchronizedSet(new HashSet<>());
         Collection<String> namespaces = synchronizedSet(new HashSet<>());
+        final InfoPolicy infoPolicy = client.getInfoPolicyDefault();
         Arrays.stream(client.getNodes()).parallel()
                 .map(node -> Info.request(infoPolicy, node, "namespaces", "sets", "sindex", "build", "edition"))
                 .forEach(r -> {
@@ -121,8 +118,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     @Override
-    public String getUserName() {
-        return clientInfo.getProperty("user");
+    public String getUserName() throws SQLException {
+        return connection.getClientInfo().getProperty("user");
     }
 
     @Override
