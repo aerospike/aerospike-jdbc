@@ -27,7 +27,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
         try {
             config = ((AerospikeConnection) statement.getConnection()).getConfiguration();
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to get connection");
+            throw new IllegalStateException("Failed to get configuration", e);
         }
         policyBuilder = new PolicyBuilder(config);
     }
