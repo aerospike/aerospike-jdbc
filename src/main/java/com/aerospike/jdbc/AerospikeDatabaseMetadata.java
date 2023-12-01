@@ -4,7 +4,6 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Info;
 import com.aerospike.client.policy.InfoPolicy;
 import com.aerospike.client.query.IndexType;
-import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
@@ -56,8 +55,9 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final String dbBuild;
     private final String dbEdition;
     private final List<String> catalogs;
-    private final Map<String, Collection<String>> tables = new ConcurrentHashMap<>();
-    private final Map<String, Collection<AerospikeSecondaryIndex>> indices = new ConcurrentHashMap<>();
+    private final Map<String, Collection<String>> tables;
+    private final Map<String, Collection<AerospikeSecondaryIndex>> catalogIndexes;
+    private final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
 
     public AerospikeDatabaseMetadata(String url, IAerospikeClient client, Connection connection) {
         logger.info("Init AerospikeDatabaseMetadata");
@@ -69,6 +69,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         Collection<String> editions = synchronizedSet(new HashSet<>());
         Collection<String> namespaces = synchronizedSet(new HashSet<>());
         final InfoPolicy infoPolicy = client.getInfoPolicyDefault();
+        catalogIndexes = new ConcurrentHashMap<>();
+        tables = new ConcurrentHashMap<>();
         Arrays.stream(client.getNodes()).parallel()
                 .map(node -> Info.request(infoPolicy, node, "namespaces", "sets", "sindex", "build", "edition"))
                 .forEach(r -> {
@@ -82,7 +84,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                     streamOfSubProperties(r, "sindex")
                             .filter(AerospikeUtils::isSupportedIndexType)
                             .forEach(p ->
-                                    indices.computeIfAbsent(p.getProperty("ns"), s -> new HashSet<>())
+                                    catalogIndexes.computeIfAbsent(p.getProperty("ns"), s -> new HashSet<>())
                                             .add(new AerospikeSecondaryIndex(
                                                     p.getProperty("ns"),
                                                     p.getProperty("set"),
@@ -93,7 +95,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                                             )
                             );
                 });
-        AerospikeQuery.secondaryIndexes = indices.values().stream()
+        secondaryIndexes = catalogIndexes.values().stream()
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(AerospikeSecondaryIndex::toKey, Function.identity()));
 
@@ -950,9 +952,9 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) {
         Stream<AerospikeSecondaryIndex> secondaryIndexStream;
         if (catalog == null) {
-            secondaryIndexStream = indices.entrySet().stream().flatMap(p -> p.getValue().stream());
+            secondaryIndexStream = catalogIndexes.entrySet().stream().flatMap(p -> p.getValue().stream());
         } else {
-            secondaryIndexStream = getOrDefault(indices, catalog, Collections.emptyList()).stream();
+            secondaryIndexStream = getOrDefault(catalogIndexes, catalog, Collections.emptyList()).stream();
         }
         final Iterable<List<?>> indicesData = secondaryIndexStream
                 .filter(i -> i.getNamespace().equals(schema) && i.getSet().equals(table))
@@ -968,6 +970,10 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
         return new ListRecordSet(null, "system", "index_info",
                 systemColumns(columns, sqlTypes), indicesData);
+    }
+
+    public Map<String, AerospikeSecondaryIndex> getSecondaryIndexes() {
+        return secondaryIndexes;
     }
 
     @Override

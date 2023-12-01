@@ -13,7 +13,6 @@ import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
 
@@ -25,8 +24,6 @@ public class AerospikeQuery {
             .withCaseSensitive(true)
             .withUnquotedCasing(Casing.UNCHANGED)
             .withQuotedCasing(Casing.UNCHANGED);
-
-    public static volatile Map<String, AerospikeSecondaryIndex> secondaryIndexes;
 
     private String catalog;
     private String schema;
