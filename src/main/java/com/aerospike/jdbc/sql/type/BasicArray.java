@@ -1,6 +1,7 @@
 package com.aerospike.jdbc.sql.type;
 
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.sql.ListRecordSet;
 import com.aerospike.jdbc.util.SqlLiterals;
 
 import javax.sql.rowset.serial.SerialArray;
@@ -22,7 +23,7 @@ import static java.util.stream.Collectors.toList;
 
 public class BasicArray extends SerialArray {
 
-    private final List<DataColumn> columns;
+    private final transient List<DataColumn> columns;
     private String schema;
 
     public BasicArray(Array array, Map<String, Class<?>> map) throws SQLException {
@@ -126,8 +127,6 @@ public class BasicArray extends SerialArray {
                 .skip(index)
                 .map(e -> asList(counter.incrementAndGet(), e))
                 .collect(toList());
-        //return new ListRecordSet(null, schema, null, columns, data);
-        // TODO check this out
-        return null;
+        return new ListRecordSet(null, schema, null, columns, data);
     }
 }

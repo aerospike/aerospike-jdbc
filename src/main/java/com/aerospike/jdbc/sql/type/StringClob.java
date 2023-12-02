@@ -27,9 +27,7 @@ public class StringClob implements NClob {
 
     @Override
     public String getSubString(long pos, int length) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         int from = (int) pos - 1;
         return data.substring(from, from + length);
     }
@@ -46,9 +44,7 @@ public class StringClob implements NClob {
 
     @Override
     public long position(String searchStr, long start) throws SQLException {
-        if (start > Integer.MAX_VALUE || start < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, start));
-        }
+        validatePosition(start);
         int from = (int) start - 1;
         int foundIndex = data.indexOf(searchStr, from);
         return foundIndex < 0 ? foundIndex : foundIndex + 1;
@@ -66,9 +62,7 @@ public class StringClob implements NClob {
 
     @Override
     public int setString(long pos, String str, int offset, int len) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         if (offset < 0) {
             throw new SQLException(format("Offset cannot be negative but was %d", offset));
         }
@@ -79,9 +73,7 @@ public class StringClob implements NClob {
 
     @Override
     public OutputStream setAsciiStream(long pos) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         return new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
@@ -135,5 +127,11 @@ public class StringClob implements NClob {
     @Override
     public int hashCode() {
         return Objects.hash(data);
+    }
+
+    private void validatePosition(long pos) throws SQLException {
+        if (pos > Integer.MAX_VALUE || pos < 1) {
+            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
+        }
     }
 }

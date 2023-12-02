@@ -7,7 +7,7 @@ import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
-import com.aerospike.jdbc.util.MetadataBuilder;
+import com.aerospike.jdbc.util.DatabaseMetadataBuilder;
 
 import java.sql.*;
 import java.util.Map;
@@ -33,7 +33,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private final String url;
     private final DriverConfiguration config;
     private final IAerospikeClient client;
-    private final MetadataBuilder metadataBuilder;
+    private final DatabaseMetadataBuilder metadataBuilder;
     private final AtomicReference<String> schema = new AtomicReference<>(null); // namespace
     private volatile boolean readOnly = false;
     private volatile Map<String, Class<?>> typeMap = emptyMap();
@@ -45,7 +45,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
         config = new DriverConfiguration(props);
         config.parse(url);
         client = new AerospikeClient(config.getClientPolicy(), config.getHosts());
-        metadataBuilder = new MetadataBuilder(config.getDriverPolicy());
+        metadataBuilder = new DatabaseMetadataBuilder(config.getDriverPolicy());
         schema.set(config.getSchema()); // namespace
     }
 
@@ -102,7 +102,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
-        logger.info("getMetaData request");
+        logger.fine(() -> "getMetaData request");
         return metadataBuilder.build(url, client, this);
     }
 
@@ -149,7 +149,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public void clearWarnings() {
-        // TODO: make use of warnings
+        // do nothing
     }
 
     @Override

@@ -15,6 +15,7 @@ import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,7 @@ public final class DriverConfiguration {
     private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
 
-    private final ConcurrentHashMap<Object, Object> clientInfo = new ConcurrentHashMap<>();
+    private final Map<Object, Object> clientInfo = new ConcurrentHashMap<>();
     private volatile Host[] hosts;
     private volatile String schema;
     private volatile ClientPolicy clientPolicy;

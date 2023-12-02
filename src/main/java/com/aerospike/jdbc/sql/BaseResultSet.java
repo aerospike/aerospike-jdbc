@@ -219,17 +219,17 @@ public abstract class BaseResultSet<T> implements ResultSet,
 
     @Override
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        throw new SQLFeatureNotSupportedException("getObject");
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     public Ref getRef(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("getRef");
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        throw new SQLFeatureNotSupportedException("getBlob");
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override
@@ -307,7 +307,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
         return null;
     }
 
-    protected void assertClosed() throws SQLException {
+    protected void verifyOpen() throws SQLException {
         if (closed) {
             throw new SQLException("Result set is closed");
         }
@@ -318,7 +318,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
     @Override
     public boolean next() throws SQLException {
         synchronized (this) {
-            assertClosed();
+            verifyOpen();
             boolean result = moveToNext();
             if (result) {
                 clearWarnings();
