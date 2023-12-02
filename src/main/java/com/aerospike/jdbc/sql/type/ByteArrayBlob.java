@@ -24,7 +24,8 @@ public class ByteArrayBlob implements Blob {
         this.data = data;
     }
 
-    // Source: https://stackoverflow.com/questions/21341027/find-indexof-a-byte-array-within-another-byte-array
+    // https://stackoverflow.com/questions/21341027/find-indexof-a-byte-array-within-another-byte-array
+    @SuppressWarnings("all")
     private static int indexOf(byte[] source, int sourceOffset, int sourceCount, byte[] target,
                                int targetOffset, int targetCount, int fromIndex) {
         if (fromIndex >= sourceCount) {
@@ -68,9 +69,7 @@ public class ByteArrayBlob implements Blob {
 
     @Override
     public byte[] getBytes(long pos, int length) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         if (length < 0) {
             throw new SQLException(format("Length must be >= 0 but was %d", length));
         }
@@ -99,17 +98,13 @@ public class ByteArrayBlob implements Blob {
 
     @Override
     public int setBytes(long pos, byte[] bytes) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         return setBytes(pos, bytes, 0, bytes.length);
     }
 
     @Override
     public int setBytes(long pos, byte[] bytes, int offset, int len) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         if (offset < 0) {
             throw new SQLException(format("Offset cannot be negative but was %d", offset));
         }
@@ -124,9 +119,7 @@ public class ByteArrayBlob implements Blob {
 
     @Override
     public OutputStream setBinaryStream(long pos) throws SQLException {
-        if (pos > Integer.MAX_VALUE || pos < 1) {
-            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
-        }
+        validatePosition(pos);
         return new ByteArrayOutputStream() {
             @Override
             public void close() throws IOException {
@@ -142,9 +135,7 @@ public class ByteArrayBlob implements Blob {
 
     @Override
     public void truncate(long len) throws SQLException {
-        if (len > Integer.MAX_VALUE || len < 1) {
-            throw new SQLException(format("Length must be between 0 and %d but was %d", Integer.MAX_VALUE, len));
-        }
+        validatePosition(len);
         @SuppressWarnings("UnnecessaryLocalVariable") // otherwise the assignment is not atomic.
         byte[] newData = Arrays.copyOf(data, (int) len);
         data = newData;
@@ -170,5 +161,11 @@ public class ByteArrayBlob implements Blob {
     @Override
     public int hashCode() {
         return Arrays.hashCode(data);
+    }
+
+    private void validatePosition(long pos) throws SQLException {
+        if (pos > Integer.MAX_VALUE || pos < 1) {
+            throw new SQLException(format("Position must be between 1 and %d but was %d", Integer.MAX_VALUE, pos));
+        }
     }
 }

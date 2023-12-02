@@ -11,11 +11,11 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 
-public class MetadataBuilder {
+public class DatabaseMetadataBuilder {
 
     private final Cache<String, AerospikeDatabaseMetadata> metadataCache;
 
-    public MetadataBuilder(DriverPolicy driverPolicy) {
+    public DatabaseMetadataBuilder(DriverPolicy driverPolicy) {
         metadataCache = CacheBuilder.newBuilder()
                 .expireAfterWrite(Duration.ofSeconds(driverPolicy.getMetadataCacheTtlSeconds()))
                 .build();

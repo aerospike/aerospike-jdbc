@@ -35,7 +35,6 @@ import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static java.sql.Connection.TRANSACTION_NONE;
-import static java.sql.JDBCType.OTHER;
 import static java.sql.Types.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -911,40 +910,37 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "NUM_PREC_RADIX",
         };
 
-        Iterable<List<?>> data =
-                asList(
-                        asList("VARCHAR", VARCHAR, 65535, "'", "'",
-                                "(M) [CHARACTER SET charset_name] [COLLATE collation_name]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "string",
-                                (short) 0, (short) 0, VARCHAR, 0, 10
-                        ),
-                        asList("INT", INTEGER, 3, "", "", "[(M)] [UNSIGNED] [ZEROFILL]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "integer",
-                                (short) 0, (short) 0, INTEGER, 0, 10
-                        ),
-                        asList("DOUBLE", DOUBLE, 22, "", "", "[(M,D)] [UNSIGNED] [ZEROFILL]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "double",
-                                (short) 0, (short) 0, DOUBLE, 0, 10
-                        ),
-                        asList("BLOB", BLOB, 65535, "", "", "[(M)]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "bytes",
-                                (short) 0, (short) 0, BLOB, 0, 10
-                        ),
-                        asList("LIST", ARRAY, 0, "", "", "[(M)]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "bytes",
-                                (short) 0, (short) 0, BLOB, 0, 10
-                        ),
-                        asList("MAP", OTHER, 0, "", "", "[(M)]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "bytes",
-                                (short) 0, (short) 0, OTHER, 0, 10
-                        ),
-                        asList("JAVA_OBJECT", JAVA_OBJECT, 0, "", "", "[(M)]", (short) typeNullable,
-                                true, (short) typeSearchable, false, false, false, "bytes",
-                                (short) 0, (short) 0, JAVA_OBJECT, 0, 10
-                        )
-                        // TODO: GeoJson
-                );
-
+        Iterable<List<?>> data = asList(
+                asList("VARCHAR", VARCHAR, 65535, "'", "'",
+                        "(M) [CHARACTER SET charset_name] [COLLATE collation_name]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "string",
+                        (short) 0, (short) 0, VARCHAR, 0, 10
+                ),
+                asList("INT", INTEGER, 31, "", "", "[(M)] [UNSIGNED] [ZEROFILL]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "integer",
+                        (short) 0, (short) 0, INTEGER, 0, 10
+                ),
+                asList("DOUBLE", DOUBLE, 22, "", "", "[(M,D)] [UNSIGNED] [ZEROFILL]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "double",
+                        (short) 0, (short) 0, DOUBLE, 0, 10
+                ),
+                asList("BLOB", BLOB, 65535, "", "", "[(M)]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "bytes",
+                        (short) 0, (short) 0, BLOB, 0, 10
+                ),
+                asList("LIST", ARRAY, 0, "", "", "[(M)]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "bytes",
+                        (short) 0, (short) 0, ARRAY, 0, 10
+                ),
+                asList("MAP", OTHER, 0, "", "", "[(M)]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "bytes",
+                        (short) 0, (short) 0, OTHER, 0, 10
+                ),
+                asList("JAVA_OBJECT", JAVA_OBJECT, 0, "", "", "[(M)]", (short) typeNullable,
+                        true, (short) typeSearchable, false, false, false, "bytes",
+                        (short) 0, (short) 0, JAVA_OBJECT, 0, 10
+                )
+        );
         return new ListRecordSet(null, "system", "table_info", systemColumns(columns), data);
     }
 
