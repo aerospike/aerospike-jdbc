@@ -1,9 +1,10 @@
 package com.aerospike.jdbc.sql;
 
+import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.DataColumn;
-import com.aerospike.jdbc.util.SqlLiterals;
 
 import java.sql.ResultSetMetaData;
+import java.sql.SQLDataException;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Collections;
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 
+import static com.aerospike.jdbc.util.SqlLiterals.sqlToJavaTypes;
 import static com.aerospike.jdbc.util.SqlLiterals.sqlTypeNames;
 
 public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrapper {
@@ -51,10 +53,14 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
         precisionByType.put(Types.ARRAY, MAX_BLOCK_SIZE);
         precisionByType.put(Types.BLOB, MAX_BLOCK_SIZE);
         precisionByType.put(Types.CLOB, MAX_BLOCK_SIZE);
-        precisionByType.put(Types.REF, 0); //??
-        precisionByType.put(Types.DATALINK, 0); //??
-        precisionByType.put(Types.BOOLEAN, 8); // boolean is stored as a number, e.g. long, i.e. occupies 8 bytes
-        precisionByType.put(Types.ROWID, 0); //??
+        precisionByType.put(Types.REF, 0); // ??
+        precisionByType.put(Types.DATALINK, 0); // ??
+        if (Value.UseBoolBin) {
+            precisionByType.put(Types.BOOLEAN, 1);
+        } else {
+            precisionByType.put(Types.BOOLEAN, 8);
+        }
+        precisionByType.put(Types.ROWID, 0); // ??
         precisionByType.put(Types.NCHAR, 2);
         precisionByType.put(Types.NVARCHAR, MAX_BLOCK_SIZE);
         precisionByType.put(Types.LONGNVARCHAR, MAX_BLOCK_SIZE);
@@ -101,7 +107,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public boolean isSearchable(int column) {
-        return true; // All fields in Aerospike are searchable either using secondary index or predicate
+        return true;
     }
 
     @Override
@@ -111,7 +117,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public int isNullable(int column) {
-        return columnNullable; // any column in aerospike is nullable
+        return columnNullable; // any column in Aerospike is nullable
     }
 
     @Override
@@ -125,26 +131,25 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
     }
 
     @Override
-    public String getColumnLabel(int column) {
+    public String getColumnLabel(int column) throws SQLException {
         return getColumnName(column);
     }
 
     @Override
-    public String getColumnName(int column) {
+    public String getColumnName(int column) throws SQLException {
         logger.fine(() -> "getColumnName: " + column);
+        validateColumn(column);
         return columns.get(column - 1).getName();
     }
 
     @Override
     public String getSchemaName(int column) throws SQLException {
-        if (columns.isEmpty()) {
-            throw new SQLException("invalidColumnIndex: " + column);
-        }
+        validateColumn(column);
         return schema;
     }
 
     @Override
-    public int getPrecision(int column) {
+    public int getPrecision(int column) throws SQLException {
         return precisionByType.getOrDefault(getColumnType(column), 0);
     }
 
@@ -155,27 +160,23 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public String getTableName(int column) throws SQLException {
-        if (columns.isEmpty()) {
-            throw new SQLException("invalidColumnIndex: " + column);
-        }
+        validateColumn(column);
         return table;
     }
 
     @Override
     public String getCatalogName(int column) throws SQLException {
-        if (columns.isEmpty()) {
-            throw new SQLException("invalidColumnIndex: " + column);
-        }
-        return schema; // return schema
+        return getSchemaName(column); // return schema
     }
 
     @Override
-    public int getColumnType(int column) {
+    public int getColumnType(int column) throws SQLException {
+        validateColumn(column);
         return columns.get(column - 1).getType();
     }
 
     @Override
-    public String getColumnTypeName(int column) {
+    public String getColumnTypeName(int column) throws SQLException {
         return sqlTypeNames.get(getColumnType(column));
     }
 
@@ -195,7 +196,13 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
     }
 
     @Override
-    public String getColumnClassName(int column) {
-        return SqlLiterals.sqlToJavaTypes.get(getColumnType(column)).getName();
+    public String getColumnClassName(int column) throws SQLException {
+        return sqlToJavaTypes.get(getColumnType(column)).getName();
+    }
+
+    private void validateColumn(int column) throws SQLException {
+        if (columns.size() < column) {
+            throw new SQLDataException(String.format("Column %d is out of range", column));
+        }
     }
 }
