@@ -3,7 +3,6 @@ package com.aerospike.jdbc.query;
 import com.aerospike.client.*;
 import com.aerospike.client.policy.BatchPolicy;
 import com.aerospike.client.policy.BatchWritePolicy;
-import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.FutureBatchOperateListListener;
@@ -75,10 +74,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
 
         FutureBatchOperateListListener listener = new FutureBatchOperateListListener();
         List<BatchRecord> batchRecords = new ArrayList<>();
-
-        BatchWritePolicy batchWritePolicy = new BatchWritePolicy();
-        batchWritePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
-        batchWritePolicy.sendKey = true;
+        BatchWritePolicy batchWritePolicy = policyBuilder.buildBatchCreateOnlyPolicy();
 
         for (Object aerospikeRecord : query.getValues()) {
             @SuppressWarnings("unchecked")
@@ -89,14 +85,13 @@ public class InsertQueryHandler extends BaseQueryHandler {
                     new BatchWrite(
                             batchWritePolicy,
                             key,
-                            Arrays.stream(buildBinArray(binNames, values)).map(Operation::put).toArray(Operation[]::new)
+                            Arrays.stream(buildBinArray(binNames, values))
+                                    .map(Operation::put)
+                                    .toArray(Operation[]::new)
                     )
             );
         }
-        BatchPolicy batchPolicy = new BatchPolicy();
-        batchPolicy.sendKey = true;
-        batchPolicy.maxConcurrentThreads = batchRecords.size() / 100 + 1;
-
+        BatchPolicy batchPolicy = client.getBatchPolicyDefault();
         try {
             client.operate(EventLoopProvider.getEventLoop(), listener, batchPolicy, batchRecords);
         } catch (AerospikeException e) {

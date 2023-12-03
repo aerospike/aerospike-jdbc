@@ -23,7 +23,7 @@ public abstract class JdbcBaseTest {
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
-        String url = String.format("jdbc:aerospike:%s:%d/%s", hostname, port, namespace);
+        String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true", hostname, port, namespace);
         connection = DriverManager.getConnection(url);
     }
 

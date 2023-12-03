@@ -49,8 +49,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         } catch (SQLException e) {
             throw new UnsupportedOperationException(e);
         }
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client,
-                connection.getConfiguration().getScanPolicy());
+        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
     }
 
     @Override

@@ -7,7 +7,6 @@ public interface SimpleWrapper extends Wrapper {
 
     @Override
     default <T> T unwrap(Class<T> iface) throws SQLException {
-        // The implementation is taken from MySQL driver
         try {
             // This works for classes that aren't actually wrapping anything
             return iface.cast(this);
@@ -18,7 +17,6 @@ public interface SimpleWrapper extends Wrapper {
 
     @Override
     default boolean isWrapperFor(Class<?> iface) {
-        // The implementation is taken from MySQL driver
         // This works for classes that aren't actually wrapping anything
         return iface.isInstance(this);
     }

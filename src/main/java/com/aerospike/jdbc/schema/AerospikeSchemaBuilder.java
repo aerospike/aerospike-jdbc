@@ -33,12 +33,11 @@ public final class AerospikeSchemaBuilder {
         cache.clear();
     }
 
-    public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client,
-                                             ScanPolicy scanPolicy) {
+    public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
         return cache.get(schemaTableName).orElseGet(() -> {
             logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
             final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
-            ScanPolicy policy = new ScanPolicy(scanPolicy);
+            ScanPolicy policy = new ScanPolicy(client.getScanPolicyDefault());
             policy.maxRecords = schemaScanRecords;
 
             // add record key column handler

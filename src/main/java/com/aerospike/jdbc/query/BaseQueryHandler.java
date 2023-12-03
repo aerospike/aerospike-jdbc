@@ -29,7 +29,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to get configuration", e);
         }
-        policyBuilder = new PolicyBuilder(config);
+        policyBuilder = new PolicyBuilder(client);
     }
 
     protected Bin[] getBins(AerospikeQuery query) {

@@ -4,7 +4,7 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
-import com.aerospike.jdbc.model.DriverConfiguration;
+import com.aerospike.jdbc.model.DriverPolicy;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -12,24 +12,22 @@ import java.util.Optional;
 public class SecondaryIndexQueryHandler {
 
     private final IAerospikeClient client;
-    private final DriverConfiguration config;
     private final RecordSetRecordSequenceListener listener;
 
-    public SecondaryIndexQueryHandler(IAerospikeClient client, DriverConfiguration config) {
+    public SecondaryIndexQueryHandler(IAerospikeClient client, DriverPolicy driverPolicy) {
         this.client = client;
-        this.config = config;
-        this.listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
+        this.listener = new RecordSetRecordSequenceListener(driverPolicy);
     }
 
-    public static SecondaryIndexQueryHandler create(IAerospikeClient client, DriverConfiguration config) {
-        return new SecondaryIndexQueryHandler(client, config);
+    public static SecondaryIndexQueryHandler create(IAerospikeClient client, DriverPolicy driverPolicy) {
+        return new SecondaryIndexQueryHandler(client, driverPolicy);
     }
 
     public RecordSet execute(QueryPolicy queryPolicy, AerospikeQuery query,
                              AerospikeSecondaryIndex secondaryIndex) {
         com.aerospike.client.query.Statement statement = new com.aerospike.client.query.Statement();
         Optional.ofNullable(query.getLimit()).ifPresent(statement::setMaxRecords);
-        statement.setRecordsPerSecond(config.getScanPolicy().recordsPerSecond);
+        statement.setRecordsPerSecond(client.getScanPolicyDefault().recordsPerSecond);
 
         statement.setIndexName(secondaryIndex.getIndexName());
         statement.setNamespace(query.getSchema());
