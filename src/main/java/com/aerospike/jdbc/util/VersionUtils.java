@@ -7,13 +7,15 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
+
 public final class VersionUtils {
 
     private static final Logger logger = Logger.getLogger(VersionUtils.class.getName());
 
-    private static final String sIndexSupportVersion = "6.0.0.0";
-    private static final String batchOpsSupportVersion = "6.0.0.0";
-    private static final String sIndexCardinalitySupportVersion = "6.1.0.0";
+    private static final String S_INDEX_SUPPORT_VERSION = "6.0.0.0";
+    private static final String BATCH_OPS_SUPPORT_VERSION = "6.0.0.0";
+    private static final String S_INDEX_CARDINALITY_SUPPORT_VERSION = "6.1.0.0";
     private static final Pattern versionPattern = Pattern.compile("^(\\d.){1,3}\\d(?=.*|$)");
 
     private static volatile Boolean sIndexSupported;
@@ -28,8 +30,9 @@ public final class VersionUtils {
             synchronized (VersionUtils.class) {
                 if (sIndexSupported == null) {
                     String serverVersion = clearQualifier(getAerospikeServerVersion(client));
-                    sIndexSupported = compareVersions(serverVersion, sIndexSupportVersion) >= 0;
-                    logger.info(() -> "Secondary index supported: " + sIndexSupported + ", for version: " + serverVersion);
+                    sIndexSupported = compareVersions(serverVersion, S_INDEX_SUPPORT_VERSION) >= 0;
+                    logger.info(() -> format("Secondary index supported: %b, for version: %s",
+                            sIndexSupported, serverVersion));
                 }
             }
         }
@@ -41,8 +44,9 @@ public final class VersionUtils {
             synchronized (VersionUtils.class) {
                 if (batchOpsSupported == null) {
                     String serverVersion = clearQualifier(getAerospikeServerVersion(client));
-                    batchOpsSupported = compareVersions(serverVersion, batchOpsSupportVersion) >= 0;
-                    logger.info(() -> "Batch operations supported: " + batchOpsSupported + ", for version: " + serverVersion);
+                    batchOpsSupported = compareVersions(serverVersion, BATCH_OPS_SUPPORT_VERSION) >= 0;
+                    logger.info(() -> format("Batch operations supported: %b, for version: %s",
+                            batchOpsSupported, serverVersion));
                 }
             }
         }
@@ -54,8 +58,9 @@ public final class VersionUtils {
             synchronized (VersionUtils.class) {
                 if (sIndexCardinalitySupported == null) {
                     String serverVersion = clearQualifier(getAerospikeServerVersion(client));
-                    sIndexCardinalitySupported = compareVersions(serverVersion, sIndexCardinalitySupportVersion) >= 0;
-                    logger.info(() -> "Secondary index cardinality supported: " + sIndexCardinalitySupported + ", for version: " + serverVersion);
+                    sIndexCardinalitySupported = compareVersions(serverVersion, S_INDEX_CARDINALITY_SUPPORT_VERSION) >= 0;
+                    logger.info(() -> format("Secondary index cardinality supported: %b, for version: %s",
+                            sIndexCardinalitySupported, serverVersion));
                 }
             }
         }
@@ -63,7 +68,8 @@ public final class VersionUtils {
     }
 
     public static String getAerospikeServerVersion(IAerospikeClient client) {
-        String versionString = Info.request(null, client.getNodes()[0], "version");
+        String versionString = Info.request(client.getInfoPolicyDefault(),
+                client.getCluster().getRandomNode(), "version");
         return versionString.substring(versionString.lastIndexOf(' ') + 1);
     }
 
