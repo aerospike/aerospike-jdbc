@@ -52,7 +52,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client, config.getScanPolicy());
+        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
         Collection<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
@@ -75,7 +75,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
             ScanPolicy policy = policyBuilder.buildScanNoBinDataPolicy(query);
-            RecordSet recordSet = ScanQueryHandler.create(client, config).execute(policy, query);
+            RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy()).execute(policy, query);
 
             final AtomicInteger count = new AtomicInteger();
             recordSet.forEach(r -> count.incrementAndGet());
@@ -113,7 +113,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         logger.info(() -> "SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
         ScanPolicy policy = policyBuilder.buildScanPolicy(query);
-        RecordSet recordSet = ScanQueryHandler.create(client, config).execute(policy, query);
+        RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy()).execute(policy, query);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
                 query.getTable(), filterColumns(columns, query.getBinNames())), -1);
@@ -124,7 +124,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         logger.info(() -> "SELECT secondary index query for column: " + secondaryIndex.getBinName());
 
         QueryPolicy policy = policyBuilder.buildQueryPolicy(query);
-        RecordSet recordSet = SecondaryIndexQueryHandler.create(client, config)
+        RecordSet recordSet = SecondaryIndexQueryHandler.create(client, config.getDriverPolicy())
                 .execute(policy, query, secondaryIndex);
 
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),

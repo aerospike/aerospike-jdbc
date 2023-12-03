@@ -1,13 +1,12 @@
 package com.aerospike.jdbc.model;
 
+import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.Host;
+import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.AuthMode;
 import com.aerospike.client.policy.ClientPolicy;
-import com.aerospike.client.policy.QueryPolicy;
-import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.TlsPolicy;
-import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
@@ -23,6 +22,9 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
+
 public final class DriverConfiguration {
 
     private static final Logger logger = Logger.getLogger(DriverConfiguration.class.getName());
@@ -33,30 +35,32 @@ public final class DriverConfiguration {
     private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
 
     private final Map<Object, Object> clientInfo = new ConcurrentHashMap<>();
-    private volatile Host[] hosts;
+    private volatile IAerospikeClient client;
     private volatile String schema;
     private volatile ClientPolicy clientPolicy;
-    private volatile WritePolicy writePolicy;
-    private volatile ScanPolicy scanPolicy;
-    private volatile QueryPolicy queryPolicy;
     private volatile DriverPolicy driverPolicy;
 
     public DriverConfiguration(Properties props) {
-        logger.info(() -> "Configuration properties: " + props);
+        logger.info(() -> format("Init DriverConfiguration with properties: %s", props));
         clientInfo.putAll(props);
     }
 
     @SuppressWarnings("java:S2696")
-    public void parse(String url) {
+    public IAerospikeClient parse(String url) {
+        logger.info(() -> format("Parse URL: %s", url));
         schema = parseSchema(url);
         updateClientInfo(url);
-        hosts = parseHosts(url, Optional.ofNullable(clientInfo.get("tlsName"))
-                .map(Object::toString).orElse(null));
-        clientPolicy = buildClientPolicy();
-        resetPolicies();
+
         Value.UseBoolBin = Optional.ofNullable(clientInfo.get("useBoolBin"))
                 .map(Object::toString).map(Boolean::parseBoolean).orElse(true);
-        logger.info(() -> "Value.UseBoolBin = " + Value.UseBoolBin);
+        logger.info(() -> format("Value.UseBoolBin = %b", Value.UseBoolBin));
+
+        clientPolicy = buildClientPolicy();
+        Host[] hosts = parseHosts(url, Optional.ofNullable(clientInfo.get("tlsName"))
+                .map(Object::toString).orElse(null));
+        client = new AerospikeClient(clientPolicy, hosts);
+        resetPolicies();
+        return client;
     }
 
     private ClientPolicy buildClientPolicy() {
@@ -67,9 +71,15 @@ public final class DriverConfiguration {
     }
 
     private void resetPolicies() {
-        writePolicy = copy(new WritePolicy());
-        scanPolicy = copy(new ScanPolicy());
-        queryPolicy = copy(new QueryPolicy());
+        logger.fine(() -> "resetPolicies call");
+        if (client != null) {
+            copy(client.getReadPolicyDefault());
+            copy(client.getWritePolicyDefault());
+            copy(client.getScanPolicyDefault());
+            copy(client.getQueryPolicyDefault());
+            copy(client.getBatchPolicyDefault());
+            copy(client.getInfoPolicyDefault());
+        }
         driverPolicy = new DriverPolicy(getClientInfo());
     }
 
@@ -131,10 +141,6 @@ public final class DriverConfiguration {
         }
     }
 
-    public Host[] getHosts() {
-        return hosts;
-    }
-
     public String getSchema() {
         return schema;
     }
@@ -156,22 +162,12 @@ public final class DriverConfiguration {
     }
 
     public ClientPolicy getClientPolicy() {
+        requireNonNull(clientPolicy, "clientPolicy is null");
         return clientPolicy;
     }
 
-    public WritePolicy getWritePolicy() {
-        return writePolicy;
-    }
-
-    public ScanPolicy getScanPolicy() {
-        return scanPolicy;
-    }
-
-    public QueryPolicy getQueryPolicy() {
-        return queryPolicy;
-    }
-
     public DriverPolicy getDriverPolicy() {
+        requireNonNull(driverPolicy, "driverPolicy is null");
         return driverPolicy;
     }
 }

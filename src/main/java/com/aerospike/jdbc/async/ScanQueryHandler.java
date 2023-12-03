@@ -8,7 +8,7 @@ import com.aerospike.client.cluster.Partition;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.PartitionFilter;
 import com.aerospike.jdbc.model.AerospikeQuery;
-import com.aerospike.jdbc.model.DriverConfiguration;
+import com.aerospike.jdbc.model.DriverPolicy;
 
 import java.util.Objects;
 
@@ -26,13 +26,13 @@ public class ScanQueryHandler {
         count++;
     });
 
-    public ScanQueryHandler(IAerospikeClient client, DriverConfiguration config) {
+    public ScanQueryHandler(IAerospikeClient client, DriverPolicy driverPolicy) {
         this.client = client;
-        this.listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
+        this.listener = new RecordSetRecordSequenceListener(driverPolicy);
     }
 
-    public static ScanQueryHandler create(IAerospikeClient client, DriverConfiguration config) {
-        return new ScanQueryHandler(client, config);
+    public static ScanQueryHandler create(IAerospikeClient client, DriverPolicy driverPolicy) {
+        return new ScanQueryHandler(client, driverPolicy);
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {

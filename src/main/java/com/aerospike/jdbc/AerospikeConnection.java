@@ -1,6 +1,5 @@
 package com.aerospike.jdbc;
 
-import com.aerospike.client.AerospikeClient;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.jdbc.model.DriverConfiguration;
@@ -41,10 +40,10 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private volatile boolean closed;
 
     public AerospikeConnection(String url, Properties props) {
+        logger.info("Init AerospikeConnection");
         this.url = url;
         config = new DriverConfiguration(props);
-        config.parse(url);
-        client = new AerospikeClient(config.getClientPolicy(), config.getHosts());
+        client = config.parse(url);
         metadataBuilder = new DatabaseMetadataBuilder(config.getDriverPolicy());
         schema.set(config.getSchema()); // namespace
     }
@@ -296,6 +295,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public void setClientInfo(String name, String value) {
+        logger.info(() -> format("Set client info: %s -> %s", name, value));
         config.put(name, value);
     }
 
@@ -311,6 +311,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public void setClientInfo(Properties properties) {
+        logger.info(() -> format("Set client info: %s", properties));
         config.putAll(properties);
     }
 
@@ -358,5 +359,9 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     public DriverConfiguration getConfiguration() {
         return config;
+    }
+
+    public IAerospikeClient getClient() {
+        return client;
     }
 }
