@@ -6,6 +6,7 @@ import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
+import com.aerospike.jdbc.util.AerospikeVersion;
 import com.aerospike.jdbc.util.DatabaseMetadataBuilder;
 
 import java.sql.*;
@@ -33,7 +34,9 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private final DriverConfiguration config;
     private final IAerospikeClient client;
     private final DatabaseMetadataBuilder metadataBuilder;
+    private final AerospikeVersion aerospikeVersion;
     private final AtomicReference<String> schema = new AtomicReference<>(null); // namespace
+
     private volatile boolean readOnly = false;
     private volatile Map<String, Class<?>> typeMap = emptyMap();
     private volatile int holdability = HOLD_CURSORS_OVER_COMMIT;
@@ -45,6 +48,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
         config = new DriverConfiguration(props);
         client = config.parse(url);
         metadataBuilder = new DatabaseMetadataBuilder(config.getDriverPolicy());
+        aerospikeVersion = new AerospikeVersion(client);
         schema.set(config.getSchema()); // namespace
     }
 
@@ -359,6 +363,10 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     public DriverConfiguration getConfiguration() {
         return config;
+    }
+
+    public AerospikeVersion getAerospikeVersion() {
+        return aerospikeVersion;
     }
 
     public IAerospikeClient getClient() {

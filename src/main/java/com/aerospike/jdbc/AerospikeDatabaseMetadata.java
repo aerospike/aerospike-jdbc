@@ -58,7 +58,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final Map<String, Collection<AerospikeSecondaryIndex>> catalogIndexes;
     private final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
 
-    public AerospikeDatabaseMetadata(String url, IAerospikeClient client, Connection connection) {
+    public AerospikeDatabaseMetadata(String url, IAerospikeClient client, AerospikeConnection connection) {
         logger.info("Init AerospikeDatabaseMetadata");
         AerospikeSchemaBuilder.cleanSchemaCache();
         this.url = url;
@@ -82,17 +82,22 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                     );
                     streamOfSubProperties(r, "sindex")
                             .filter(AerospikeUtils::isSupportedIndexType)
-                            .forEach(p ->
-                                    catalogIndexes.computeIfAbsent(p.getProperty("ns"), s -> new HashSet<>())
-                                            .add(new AerospikeSecondaryIndex(
-                                                    p.getProperty("ns"),
-                                                    p.getProperty("set"),
-                                                    p.getProperty("bin"),
-                                                    p.getProperty("indexname"),
-                                                    IndexType.valueOf(p.getProperty("type").toUpperCase(Locale.ENGLISH)),
-                                                    getIndexBinValuesRatio(client, p.getProperty("ns"), p.getProperty("indexname")))
-                                            )
-                            );
+                            .forEach(p -> {
+                                String namespace = p.getProperty("ns");
+                                String indexName = p.getProperty("indexname");
+                                Integer binRatio = connection.getAerospikeVersion().isSIndexCardinalitySupported()
+                                        ? getIndexBinValuesRatio(client, namespace, indexName)
+                                        : null;
+                                catalogIndexes.computeIfAbsent(namespace, s -> new HashSet<>())
+                                        .add(new AerospikeSecondaryIndex(
+                                                namespace,
+                                                p.getProperty("set"),
+                                                p.getProperty("bin"),
+                                                indexName,
+                                                IndexType.valueOf(p.getProperty("type").toUpperCase(Locale.ENGLISH)),
+                                                binRatio)
+                                        );
+                            });
                 });
         secondaryIndexes = catalogIndexes.values().stream()
                 .flatMap(Collection::stream)
@@ -853,7 +858,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         final Iterable<List<?>> tablesData;
         if (catalog == null) {
             tablesData = tables.entrySet().stream()
-                    .flatMap(p -> p.getValue().stream().map(t -> asList(p.getKey(), null, t, defaultKeyName, 1, defaultKeyName)))
+                    .flatMap(p -> p.getValue().stream().map(t ->
+                            asList(p.getKey(), null, t, defaultKeyName, 1, defaultKeyName)))
                     .collect(toList());
         } else {
             tablesData = tables.getOrDefault(catalog, Collections.emptyList()).stream()
@@ -906,8 +912,9 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     public ResultSet getTypeInfo() {
         String[] columns = new String[]{
                 "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX", "LITERAL_SUFFIX", "CREATE_PARAMS", "NULLABLE",
-                "CASE_SENSITIVE", "SEARCHABLE", "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE", "AUTO_INCREMENT", "LOCAL_TYPE_NAME",
-                "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "NUM_PREC_RADIX",
+                "CASE_SENSITIVE", "SEARCHABLE", "UNSIGNED_ATTRIBUTE", "FIXED_PREC_SCALE", "AUTO_INCREMENT",
+                "LOCAL_TYPE_NAME", "MINIMUM_SCALE", "MAXIMUM_SCALE", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
+                "NUM_PREC_RADIX",
         };
 
         Iterable<List<?>> data = asList(
@@ -1100,7 +1107,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA", "SCOPE_TABLE", "SOURCE_DATA_TYPE"};
 
         int[] sqlTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER, VARCHAR, INTEGER, INTEGER, INTEGER,
-                INTEGER, VARCHAR, VARCHAR, INTEGER, INTEGER, INTEGER, INTEGER, VARCHAR, VARCHAR, VARCHAR, VARCHAR, SMALLINT};
+                INTEGER, VARCHAR, VARCHAR, INTEGER, INTEGER, INTEGER, INTEGER, VARCHAR, VARCHAR, VARCHAR, VARCHAR,
+                SMALLINT};
 
         return new ListRecordSet(null, "system", "attributes",
                 systemColumns(columns, sqlTypes), emptyList());
@@ -1206,7 +1214,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     @Override
-    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern, String columnNamePattern) {
+    public ResultSet getFunctionColumns(String catalog, String schemaPattern, String functionNamePattern,
+                                        String columnNamePattern) {
         String[] columns = new String[]{"FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "COLUMN_NAME", "COLUMN_TYPE",
                 "DATA_TYPE", "TYPE_NAME", "PRECISION", "LENGTH", "SCALE", "RADIX", "NULLABLE", "REMARKS",
                 "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SPECIFIC_NAME"};
@@ -1219,9 +1228,11 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     @Override
-    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern) {
+    public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
+                                      String columnNamePattern) {
         String[] columns = new String[]{"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME", "DATA_TYPE",
-                "COLUMN_SIZE", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "COLUMN_USAGE", "REMARKS", "CHAR_OCTET_LENGTH", "IS_NULLABLE"};
+                "COLUMN_SIZE", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "COLUMN_USAGE", "REMARKS", "CHAR_OCTET_LENGTH",
+                "IS_NULLABLE"};
 
         int[] sqlTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER, INTEGER, INTEGER, INTEGER, VARCHAR,
                 VARCHAR, INTEGER, VARCHAR};

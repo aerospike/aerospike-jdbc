@@ -9,7 +9,6 @@ import com.aerospike.jdbc.async.FutureBatchOperateListListener;
 import com.aerospike.jdbc.async.FutureWriteListener;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -33,7 +32,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        if (VersionUtils.isBatchOpsSupported(client)) {
+        if (aerospikeVersion.isBatchOpsSupported()) {
             logger.info("INSERT batch");
             return putBatch(query);
         }

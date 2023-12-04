@@ -7,6 +7,7 @@ import com.aerospike.jdbc.AerospikeConnection;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.ListRecordSet;
+import com.aerospike.jdbc.util.AerospikeVersion;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -18,18 +19,16 @@ public abstract class BaseQueryHandler implements QueryHandler {
 
     protected final IAerospikeClient client;
     protected final Statement statement;
-    protected final DriverConfiguration config;
     protected final PolicyBuilder policyBuilder;
+    protected final DriverConfiguration config;
+    protected final AerospikeVersion aerospikeVersion;
 
     protected BaseQueryHandler(IAerospikeClient client, Statement statement) {
         this.client = client;
         this.statement = statement;
-        try {
-            config = ((AerospikeConnection) statement.getConnection()).getConfiguration();
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to get configuration", e);
-        }
         policyBuilder = new PolicyBuilder(client);
+        config = getConfiguration();
+        aerospikeVersion = getAerospikeVersion();
     }
 
     protected Bin[] getBins(AerospikeQuery query) {
@@ -44,5 +43,21 @@ public abstract class BaseQueryHandler implements QueryHandler {
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {
         return new ListRecordSet(statement, query.getSchema(), query.getTable(),
                 emptyList(), emptyList());
+    }
+
+    private DriverConfiguration getConfiguration() {
+        try {
+            return ((AerospikeConnection) statement.getConnection()).getConfiguration();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to get DriverConfiguration", e);
+        }
+    }
+
+    private AerospikeVersion getAerospikeVersion() {
+        try {
+            return ((AerospikeConnection) statement.getConnection()).getAerospikeVersion();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to get AerospikeVersion", e);
+        }
     }
 }

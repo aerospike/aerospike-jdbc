@@ -13,6 +13,7 @@ import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
 
@@ -158,6 +159,10 @@ public class AerospikeQuery {
             return predicate.getPrimaryKeys();
         }
         return Collections.emptyList();
+    }
+
+    public boolean isIndexable() {
+        return Objects.nonNull(predicate) && predicate.isIndexable() && Objects.isNull(offset);
     }
 
     @Override
