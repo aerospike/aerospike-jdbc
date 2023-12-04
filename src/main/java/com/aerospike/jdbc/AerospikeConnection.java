@@ -352,7 +352,10 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
                 client.getScanPolicyDefault(),
                 client.getQueryPolicyDefault(),
                 client.getBatchPolicyDefault()
-        }).forEach(p -> p.totalTimeout = milliseconds);
+        }).forEach(p -> {
+            p.totalTimeout = milliseconds;
+            p.connectTimeout = milliseconds;
+        });
         client.getInfoPolicyDefault().timeout = milliseconds;
     }
 

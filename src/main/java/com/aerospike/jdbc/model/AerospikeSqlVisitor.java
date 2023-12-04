@@ -13,7 +13,7 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import java.math.BigDecimal;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
+import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
 import static java.util.Objects.requireNonNull;
 
 public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
@@ -36,7 +36,8 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 SqlSelect sql = (SqlSelect) sqlCall;
                 query.setQueryType(QueryType.SELECT);
                 query.setTable(requireNonNull(sql.getFrom()).toString());
-                query.setColumns(sql.getSelectList().stream().map(SqlNode::toString).collect(Collectors.toList()));
+                query.setColumns(sql.getSelectList().stream()
+                        .map(SqlNode::toString).collect(Collectors.toList()));
                 if (sql.hasWhere()) {
                     query.setPredicate(parseWhere((SqlBasicCall) requireNonNull(sql.getWhere())));
                 }
@@ -47,8 +48,10 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 if (sql.getCondition() != null) {
                     query.setPredicate(parseWhere((SqlBasicCall) sql.getCondition()));
                 }
-                query.setColumns(sql.getTargetColumnList().stream().map(SqlNode::toString).collect(Collectors.toList()));
-                query.setValues(sql.getSourceExpressionList().stream().map(this::parseValue).collect(Collectors.toList()));
+                query.setColumns(sql.getTargetColumnList().stream()
+                        .map(SqlNode::toString).collect(Collectors.toList()));
+                query.setValues(sql.getSourceExpressionList().stream()
+                        .map(this::parseValue).collect(Collectors.toList()));
             } else if (sqlCall instanceof SqlInsert) {
                 SqlInsert sql = (SqlInsert) sqlCall;
                 query.setQueryType(QueryType.INSERT);
@@ -79,19 +82,23 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 query.setQueryType(QueryType.DROP_SCHEMA);
             } else if (sqlCall instanceof SqlOrderBy) {
                 SqlOrderBy sql = (SqlOrderBy) sqlCall;
-                if (!sql.orderList.isEmpty()) throw new UnsupportedOperationException(unsupportedQueryType);
+                if (!sql.orderList.isEmpty()) {
+                    throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
+                }
                 if (sql.fetch != null) {
-                    query.setLimit(requireNonNull((BigDecimal) ((SqlNumericLiteral) sql.fetch).getValue()).intValue());
+                    query.setLimit(requireNonNull((BigDecimal) ((SqlNumericLiteral) sql.fetch)
+                            .getValue()).intValue());
                 }
                 if (sql.offset != null) {
-                    query.setOffset(requireNonNull((BigDecimal) ((SqlNumericLiteral) sql.offset).getValue()).intValue());
+                    query.setOffset(requireNonNull((BigDecimal) ((SqlNumericLiteral) sql.offset)
+                            .getValue()).intValue());
                 }
                 visit((SqlCall) sql.query);
             } else {
-                throw new UnsupportedOperationException(unsupportedQueryType);
+                throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
             }
         } catch (Exception e) {
-            throw new UnsupportedOperationException(unsupportedQueryType);
+            throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
         }
         return query;
     }
@@ -109,7 +116,8 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 return new QueryPredicateList(
                         where.getOperandList().get(0).toString(),
                         operator,
-                        ((SqlNodeList) where.getOperandList().get(1)).stream().map(this::parseValue).distinct().toArray()
+                        ((SqlNodeList) where.getOperandList().get(1)).stream()
+                                .map(this::parseValue).distinct().toArray()
                 );
             } else {
                 return new QueryPredicateBinary(
@@ -143,7 +151,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                     parseValue(where.getOperandList().get(2))
             );
         }
-        throw new UnsupportedOperationException(unsupportedQueryType);
+        throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
     }
 
     private Object parseValue(SqlNode sqlNode) {
@@ -161,7 +169,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
         } else if (sqlNode instanceof SqlIdentifier) {
             return unwrapString(sqlNode.toString());
         }
-        throw new UnsupportedOperationException(unsupportedQueryType);
+        throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
     }
 
     private Object getNumeric(BigDecimal bd) {

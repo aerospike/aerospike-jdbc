@@ -55,7 +55,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         Collection<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
-        if (isCount(query)) {
+        if (query.isCount()) {
             result = executeCountQuery(query);
         } else if (!keyObjects.isEmpty()) {
             result = executeSelectByPrimaryKey(query, keyObjects);
@@ -158,7 +158,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Pair<ResultSet, Integer> queryResult(RecordSet recordSet, AerospikeQuery query) {
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+                query.getTable(), filterColumns(query)), -1);
     }
 
     private void sortIndexList(List<AerospikeSecondaryIndex> indexList) {
@@ -169,14 +169,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
         }
     }
 
-    private boolean isCount(AerospikeQuery query) {
-        return query.getColumns().size() == 1 &&
-                query.getColumns().get(0).toLowerCase(Locale.ENGLISH).startsWith("count(");
-    }
-
-    private List<DataColumn> filterColumns(List<DataColumn> columns, String[] selected) {
-        if (Objects.isNull(selected)) return columns;
-        List<String> list = Arrays.stream(selected).collect(Collectors.toList());
-        return columns.stream().filter(c -> list.contains(c.getName())).collect(Collectors.toList());
+    private List<DataColumn> filterColumns(AerospikeQuery query) {
+        if (query.isStar()) {
+            return columns;
+        }
+        return columns.stream()
+                .filter(c -> query.getColumns().contains(c.getName()))
+                .collect(Collectors.toList());
     }
 }

@@ -48,6 +48,12 @@ public class PolicyBuilder {
         return writePolicy;
     }
 
+    public WritePolicy buildDeleteWritePolicy() {
+        WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
+        writePolicy.sendKey = false;
+        return writePolicy;
+    }
+
     public BatchReadPolicy buildBatchReadPolicy(AerospikeQuery query) {
         BatchReadPolicy batchReadPolicy = new BatchReadPolicy();
         batchReadPolicy.filterExp = Objects.isNull(query.getPredicate())

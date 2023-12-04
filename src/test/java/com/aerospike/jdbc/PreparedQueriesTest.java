@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
 
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -32,8 +33,9 @@ public class PreparedQueriesTest extends JdbcBaseTest {
         PreparedStatement statement = null;
         int count;
         String query = String.format(
-                "insert into %s (bin1, int1, str1, bool1) values (11100, 1, \"bar\", true)",
-                tableName
+                "insert into %s (%s, bin1, int1, str1, bool1) values (\"key1\", 11100, 1, \"bar\", true)",
+                tableName,
+                PRIMARY_KEY_COLUMN_NAME
         );
         try {
             statement = connection.prepareStatement(query);
@@ -70,10 +72,8 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                assertEquals(resultSet.getInt("bin1"), 11100);
-                assertEquals(resultSet.getInt("int1"), 1);
-                assertEquals(resultSet.getString("str1"), "bar");
-                assertEquals(resultSet.getInt("bool1"), 1);
+                assertAllByColumnLabel(resultSet);
+                assertAllByColumnIndex(resultSet);
 
                 total++;
             }
@@ -88,26 +88,14 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectByPrimaryKeyQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = String.format(
-                "insert into %s (__key, bin1, int1, str1, bool1) values (\"key1\", 11101, 2, \"bar\", true)",
-                tableName
-        );
-        try {
-            statement = connection.prepareStatement(query);
-            statement.executeUpdate();
-        } finally {
-            closeQuietly(statement);
-        }
-        query = String.format("select * from %s where __key='%s'", tableName, "key1");
+        String query = String.format("select *, bin1 from %s where %s='key1'", tableName, PRIMARY_KEY_COLUMN_NAME);
         int total = 0;
         try {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             while (resultSet.next()) {
-                assertEquals(resultSet.getInt("bin1"), 11101);
-                assertEquals(resultSet.getInt("int1"), 2);
-                assertEquals(resultSet.getString("str1"), "bar");
-                assertEquals(resultSet.getInt("bool1"), 1);
+                assertAllByColumnLabel(resultSet);
+                assertAllByColumnIndex(resultSet);
 
                 total++;
             }
@@ -164,6 +152,7 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
+
             assertEquals(resultSet.getObject(1), 1);
         } finally {
             closeQuietly(statement);
@@ -175,12 +164,14 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectEqualsQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = String.format("select __key from %s where int1 = 1", tableName);
+        String query = String.format("select %s from %s where int1 = 1", PRIMARY_KEY_COLUMN_NAME, tableName);
         try {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
-            assertEquals(resultSet.getString(1).length(), 36);
+
+            assertEquals(resultSet.getString(PRIMARY_KEY_COLUMN_NAME), "key1");
+            assertEquals(resultSet.getString(1), "key1");
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -191,11 +182,16 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectNotEqualsQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = String.format("select __key, int1 from %s where int1 <> 2", tableName);
+        String query = String.format("select %s, int1 from %s where int1 <> 2", PRIMARY_KEY_COLUMN_NAME, tableName);
         try {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
+
+            assertEquals(resultSet.getString(PRIMARY_KEY_COLUMN_NAME), "key1");
+            assertEquals(resultSet.getInt("int1"), 1);
+
+            assertEquals(resultSet.getString(1), "key1");
             assertEquals(resultSet.getInt(2), 1);
         } finally {
             closeQuietly(statement);
@@ -213,7 +209,12 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
+
+            assertEquals(resultSet.getInt("int1"), 1);
+            assertEquals(resultSet.getString("str1"), "bar");
+
             assertEquals(resultSet.getInt(1), 1);
+            assertEquals(resultSet.getString(2), "bar");
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -230,7 +231,9 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
-            assertEquals(resultSet.getInt(2), 11100);
+
+            assertAllByColumnLabel(resultSet);
+            assertAllByColumnIndex(resultSet);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -246,7 +249,9 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
-            assertEquals(resultSet.getInt(2), 11100);
+
+            assertAllByColumnLabel(resultSet);
+            assertAllByColumnIndex(resultSet);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
@@ -262,7 +267,9 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
-            assertEquals(resultSet.getInt(2), 11100);
+
+            assertAllByColumnLabel(resultSet);
+            assertAllByColumnIndex(resultSet);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

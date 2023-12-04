@@ -12,8 +12,6 @@ import com.aerospike.jdbc.model.DriverPolicy;
 
 import java.util.Objects;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
-
 public class ScanQueryHandler {
 
     private final IAerospikeClient client;
@@ -21,6 +19,7 @@ public class ScanQueryHandler {
 
     private int currentPartition;
     private int count;
+
     private final ScanCallback callback = ((key, rec) -> {
         listener.onRecord(key, rec);
         count++;
@@ -36,8 +35,7 @@ public class ScanQueryHandler {
     }
 
     public RecordSet execute(ScanPolicy scanPolicy, AerospikeQuery query) {
-        if (query.getBinNames() != null && query.getBinNames().length == 1
-                && query.getBinNames()[0].equals(defaultKeyName)) {
+        if (query.isPrimaryKeyOnly()) {
             scanPolicy.includeBinData = false;
         }
         if (Objects.nonNull(query.getOffset())) {
@@ -45,14 +43,14 @@ public class ScanQueryHandler {
             PartitionFilter filter = getPartitionFilter(query);
             while (isScanRequired(maxRecords)) {
                 client.scanPartitions(scanPolicy, filter, query.getSchema(), query.getSetName(),
-                        callback, query.getBinNames());
+                        callback, query.columnBins());
                 scanPolicy.maxRecords = maxRecords > 0 ? maxRecords - count : maxRecords;
                 filter = PartitionFilter.id(++currentPartition);
             }
             listener.onSuccess();
         } else {
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
-                    query.getSetName(), query.getBinNames());
+                    query.getSetName(), query.columnBins());
         }
         return listener.getRecordSet();
     }

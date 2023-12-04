@@ -5,8 +5,13 @@ import org.testng.annotations.BeforeSuite;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
+
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
+import static org.testng.Assert.assertEquals;
 
 public abstract class JdbcBaseTest {
 
@@ -25,11 +30,28 @@ public abstract class JdbcBaseTest {
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
         String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true", hostname, port, namespace);
         connection = DriverManager.getConnection(url);
+        connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
     }
 
     @AfterSuite
     public static void connectionClose() throws SQLException {
         logger.info("connectionClose");
         connection.close();
+    }
+
+    protected void assertAllByColumnLabel(ResultSet resultSet) throws SQLException {
+        assertEquals(resultSet.getString(PRIMARY_KEY_COLUMN_NAME), "key1");
+        assertEquals(resultSet.getInt("bin1"), 11100);
+        assertEquals(resultSet.getInt("bool1"), 1);
+        assertEquals(resultSet.getInt("int1"), 1);
+        assertEquals(resultSet.getString("str1"), "bar");
+    }
+
+    protected void assertAllByColumnIndex(ResultSet resultSet) throws SQLException {
+        assertEquals(resultSet.getString(1), "key1");
+        assertEquals(resultSet.getInt(2), 11100);
+        assertEquals(resultSet.getInt(3), 1);
+        assertEquals(resultSet.getInt(4), 1);
+        assertEquals(resultSet.getString(5), "bar");
     }
 }

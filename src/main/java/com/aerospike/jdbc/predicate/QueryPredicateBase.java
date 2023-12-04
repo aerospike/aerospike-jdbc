@@ -48,7 +48,9 @@ public abstract class QueryPredicateBase implements QueryPredicate {
     }
 
     protected Exp buildLeftExp() {
-        return binName.equals(Constants.defaultKeyName) ? Exp.key(valueType) : Exp.bin(binName, valueType);
+        return binName.equals(Constants.PRIMARY_KEY_COLUMN_NAME)
+                ? Exp.key(valueType)
+                : Exp.bin(binName, valueType);
     }
 
     @Override
