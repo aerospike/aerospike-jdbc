@@ -53,13 +53,15 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
             ScanPolicy scanPolicy = policyBuilder.buildScanPolicy(query);
             scanPolicy.includeBinData = false;
+
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
                     query.getSetName());
 
+            final WritePolicy deletePolicy = policyBuilder.buildDeleteWritePolicy();
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
                 try {
-                    if (client.delete(writePolicy, r.key))
+                    if (client.delete(deletePolicy, r.key))
                         count.incrementAndGet();
                 } catch (Exception e) {
                     logger.warning("Failed to delete record: " + e.getMessage());

@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public class AerospikeRecordResultSet extends BaseResultSet<Record> {
 
@@ -43,7 +43,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public Object getObject(String columnLabel) {
         logger.fine(() -> "getObject: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::getObject).orElse(null);
         }
         return getBin(columnLabel).orElse(null);
@@ -52,7 +52,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toString).orElse(null);
         }
         return getBin(columnLabel).map(Object::toString).orElse(null);
@@ -61,7 +61,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public boolean getBoolean(String columnLabel) {
         logger.fine(() -> "getBoolean: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toString).map(Boolean::parseBoolean).orElse(false);
         }
         return getBin(columnLabel).map(Object::toString).map(Boolean::parseBoolean).orElse(false);
@@ -82,7 +82,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public int getInt(String columnLabel) {
         logger.fine(() -> "getInt: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toInteger).orElse(0);
         }
         return getBin(columnLabel).map(Object::toString).map(Integer::parseInt).orElse(0);
@@ -91,7 +91,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public long getLong(String columnLabel) {
         logger.fine(() -> "getLong: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toLong).orElse(0L);
         }
         return getBin(columnLabel).map(Object::toString).map(Long::parseLong).orElse(0L);
@@ -106,7 +106,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public double getDouble(String columnLabel) {
         logger.fine(() -> "getDouble: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toString).map(Double::parseDouble).orElse(0.0d);
         }
         return getBin(columnLabel).map(Object::toString).map(Double::parseDouble).orElse(0.0d);
@@ -121,7 +121,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public byte[] getBytes(String columnLabel) {
         logger.fine(() -> "getBytes: " + columnLabel);
-        if (columnLabel.equals(defaultKeyName)) {
+        if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return getUserKey().map(Value::toString).map(String::getBytes).orElse(null);
         }
         return getBin(columnLabel).map(byte[].class::cast).orElse(null);

@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public class InsertQueryHandler extends BaseQueryHandler {
 
@@ -41,11 +41,11 @@ public class InsertQueryHandler extends BaseQueryHandler {
     }
 
     public Pair<ResultSet, Integer> putConsecutively(AerospikeQuery query) {
-        List<String> binNames = query.getColumns().stream().filter(c -> !c.equals(defaultKeyName))
-                .collect(Collectors.toList());
+        List<String> binNames = getBinNames(query);
 
         FutureWriteListener listener = new FutureWriteListener(query.getValues().size());
         WritePolicy writePolicy = policyBuilder.buildCreateOnlyPolicy();
+
         for (Object aerospikeRecord : query.getValues()) {
             @SuppressWarnings("unchecked")
             List<Object> values = (List<Object>) aerospikeRecord;
@@ -68,8 +68,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
     }
 
     public Pair<ResultSet, Integer> putBatch(AerospikeQuery query) {
-        List<String> binNames = query.getColumns().stream().filter(c -> !c.equals(defaultKeyName))
-                .collect(Collectors.toList());
+        List<String> binNames = getBinNames(query);
 
         FutureBatchOperateListListener listener = new FutureBatchOperateListListener();
         List<BatchRecord> batchRecords = new ArrayList<>();
@@ -113,10 +112,16 @@ public class InsertQueryHandler extends BaseQueryHandler {
         return bins;
     }
 
+    private List<String> getBinNames(AerospikeQuery query) {
+        return query.getColumns().stream()
+                .filter(c -> !c.equals(PRIMARY_KEY_COLUMN_NAME))
+                .collect(Collectors.toList());
+    }
+
     private Value extractInsertKey(AerospikeQuery query, List<Object> values) {
         List<String> columns = query.getColumns();
         for (int i = 0; i < columns.size(); i++) {
-            if (columns.get(i).equals(defaultKeyName)) {
+            if (columns.get(i).equals(PRIMARY_KEY_COLUMN_NAME)) {
                 Object key = values.get(i);
                 values.remove(i);
                 if (key == null) break;

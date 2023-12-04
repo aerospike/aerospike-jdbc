@@ -7,7 +7,7 @@ import com.aerospike.jdbc.model.Pair;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
+import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
 
 public final class QueryPerformer {
 
@@ -42,7 +42,7 @@ public final class QueryPerformer {
                 return queryHandler.execute(query);
 
             default:
-                throw new UnsupportedOperationException(unsupportedQueryType);
+                throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
         }
     }
 }

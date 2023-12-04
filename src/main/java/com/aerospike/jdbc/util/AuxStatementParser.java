@@ -7,7 +7,7 @@ import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.aerospike.jdbc.util.Constants.unsupportedQueryType;
+import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
 
 public final class AuxStatementParser {
 
@@ -21,7 +21,7 @@ public final class AuxStatementParser {
     }
 
     /**
-     * A hack method to parse queries which are currently not supported by the parser.
+     * An auxiliary method to parse queries which are currently not supported by the parser.
      *
      * @param sql the original SQL query string.
      * @return an {@link com.aerospike.jdbc.model.AerospikeQuery}
@@ -36,6 +36,6 @@ public final class AuxStatementParser {
             return query;
         }
 
-        throw new SQLException(unsupportedQueryType);
+        throw new SQLException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
     }
 }

@@ -7,6 +7,8 @@ import org.testng.annotations.Test;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
+import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 
 public class JdbiQueriesTest extends JdbcBaseTest {
@@ -17,16 +19,19 @@ public class JdbiQueriesTest extends JdbcBaseTest {
         String id = UUID.randomUUID().toString();
         Jdbi jdbi = Jdbi.create(connection);
         jdbi.withHandle(handle -> {
-            int rowsInserted = handle.createUpdate(String.format("INSERT INTO test.foo (__key, k1, k2, k3, k4) VALUES ('%s', 'i1', 'i2', 'i3', 'i4')", id))
+            String query = format("INSERT INTO test.foo (%s, k1, k2, k3, k4) VALUES ('%s', 'i1', 'i2', 'i3', 'i4')",
+                    PRIMARY_KEY_COLUMN_NAME, id);
+            int rowsInserted = handle.createUpdate(query)
                     .execute();
 
             assertEquals(rowsInserted, 1);
 
-            Map<String, Object> result = handle.createQuery(String.format("SELECT * FROM test.foo WHERE __key='%s'", id))
+            query = format("SELECT * FROM test.foo WHERE %s='%s'", PRIMARY_KEY_COLUMN_NAME, id);
+            Map<String, Object> result = handle.createQuery(query)
                     .mapToMap()
                     .first();
 
-            assertEquals(result.get("__key").toString(), id);
+            assertEquals(result.get(PRIMARY_KEY_COLUMN_NAME).toString(), id);
             assertEquals(result.get("k1"), "i1");
             assertEquals(result.get("k2"), "i2");
             assertEquals(result.get("k3"), "i3");
@@ -46,7 +51,9 @@ public class JdbiQueriesTest extends JdbcBaseTest {
         String v4 = "v4";
         Jdbi jdbi = Jdbi.create(connection);
         jdbi.withHandle(handle -> {
-            int rowsInserted = handle.createUpdate("INSERT INTO test.foo (__key, k1, k2, k3, k4) VALUES (?, ?, ?, ?, ?)")
+            String query = format("INSERT INTO test.foo (%s, k1, k2, k3, k4) VALUES (?, ?, ?, ?, ?)",
+                    PRIMARY_KEY_COLUMN_NAME);
+            int rowsInserted = handle.createUpdate(query)
                     .bind(0, id)
                     .bind(1, v1)
                     .bind(2, v2)
@@ -56,12 +63,14 @@ public class JdbiQueriesTest extends JdbcBaseTest {
 
             assertEquals(rowsInserted, 1);
 
-            Map<String, Object> result = handle.createQuery("SELECT * FROM test.foo WHERE __key=?")
+            query = format("SELECT * FROM test.foo WHERE %s=?",
+                    PRIMARY_KEY_COLUMN_NAME);
+            Map<String, Object> result = handle.createQuery(query)
                     .bind(0, id)
                     .mapToMap()
                     .first();
 
-            assertEquals(result.get("__key").toString(), id);
+            assertEquals(result.get(PRIMARY_KEY_COLUMN_NAME).toString(), id);
             assertEquals(result.get("k1"), v1);
             assertEquals(result.get("k2"), v2);
             assertEquals(result.get("k3"), v3);
@@ -81,7 +90,9 @@ public class JdbiQueriesTest extends JdbcBaseTest {
         String v4 = "v4";
         Jdbi jdbi = Jdbi.create(connection);
         jdbi.withHandle(handle -> {
-            int rowsInserted = handle.createUpdate("INSERT INTO test.foo (__key, k1, k2, k3, k4) VALUES (:id, :v1, :v2, :v3, :v4)")
+            String query = format("INSERT INTO test.foo (%s, k1, k2, k3, k4) VALUES (:id, :v1, :v2, :v3, :v4)",
+                    PRIMARY_KEY_COLUMN_NAME);
+            int rowsInserted = handle.createUpdate(query)
                     .bind("id", id)
                     .bind("v1", v1)
                     .bind("v2", v2)
@@ -91,12 +102,14 @@ public class JdbiQueriesTest extends JdbcBaseTest {
 
             assertEquals(rowsInserted, 1);
 
-            Map<String, Object> result = handle.createQuery("SELECT * FROM test.foo WHERE __key=:id")
+            query = format("SELECT * FROM test.foo WHERE %s=:id",
+                    PRIMARY_KEY_COLUMN_NAME);
+            Map<String, Object> result = handle.createQuery(query)
                     .bind("id", id)
                     .mapToMap()
                     .first();
 
-            assertEquals(result.get("__key").toString(), id);
+            assertEquals(result.get(PRIMARY_KEY_COLUMN_NAME).toString(), id);
             assertEquals(result.get("k1"), v1);
             assertEquals(result.get("k2"), v2);
             assertEquals(result.get("k3"), v3);

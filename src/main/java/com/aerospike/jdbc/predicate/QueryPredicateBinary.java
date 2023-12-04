@@ -7,7 +7,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public class QueryPredicateBinary extends QueryPredicateBase {
 
@@ -39,7 +39,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
 
     @Override
     public Collection<Object> getPrimaryKeys() {
-        if (binName.equals(defaultKeyName) && operator == OperatorBinary.EQ) {
+        if (binName.equals(PRIMARY_KEY_COLUMN_NAME) && operator == OperatorBinary.EQ) {
             return Collections.singletonList(value);
         }
         return Collections.emptyList();

@@ -14,8 +14,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
-import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.schemaCacheTTLMinutes;
 import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 
@@ -41,23 +41,28 @@ public final class AerospikeSchemaBuilder {
             policy.maxRecords = schemaScanRecords;
 
             // add record key column handler
-            columnHandles.put(defaultKeyName,
-                    new DataColumn(schemaTableName.getSchemaName(),
-                            schemaTableName.getTableName(), Types.VARCHAR, defaultKeyName, defaultKeyName));
+            columnHandles.put(PRIMARY_KEY_COLUMN_NAME,
+                    new DataColumn(
+                            schemaTableName.getSchemaName(),
+                            schemaTableName.getTableName(),
+                            Types.VARCHAR,
+                            PRIMARY_KEY_COLUMN_NAME,
+                            PRIMARY_KEY_COLUMN_NAME));
 
-            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()), (key, rec) -> {
-                Map<String, Object> bins = rec.bins;
-                if (bins != null) {
-                    bins.forEach((k, value) -> {
-                        logger.fine(() -> String.format("Bin: %s -> %s", k, value));
-                        int t = getBinType(value);
-                        if (k != null && t != 0) {
-                            columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
-                                    schemaTableName.getTableName(), t, k, k));
+            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()),
+                    (key, rec) -> {
+                        Map<String, Object> bins = rec.bins;
+                        if (bins != null) {
+                            bins.forEach((k, value) -> {
+                                logger.fine(() -> String.format("Bin: %s -> %s", k, value));
+                                int t = getBinType(value);
+                                if (k != null && t != 0) {
+                                    columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
+                                            schemaTableName.getTableName(), t, k, k));
+                                }
+                            });
                         }
                     });
-                }
-            });
 
             List<DataColumn> columns = new ArrayList<>(columnHandles.values());
             cache.put(schemaTableName, columns);
@@ -66,7 +71,7 @@ public final class AerospikeSchemaBuilder {
     }
 
     private static String toSet(String tableName) {
-        if (tableName.equals(defaultSchemaName)) {
+        if (tableName.equals(DEFAULT_SCHEMA_NAME)) {
             return null;
         }
         return tableName;
@@ -97,7 +102,7 @@ public final class AerospikeSchemaBuilder {
         } else if (value instanceof List<?> || value instanceof Value.ListValue) {
             t = Types.ARRAY;
         } else if (value instanceof Map<?, ?> || value instanceof Value.MapValue) {
-            t = Types.STRUCT;
+            t = Types.OTHER;
         } else {
             logger.info(() -> "Unknown bin type: " + value);
         }

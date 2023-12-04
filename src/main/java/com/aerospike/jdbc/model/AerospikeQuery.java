@@ -13,9 +13,11 @@ import org.apache.calcite.sql.parser.ddl.SqlDdlParserImpl;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
-import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public class AerospikeQuery {
 
@@ -25,6 +27,8 @@ public class AerospikeQuery {
             .withCaseSensitive(true)
             .withUnquotedCasing(Casing.UNCHANGED)
             .withQuotedCasing(Casing.UNCHANGED);
+
+    private static final String ASTERISK = "*";
 
     private String catalog;
     private String schema;
@@ -89,7 +93,7 @@ public class AerospikeQuery {
     }
 
     public String getSetName() {
-        if (table.equals(defaultSchemaName)) {
+        if (table.equals(DEFAULT_SCHEMA_NAME)) {
             return null;
         }
         return table;
@@ -147,11 +151,12 @@ public class AerospikeQuery {
         this.columns = columns;
     }
 
-    public String[] getBinNames() {
-        if (columns.size() == 1 && columns.get(0).equals("*")) {
-            return null;
-        }
-        return columns.toArray(new String[0]);
+    public String[] columnBins() {
+        String[] binNames = columns.stream()
+                .filter(c -> !Objects.equals(c, ASTERISK))
+                .filter(c -> !Objects.equals(c, PRIMARY_KEY_COLUMN_NAME))
+                .toArray(String[]::new);
+        return binNames.length == 0 ? null : binNames;
     }
 
     public Collection<Object> getPrimaryKeys() {
@@ -159,6 +164,18 @@ public class AerospikeQuery {
             return predicate.getPrimaryKeys();
         }
         return Collections.emptyList();
+    }
+
+    public boolean isPrimaryKeyOnly() {
+        return columns.size() == 1 && columns.get(0).equals(PRIMARY_KEY_COLUMN_NAME);
+    }
+
+    public boolean isStar() {
+        return columns.stream().anyMatch(c -> c.equals(ASTERISK));
+    }
+
+    public boolean isCount() {
+        return columns.size() == 1 && columns.get(0).toLowerCase(Locale.ENGLISH).startsWith("count(");
     }
 
     public boolean isIndexable() {

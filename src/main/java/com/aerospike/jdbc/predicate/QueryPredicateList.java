@@ -8,7 +8,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public class QueryPredicateList extends QueryPredicateBase {
 
@@ -24,7 +24,9 @@ public class QueryPredicateList extends QueryPredicateBase {
     @Override
     public Exp toFilterExpression() {
         return operator.exp(
-                Arrays.stream(values).map(v -> Exp.eq(buildLeftExp(), getValueExp(v))).toArray(Exp[]::new)
+                Arrays.stream(values)
+                        .map(v -> Exp.eq(buildLeftExp(), getValueExp(v)))
+                        .toArray(Exp[]::new)
         );
     }
 
@@ -40,7 +42,7 @@ public class QueryPredicateList extends QueryPredicateBase {
 
     @Override
     public Collection<Object> getPrimaryKeys() {
-        if (binName.equals(defaultKeyName)) {
+        if (binName.equals(PRIMARY_KEY_COLUMN_NAME)) {
             return Arrays.asList(values);
         }
         return Collections.emptyList();

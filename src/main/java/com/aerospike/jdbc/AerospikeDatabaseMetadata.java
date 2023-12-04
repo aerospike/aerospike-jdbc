@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.aerospike.jdbc.util.AerospikeUtils.getIndexBinValuesRatio;
-import static com.aerospike.jdbc.util.Constants.defaultKeyName;
-import static com.aerospike.jdbc.util.Constants.defaultSchemaName;
+import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
@@ -78,7 +78,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                     namespaces.addAll(asList(getOrDefault(r, "namespaces", "").split(";")));
                     streamOfSubProperties(r, "sets").forEach(p ->
                             tables.computeIfAbsent(p.getProperty("ns"), s -> new HashSet<>())
-                                    .addAll(Arrays.asList(p.getProperty("set"), defaultSchemaName))
+                                    .addAll(Arrays.asList(p.getProperty("set"), DEFAULT_SCHEMA_NAME))
                     );
                     streamOfSubProperties(r, "sindex")
                             .filter(AerospikeUtils::isSupportedIndexType)
@@ -859,12 +859,12 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         if (catalog == null) {
             tablesData = tables.entrySet().stream()
                     .flatMap(p -> p.getValue().stream().map(t ->
-                            asList(p.getKey(), null, t, defaultKeyName, 1, defaultKeyName)))
+                            asList(p.getKey(), null, t, PRIMARY_KEY_COLUMN_NAME, 1, PRIMARY_KEY_COLUMN_NAME)))
                     .collect(toList());
         } else {
             tablesData = tables.getOrDefault(catalog, Collections.emptyList()).stream()
                     .filter(t -> table == null || table.equals(t))
-                    .map(t -> asList(catalog, null, t, defaultKeyName, 1, defaultKeyName))
+                    .map(t -> asList(catalog, null, t, PRIMARY_KEY_COLUMN_NAME, 1, PRIMARY_KEY_COLUMN_NAME))
                     .collect(toList());
         }
 
