@@ -20,7 +20,6 @@ import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
-import com.aerospike.jdbc.util.VersionUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -75,7 +74,8 @@ public class SelectQueryHandler extends BaseQueryHandler {
             recordNumber = getTableRecordsNumber(client, query.getSchema(), query.getTable());
         } else {
             ScanPolicy policy = policyBuilder.buildScanNoBinDataPolicy(query);
-            RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy()).execute(policy, query);
+            RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy())
+                    .execute(policy, query);
 
             final AtomicInteger count = new AtomicInteger();
             recordSet.forEach(r -> count.incrementAndGet());
@@ -88,25 +88,26 @@ public class SelectQueryHandler extends BaseQueryHandler {
         recordSet.put(new KeyRecord(null, aeroRecord));
         recordSet.close();
 
-        List<DataColumn> columnList = Collections.singletonList(new DataColumn(query.getSchema(),
-                query.getTable(), Types.INTEGER, countLabel, countLabel));
+        columns = Collections.singletonList(new DataColumn(query.getSchema(), query.getTable(),
+                Types.INTEGER, countLabel, countLabel));
 
-        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), columnList), -1);
+        return queryResult(recordSet, query);
     }
 
     private Pair<ResultSet, Integer> executeSelectByPrimaryKey(AerospikeQuery query, Collection<Object> keyObjects) {
         logger.info(() -> "SELECT primary key");
         final BatchReadPolicy policy = policyBuilder.buildBatchReadPolicy(query);
         List<BatchRead> batchReadList = keyObjects.stream()
-                .map(k -> new BatchRead(policy, new Key(query.getSchema(), query.getSetName(), Value.get(k)), true))
+                .map(k -> {
+                    Key key = new Key(query.getSchema(), query.getSetName(), Value.get(k));
+                    return new BatchRead(policy, key, true);
+                })
                 .collect(Collectors.toList());
 
         RecordSetBatchSequenceListener listener = new RecordSetBatchSequenceListener(config.getDriverPolicy());
         client.get(EventLoopProvider.getEventLoop(), listener, null, batchReadList);
 
-        return new Pair<>(new AerospikeRecordResultSet(listener.getRecordSet(), statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+        return queryResult(listener.getRecordSet(), query);
     }
 
     private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
@@ -115,8 +116,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         ScanPolicy policy = policyBuilder.buildScanPolicy(query);
         RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy()).execute(policy, query);
 
-        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+        return queryResult(recordSet, query);
     }
 
     private Pair<ResultSet, Integer> executeQuery(AerospikeQuery query,
@@ -127,13 +127,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
         RecordSet recordSet = SecondaryIndexQueryHandler.create(client, config.getDriverPolicy())
                 .execute(policy, query, secondaryIndex);
 
-        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
-                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+        return queryResult(recordSet, query);
     }
 
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
-        if (VersionUtils.isSIndexSupported(client) && Objects.nonNull(query.getPredicate())
-                && query.getPredicate().isIndexable() && Objects.isNull(query.getOffset())) {
+        if (aerospikeVersion.isSIndexSupported() && query.isIndexable()) {
             Map<String, AerospikeSecondaryIndex> indexMap = secondaryIndexes;
             List<String> binNames = query.getPredicate().getBinNames();
             if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
@@ -146,11 +144,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
                     }
                 } else {
                     List<AerospikeSecondaryIndex> indexList = new ArrayList<>(indexMap.values());
-                    if (VersionUtils.isSIndexCardinalitySupported(client)) {
-                        indexList.sort(Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio));
-                    } else {
-                        indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
-                    }
+                    sortIndexList(indexList);
                     for (AerospikeSecondaryIndex index : indexList) {
                         if (binNames.contains(index.getBinName())) {
                             return Optional.of(index);
@@ -160,6 +154,19 @@ public class SelectQueryHandler extends BaseQueryHandler {
             }
         }
         return Optional.empty();
+    }
+
+    private Pair<ResultSet, Integer> queryResult(RecordSet recordSet, AerospikeQuery query) {
+        return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getSchema(),
+                query.getTable(), filterColumns(columns, query.getBinNames())), -1);
+    }
+
+    private void sortIndexList(List<AerospikeSecondaryIndex> indexList) {
+        if (aerospikeVersion.isSIndexCardinalitySupported()) {
+            indexList.sort(Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio));
+        } else {
+            indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+        }
     }
 
     private boolean isCount(AerospikeQuery query) {
