@@ -4,7 +4,6 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
-import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeResultSetMetaData;
 import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
@@ -23,7 +22,6 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Optional;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
@@ -34,22 +32,25 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     private static final Logger logger = Logger.getLogger(AerospikePreparedStatement.class.getName());
 
     private final String sql;
-    private final List<DataColumn> columns;
-    private final AerospikeQuery query;
+    private final AerospikeConnection connection;
     private final Object[] parameterValues;
+    private final AerospikeQuery query;
 
     public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection, String sql) {
         super(client, connection);
         this.sql = sql;
-        int params = parseParameters(sql, 0).getValue();
-        parameterValues = new Object[params];
-        Arrays.fill(parameterValues, Optional.empty());
+        this.connection = connection;
+        parameterValues = buildParameterValues(sql);
         try {
             query = parseQuery(sql);
         } catch (SQLException e) {
             throw new UnsupportedOperationException(e);
         }
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
+    }
+
+    private Object[] buildParameterValues(String sql) {
+        int params = parseParameters(sql, 0).getValue();
+        return new Object[params];
     }
 
     @Override
@@ -159,7 +160,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void clearParameters() {
-        Arrays.fill(parameterValues, Optional.empty());
+        Arrays.fill(parameterValues, null);
     }
 
     @Override
@@ -185,7 +186,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     private String prepareQuery() {
-        return String.format(this.sql.replace("?", "%s"), parameterValues);
+        return format(this.sql.replace("?", "%s"), parameterValues);
     }
 
     @Override
@@ -219,7 +220,10 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
-    public ResultSetMetaData getMetaData() {
+    public ResultSetMetaData getMetaData() throws SQLException {
+        List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
+                .getSchemaBuilder()
+                .getSchema(query.getSchemaTable());
         return new AerospikeResultSetMetaData(query.getSchema(), query.getTable(), columns);
     }
 
@@ -249,7 +253,10 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
-    public ParameterMetaData getParameterMetaData() {
+    public ParameterMetaData getParameterMetaData() throws SQLException {
+        List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
+                .getSchemaBuilder()
+                .getSchema(query.getSchemaTable());
         return new SimpleParameterMetaData(columns);
     }
 
@@ -278,7 +285,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         try {
             String result = IOUtils.toString(reader);
             if (result.length() != length) {
-                throw new SQLException(format("Unexpected data length: expected %s but was %d", length, result.length()));
+                throw new SQLException(format("Unexpected data length: expected %s but was %d", length,
+                        result.length()));
             }
             setObject(parameterIndex, result);
         } catch (IOException e) {

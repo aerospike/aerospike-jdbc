@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 import static com.aerospike.jdbc.util.AerospikeUtils.getIndexBinValuesRatio;
 import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
-import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static java.sql.Connection.TRANSACTION_NONE;
@@ -50,17 +49,17 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private static final String NEW_LINE = System.lineSeparator();
 
     private final String url;
-    private final Connection connection;
+    private final AerospikeConnection connection;
     private final String dbBuild;
     private final String dbEdition;
     private final List<String> catalogs;
     private final Map<String, Collection<String>> tables;
     private final Map<String, Collection<AerospikeSecondaryIndex>> catalogIndexes;
     private final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
+    private final AerospikeSchemaBuilder schemaBuilder;
 
     public AerospikeDatabaseMetadata(String url, IAerospikeClient client, AerospikeConnection connection) {
         logger.info("Init AerospikeDatabaseMetadata");
-        AerospikeSchemaBuilder.cleanSchemaCache();
         this.url = url;
         this.connection = connection;
 
@@ -103,9 +102,15 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 .flatMap(Collection::stream)
                 .collect(Collectors.toMap(AerospikeSecondaryIndex::toKey, Function.identity()));
 
+        schemaBuilder = new AerospikeSchemaBuilder(client, connection.getConfiguration().getDriverPolicy());
+
         dbBuild = join("N/A", ", ", builds);
         dbEdition = join("Aerospike", ", ", editions);
         catalogs = namespaces.stream().filter(n -> !"".equals(n)).collect(Collectors.toList());
+    }
+
+    public AerospikeSchemaBuilder getSchemaBuilder() {
+        return schemaBuilder;
     }
 
     @Override
@@ -773,7 +778,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
-        logger.info(() -> String.format("AerospikeDatabaseMetadata getColumns; %s, %s, %s, %s", catalog,
+        logger.info(() -> format("AerospikeDatabaseMetadata getColumns; %s, %s, %s, %s", catalog,
                 schemaPattern, tableNamePattern, columnNamePattern));
         Pattern tableNameRegex = isNullOrEmpty(tableNamePattern) ? null
                 : Pattern.compile(tableNamePattern.replace("%", ".*"));
@@ -1263,7 +1268,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
         try {
             properties.load(new StringReader(lines));
         } catch (IOException e) {
-            logger.warning(() -> String.format("Expression in initProperties, lines: %s", lines));
+            logger.warning(() -> format("Expression in initProperties, lines: %s", lines));
         }
         return properties;
     }
@@ -1293,17 +1298,18 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 }
             }
         } catch (SQLException e) {
-            logger.severe(() -> String.format("Exception in ordinal, columnName: %s", columnName));
+            logger.severe(() -> format("Exception in ordinal, columnName: %s", columnName));
         }
         return ordinal;
     }
 
     private ResultSetMetaData getMetadata(String namespace, String table) {
         try (Statement statement = connection.createStatement()) {
-            return statement.executeQuery(format(
-                    "select * from \"%s.%s\" limit %d", namespace, table, schemaScanRecords)).getMetaData();
+            String query = format("SELECT * FROM \"%s.%s\" LIMIT %d", namespace, table,
+                    connection.getConfiguration().getDriverPolicy().getSchemaBuilderMaxRecords());
+            return statement.executeQuery(query).getMetaData();
         } catch (SQLException e) {
-            logger.severe(() -> String.format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
+            logger.severe(() -> format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
             throw new IllegalArgumentException(e);
         }
     }

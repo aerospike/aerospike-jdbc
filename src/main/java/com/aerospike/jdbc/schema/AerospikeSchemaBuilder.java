@@ -4,6 +4,7 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.model.SchemaTableName;
 
 import java.sql.Types;
@@ -16,29 +17,27 @@ import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
-import static com.aerospike.jdbc.util.Constants.schemaCacheTTLMinutes;
-import static com.aerospike.jdbc.util.Constants.schemaScanRecords;
 
 public final class AerospikeSchemaBuilder {
 
     private static final Logger logger = Logger.getLogger(AerospikeSchemaBuilder.class.getName());
 
-    private static final Duration cacheTTL = Duration.ofMinutes(schemaCacheTTLMinutes);
-    private static final AerospikeSchemaCache cache = new AerospikeSchemaCache(cacheTTL);
+    private final IAerospikeClient client;
+    private final AerospikeSchemaCache schemaCache;
+    private final int scanMaxRecords;
 
-    private AerospikeSchemaBuilder() {
+    public AerospikeSchemaBuilder(IAerospikeClient client, DriverPolicy driverPolicy) {
+        this.client = client;
+        schemaCache = new AerospikeSchemaCache(Duration.ofSeconds(driverPolicy.getMetadataCacheTtlSeconds()));
+        scanMaxRecords = driverPolicy.getSchemaBuilderMaxRecords();
     }
 
-    public static void cleanSchemaCache() {
-        cache.clear();
-    }
-
-    public static List<DataColumn> getSchema(SchemaTableName schemaTableName, IAerospikeClient client) {
-        return cache.get(schemaTableName).orElseGet(() -> {
+    public List<DataColumn> getSchema(SchemaTableName schemaTableName) {
+        return schemaCache.get(schemaTableName).orElseGet(() -> {
             logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
             final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
             ScanPolicy policy = new ScanPolicy(client.getScanPolicyDefault());
-            policy.maxRecords = schemaScanRecords;
+            policy.maxRecords = scanMaxRecords;
 
             // add record key column handler
             columnHandles.put(PRIMARY_KEY_COLUMN_NAME,
@@ -65,19 +64,19 @@ public final class AerospikeSchemaBuilder {
                     });
 
             List<DataColumn> columns = new ArrayList<>(columnHandles.values());
-            cache.put(schemaTableName, columns);
+            schemaCache.put(schemaTableName, columns);
             return columns;
         });
     }
 
-    private static String toSet(String tableName) {
+    private String toSet(String tableName) {
         if (tableName.equals(DEFAULT_SCHEMA_NAME)) {
             return null;
         }
         return tableName;
     }
 
-    private static int getBinType(Object value) {
+    private int getBinType(Object value) {
         int t = 0;
         if (value instanceof byte[] || value instanceof Value.BytesValue || value instanceof Value.ByteSegmentValue) {
             t = Types.VARBINARY;

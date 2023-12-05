@@ -1,9 +1,7 @@
 package com.aerospike.jdbc;
 
 import com.aerospike.client.Value;
-import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -18,13 +16,6 @@ import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
 
 public class PreparedQueriesTest extends JdbcBaseTest {
-
-    @BeforeClass
-    public void initSchemaCache() throws SQLException {
-        setUp();
-        AerospikeSchemaBuilder.cleanSchemaCache();
-        tearDown();
-    }
 
     @BeforeMethod
     public void setUp() throws SQLException {

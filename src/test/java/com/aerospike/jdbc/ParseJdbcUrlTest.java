@@ -56,12 +56,14 @@ public class ParseJdbcUrlTest {
         update.setProperty("recordSetQueueCapacity", "1024");
         update.setProperty("metadataCacheTtlSeconds", "7200");
         update.setProperty("recordsPerSecond", "128");
+        update.setProperty("schemaBuilderMaxRecords", "500");
         connection.setClientInfo(update);
         assertEquals(client.getScanPolicyDefault().recordsPerSecond, 128);
         assertTotalTimeoutAll(client, 3000);
         assertSendKeyAll(client, true);
         assertEquals(config.getDriverPolicy().getRecordSetQueueCapacity(), 1024);
         assertEquals(config.getDriverPolicy().getMetadataCacheTtlSeconds(), 7200);
+        assertEquals(config.getDriverPolicy().getSchemaBuilderMaxRecords(), 500);
 
         connection.setClientInfo("recordSetTimeoutMs", "7000");
         assertEquals(config.getDriverPolicy().getRecordSetTimeoutMs(), 7000);
