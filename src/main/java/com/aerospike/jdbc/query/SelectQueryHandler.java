@@ -18,7 +18,6 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.Pair;
-import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 
 import java.sql.ResultSet;
@@ -36,22 +35,21 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(SelectQueryHandler.class.getName());
 
-    protected final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
+    protected final AerospikeDatabaseMetadata databaseMetadata;
     protected List<DataColumn> columns;
 
     public SelectQueryHandler(IAerospikeClient client, Statement statement) {
         super(client, statement);
         try {
-            secondaryIndexes = ((AerospikeDatabaseMetadata) statement.getConnection().getMetaData())
-                    .getSecondaryIndexes();
+            databaseMetadata = (AerospikeDatabaseMetadata) statement.getConnection().getMetaData();
         } catch (SQLException e) {
-            throw new IllegalStateException("Failed to get secondary indexes", e);
+            throw new IllegalStateException("Failed to get AerospikeDatabaseMetadata", e);
         }
     }
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        columns = AerospikeSchemaBuilder.getSchema(query.getSchemaTable(), client);
+        columns = databaseMetadata.getSchemaBuilder().getSchema(query.getSchemaTable());
         Collection<Object> keyObjects = query.getPrimaryKeys();
         Optional<AerospikeSecondaryIndex> sIndex = secondaryIndex(query);
         Pair<ResultSet, Integer> result;
@@ -132,7 +130,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (aerospikeVersion.isSIndexSupported() && query.isIndexable()) {
-            Map<String, AerospikeSecondaryIndex> indexMap = secondaryIndexes;
+            Map<String, AerospikeSecondaryIndex> indexMap = databaseMetadata.getSecondaryIndexes();
             List<String> binNames = query.getPredicate().getBinNames();
             if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
                 if (binNames.size() == 1) {
