@@ -32,10 +32,15 @@ public class SecondaryIndexQueryHandler {
         statement.setIndexName(secondaryIndex.getIndexName());
         statement.setNamespace(query.getSchema());
         statement.setSetName(query.getTable());
+        statement.setBinNames(query.columnBins());
+
         if (Objects.nonNull(query.getPredicate())) {
             query.getPredicate().toFilter(secondaryIndex.getBinName()).ifPresent(statement::setFilter);
         }
 
+        if (query.isPrimaryKeyOnly()) {
+            queryPolicy.includeBinData = false;
+        }
         client.query(EventLoopProvider.getEventLoop(), listener, queryPolicy, statement);
 
         return listener.getRecordSet();
