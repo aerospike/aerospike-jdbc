@@ -15,7 +15,6 @@ import com.aerospike.jdbc.model.Pair;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -39,15 +38,11 @@ public class DeleteQueryHandler extends BaseQueryHandler {
                 try {
                     client.delete(EventLoopProvider.getEventLoop(), listener, writePolicy, key);
                 } catch (AerospikeException e) {
-                    logger.warning("Error on database call: " + e.getMessage());
+                    logAerospikeException(e);
                     listener.onFailure(e);
                 }
             }
-            try {
-                return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
-            } catch (InterruptedException | ExecutionException e) {
-                return new Pair<>(emptyRecordSet(query), 0);
-            }
+            return new Pair<>(emptyRecordSet(query), getUpdateCount(listener.getTotal()));
         } else {
             logger.info("DELETE scan");
             RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
@@ -63,8 +58,8 @@ public class DeleteQueryHandler extends BaseQueryHandler {
                 try {
                     if (client.delete(deletePolicy, r.key))
                         count.incrementAndGet();
-                } catch (Exception e) {
-                    logger.warning("Failed to delete record: " + e.getMessage());
+                } catch (AerospikeException e) {
+                    logAerospikeException(e);
                 }
             });
 

@@ -1,10 +1,17 @@
 package com.aerospike.jdbc;
 
+import com.aerospike.client.Log;
+import com.aerospike.jdbc.util.AerospikeClientLogger;
+
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverPropertyInfo;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 import static java.util.stream.Collectors.toList;
@@ -19,6 +26,9 @@ public class AerospikeDriver implements Driver {
         } catch (SQLException e) {
             throw new ExceptionInInitializerError("Can not register AerospikeDriver");
         }
+        logger.info("Set callback for Java client logs");
+        Log.Callback asLoggerCallback = new AerospikeClientLogger();
+        Log.setCallback(asLoggerCallback);
     }
 
     public Connection connect(String url, Properties info) {
