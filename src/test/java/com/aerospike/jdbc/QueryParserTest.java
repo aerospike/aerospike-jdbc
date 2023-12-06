@@ -20,8 +20,10 @@ public class QueryParserTest {
     @Test
     public void testSelectQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "select pkup_datetime, vendor_id from \"test.nyc-data\" where id=112279922 and trip_distance=5.79 or trip_type is not null " +
-                        "and cab_type='green' and archived=false limit 10 offset 5", AerospikeQuery.sqlParserConfig);
+                "select pkup_datetime, vendor_id from \"test.nyc-data\" where id=112279922 and "
+                        + "trip_distance=5.79 or trip_type is not null and "
+                        + "cab_type='green' and archived=false limit 10 offset 5",
+                AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -37,7 +39,8 @@ public class QueryParserTest {
     @Test
     public void testSelectCountQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "select count(*) from \"test.nyc-data\" where archived=false", AerospikeQuery.sqlParserConfig);
+                "select count(*) from \"test.nyc-data\" where archived=false",
+                AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -51,8 +54,8 @@ public class QueryParserTest {
     @Test
     public void testUpdateQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "update \"test.nyc-data\" set archived=true where id=112279922 and trip_distance=5.79 or trip_type is not null " +
-                        "and cab_type='green'", AerospikeQuery.sqlParserConfig);
+                "update \"test.nyc-data\" set archived=true where id=112279922 and trip_distance=5.79 or "
+                        + "trip_type is not null and cab_type='green'", AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -68,7 +71,8 @@ public class QueryParserTest {
     public void testInsertQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
                 "insert into \"test.nyc-data\" (id, cab_type, trip_distance, archived) values " +
-                        "(112279922, 'green', 2.75, false), (112279923, \"yellow\", 5.0, true)", AerospikeQuery.sqlParserConfig);
+                        "(112279922, 'green', 2.75, false), (112279923, \"yellow\", 5.0, true)",
+                AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -83,8 +87,8 @@ public class QueryParserTest {
     @Test
     public void testDeleteQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "delete from \"test.nyc-data\" where id=112279922 and not trip_distance=5.79 or trip_type is null " +
-                        "and cab_type like '%green'", AerospikeQuery.sqlParserConfig);
+                "delete from \"test.nyc-data\" where id=112279922 and not trip_distance=5.79 or "
+                        + "trip_type is null and cab_type like '%green'", AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -123,7 +127,8 @@ public class QueryParserTest {
     @Test
     public void testSelectInQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "select trip_distance from \"test.nyc-data\" where id in (1234, 1235)", AerospikeQuery.sqlParserConfig);
+                "select trip_distance from \"test.nyc-data\" where id in (1234, 1235)",
+                AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
@@ -137,7 +142,8 @@ public class QueryParserTest {
     @Test
     public void testSelectBetweenQuery() throws SqlParseException {
         SqlParser parser = SqlParser.create(
-                "select trip_distance from \"test.nyc-data\" where id between 1234 and 1245", AerospikeQuery.sqlParserConfig);
+                "select trip_distance from \"test.nyc-data\" where id between 1234 and 1245",
+                AerospikeQuery.sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 

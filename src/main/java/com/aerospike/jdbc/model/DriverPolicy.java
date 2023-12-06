@@ -4,8 +4,8 @@ import java.util.Properties;
 
 public class DriverPolicy {
 
-    private static final int DEFAULT_CAPACITY = 256;
-    private static final int DEFAULT_TIMEOUT_MS = 1000;
+    private static final int DEFAULT_RECORD_SET_QUEUE_CAPACITY = 256;
+    private static final int DEFAULT_RECORD_SET_TIMEOUT_MS = 1000;
     private static final int DEFAULT_METADATA_CACHE_TTL_SECONDS = 3600;
     private static final int DEFAULT_SCHEMA_BUILDER_MAX_RECORDS = 1000;
 
@@ -15,8 +15,10 @@ public class DriverPolicy {
     private final int schemaBuilderMaxRecords;
 
     public DriverPolicy(Properties properties) {
-        recordSetQueueCapacity = parseInt(properties.getProperty("recordSetQueueCapacity"), DEFAULT_CAPACITY);
-        recordSetTimeoutMs = parseInt(properties.getProperty("recordSetTimeoutMs"), DEFAULT_TIMEOUT_MS);
+        recordSetQueueCapacity = parseInt(properties.getProperty("recordSetQueueCapacity"),
+                DEFAULT_RECORD_SET_QUEUE_CAPACITY);
+        recordSetTimeoutMs = parseInt(properties.getProperty("recordSetTimeoutMs"),
+                DEFAULT_RECORD_SET_TIMEOUT_MS);
         metadataCacheTtlSeconds = parseInt(properties.getProperty("metadataCacheTtlSeconds"),
                 DEFAULT_METADATA_CACHE_TTL_SECONDS);
         schemaBuilderMaxRecords = parseInt(properties.getProperty("schemaBuilderMaxRecords"),

@@ -4,6 +4,7 @@ import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.model.QueryType;
 import com.aerospike.jdbc.sql.AerospikeResultSetMetaData;
 import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
@@ -26,43 +27,40 @@ import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
+import static java.util.Objects.isNull;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
 
     private static final Logger logger = Logger.getLogger(AerospikePreparedStatement.class.getName());
 
-    private final String sql;
-    private final AerospikeConnection connection;
-    private final Object[] parameterValues;
-    private final AerospikeQuery query;
+    private final String sqlStatement;
+    private final Object[] sqlParameters;
 
-    public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection, String sql) {
+    public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection, String sqlStatement) {
         super(client, connection);
-        this.sql = sql;
-        this.connection = connection;
-        parameterValues = buildParameterValues(sql);
-        try {
-            query = parseQuery(sql);
-        } catch (SQLException e) {
-            throw new UnsupportedOperationException(e);
-        }
+        this.sqlStatement = sqlStatement;
+        sqlParameters = buildSqlParameters(sqlStatement);
+        logger.info(() -> format("statement: %s, params: %d", sqlStatement, sqlParameters.length));
     }
 
-    private Object[] buildParameterValues(String sql) {
+    private Object[] buildSqlParameters(String sql) {
         int params = parseParameters(sql, 0).getValue();
         return new Object[params];
     }
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        logger.info("AerospikePreparedStatement executeQuery");
-        return super.executeQuery(sql);
+        String preparedQueryString = prepareQueryString();
+        logger.info(() -> "executeQuery: " + preparedQueryString);
+        AerospikeQuery query = parseQuery(preparedQueryString);
+        runQuery(query);
+        return resultSet;
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        logger.info("AerospikePreparedStatement executeUpdate");
-        return super.executeUpdate(sql);
+        executeQuery();
+        return updateCount;
     }
 
     @Override
@@ -116,7 +114,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-        setObject(parameterIndex, "\"" + x + "\"");
+        setObject(parameterIndex, format("\"%s\"", x));
     }
 
     @Override
@@ -149,6 +147,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
      */
     @Override
     @Deprecated
+    @SuppressWarnings("java:S1133")
     public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
         throw new SQLFeatureNotSupportedException("setUnicodeStream is deprecated");
     }
@@ -160,7 +159,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void clearParameters() {
-        Arrays.fill(parameterValues, null);
+        Arrays.fill(sqlParameters, null);
     }
 
     @Override
@@ -170,28 +169,36 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        if (parameterIndex <= 0 || parameterIndex > parameterValues.length) {
-            throw new SQLException(parameterValues.length == 0 ?
-                    "Current SQL statement does not have parameters" :
-                    format("Wrong parameter index. Expected from %d till %d", 1, parameterValues.length));
+        if (parameterIndex <= 0 || parameterIndex > sqlParameters.length) {
+            throw new SQLDataException(sqlParameters.length == 0
+                    ? "Current SQL statement does not have parameters"
+                    : format("The parameter index %d is out of range, number of parameters: %d",
+                    parameterIndex, sqlParameters.length));
         }
-        parameterValues[parameterIndex - 1] = x;
+        sqlParameters[parameterIndex - 1] = x;
     }
 
     @Override
     public boolean execute() throws SQLException {
-        String preparedQuery = prepareQuery();
-        logger.info(preparedQuery);
-        return execute(preparedQuery);
+        String preparedQueryString = prepareQueryString();
+        logger.info(() -> "execute: " + preparedQueryString);
+        AerospikeQuery query = parseQuery(preparedQueryString);
+        runQuery(query);
+        return query.getQueryType() == QueryType.SELECT;
     }
 
-    private String prepareQuery() {
-        return format(this.sql.replace("?", "%s"), parameterValues);
+    private String prepareQueryString() {
+        String preparedQueryString = sqlStatement;
+        for (Object value : sqlParameters) {
+            String replacement = isNull(value) ? "?" : value.toString();
+            preparedQueryString = preparedQueryString.replaceFirst("\\?", replacement);
+        }
+        return preparedQueryString;
     }
 
     @Override
     public void addBatch() throws SQLException {
-        addBatch(sql);
+        addBatch(prepareQueryString());
     }
 
     @Override
@@ -221,6 +228,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
+        AerospikeQuery query = parseQuery(prepareQueryString());
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
                 .getSchema(query.getSchemaTable());
@@ -254,6 +262,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
+        AerospikeQuery query = parseQuery(prepareQueryString());
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
                 .getSchema(query.getSchemaTable());
@@ -297,9 +306,9 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     @Override
     public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
         byte[] bytes = new byte[(int) length];
-        DataInputStream dis = new DataInputStream(inputStream);
+        DataInputStream dataInputStream = new DataInputStream(inputStream);
         try {
-            dis.readFully(bytes);
+            dataInputStream.readFully(bytes);
             if (inputStream.read() != -1) {
                 throw new SQLException(format("Source contains more bytes than required %d", length));
             }

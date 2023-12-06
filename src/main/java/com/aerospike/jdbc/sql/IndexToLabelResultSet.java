@@ -86,6 +86,7 @@ public interface IndexToLabelResultSet extends ResultSet {
      */
     @Override
     @Deprecated
+    @SuppressWarnings("java:S1133")
     default InputStream getUnicodeStream(int columnIndex) throws SQLException {
         return getUnicodeStream(getColumnLabel(columnIndex));
     }

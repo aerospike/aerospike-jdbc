@@ -10,6 +10,8 @@ import com.aerospike.jdbc.schema.AerospikeSchemaBuilder;
 import com.aerospike.jdbc.sql.ListRecordSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AerospikeUtils;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -22,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -49,7 +52,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private static final String NEW_LINE = System.lineSeparator();
 
     private final String url;
-    private final AerospikeConnection connection;
+    private final Connection connection;
     private final String dbBuild;
     private final String dbEdition;
     private final List<String> catalogs;
@@ -57,6 +60,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final Map<String, Collection<AerospikeSecondaryIndex>> catalogIndexes;
     private final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
     private final AerospikeSchemaBuilder schemaBuilder;
+    private final Cache<String, ResultSetMetaData> resultSetMetaDataCache;
 
     public AerospikeDatabaseMetadata(String url, IAerospikeClient client, AerospikeConnection connection) {
         logger.info("Init AerospikeDatabaseMetadata");
@@ -103,6 +107,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 .collect(Collectors.toMap(AerospikeSecondaryIndex::toKey, Function.identity()));
 
         schemaBuilder = new AerospikeSchemaBuilder(client, connection.getConfiguration().getDriverPolicy());
+        resultSetMetaDataCache = CacheBuilder.newBuilder().build();
 
         dbBuild = join("N/A", ", ", builds);
         dbEdition = join("Aerospike", ", ", editions);
@@ -1304,13 +1309,19 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     private ResultSetMetaData getMetadata(String namespace, String table) {
-        try (Statement statement = connection.createStatement()) {
-            String query = format("SELECT * FROM \"%s.%s\" LIMIT %d", namespace, table,
-                    connection.getConfiguration().getDriverPolicy().getSchemaBuilderMaxRecords());
-            return statement.executeQuery(query).getMetaData();
-        } catch (SQLException e) {
-            logger.severe(() -> format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
-            throw new IllegalArgumentException(e);
+        final String key = format("%s.%s", namespace, table);
+        try {
+            return resultSetMetaDataCache.get(key, () -> {
+                try (Statement statement = connection.createStatement()) {
+                    String query = format("SELECT * FROM \"%s.%s\" LIMIT 1", namespace, table);
+                    return statement.executeQuery(query).getMetaData();
+                } catch (SQLException e) {
+                    logger.severe(() -> format("Exception in getMetadata, namespace: %s, table: %s", namespace, table));
+                    throw new IllegalArgumentException(e);
+                }
+            });
+        } catch (ExecutionException e) {
+            throw new IllegalArgumentException(e.getCause());
         }
     }
 
