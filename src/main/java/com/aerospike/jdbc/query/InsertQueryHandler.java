@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -56,15 +55,11 @@ public class InsertQueryHandler extends BaseQueryHandler {
             try {
                 client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
             } catch (AerospikeException e) {
-                logger.severe("Error on database call: " + e.getMessage());
+                logAerospikeException(e);
                 listener.onFailure(e);
             }
         }
-        try {
-            return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
-        } catch (InterruptedException | ExecutionException e) {
-            return new Pair<>(emptyRecordSet(query), 0);
-        }
+        return new Pair<>(emptyRecordSet(query), getUpdateCount(listener.getTotal()));
     }
 
     public Pair<ResultSet, Integer> putBatch(AerospikeQuery query) {
@@ -93,15 +88,11 @@ public class InsertQueryHandler extends BaseQueryHandler {
         try {
             client.operate(EventLoopProvider.getEventLoop(), listener, batchPolicy, batchRecords);
         } catch (AerospikeException e) {
-            logger.severe("Error on database call: " + e.getMessage());
+            // no error log as this completes the future exceptionally
             listener.onFailure(e);
         }
 
-        try {
-            return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
-        } catch (InterruptedException | ExecutionException e) {
-            return new Pair<>(emptyRecordSet(query), 0);
-        }
+        return new Pair<>(emptyRecordSet(query), getUpdateCount(listener.getTotal()));
     }
 
     protected Bin[] buildBinArray(List<String> binNames, List<Object> values) {

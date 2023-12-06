@@ -7,7 +7,11 @@ import com.aerospike.client.listener.RecordSequenceListener;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.jdbc.model.DriverPolicy;
 
+import java.util.logging.Logger;
+
 public class RecordSetRecordSequenceListener implements RecordSequenceListener {
+
+    private static final Logger logger = Logger.getLogger(RecordSetRecordSequenceListener.class.getName());
 
     private final RecordSet recordSet;
 
@@ -30,6 +34,7 @@ public class RecordSetRecordSequenceListener implements RecordSequenceListener {
 
     @Override
     public void onFailure(AerospikeException exception) {
+        logger.warning(exception::getMessage);
         recordSet.abort();
     }
 

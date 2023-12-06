@@ -16,7 +16,6 @@ import com.aerospike.jdbc.model.Pair;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -41,15 +40,11 @@ public class UpdateQueryHandler extends BaseQueryHandler {
                 try {
                     client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
                 } catch (AerospikeException e) {
-                    logger.warning("Error on database call: " + e.getMessage());
+                    logAerospikeException(e);
                     listener.onFailure(e);
                 }
             }
-            try {
-                return new Pair<>(emptyRecordSet(query), listener.getTotal().get());
-            } catch (InterruptedException | ExecutionException e) {
-                return new Pair<>(emptyRecordSet(query), 0);
-            }
+            return new Pair<>(emptyRecordSet(query), getUpdateCount(listener.getTotal()));
         } else {
             logger.info("UPDATE scan");
             RecordSetRecordSequenceListener listener = new RecordSetRecordSequenceListener(config.getDriverPolicy());
@@ -64,7 +59,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
                     client.put(writePolicy, r.key, bins);
                     count.incrementAndGet();
                 } catch (AerospikeException e) {
-                    logger.warning("Failed to update record: " + e.getMessage());
+                    logAerospikeException(e);
                 }
             });
 
