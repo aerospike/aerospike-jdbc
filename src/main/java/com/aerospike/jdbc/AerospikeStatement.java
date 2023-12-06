@@ -3,6 +3,7 @@ package com.aerospike.jdbc;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
+import com.aerospike.jdbc.model.QueryType;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AuxStatementParser;
@@ -29,12 +30,14 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     private static final String AUTO_GENERATED_KEYS_NOT_SUPPORTED_MESSAGE = "Auto-generated keys are not supported";
 
     protected final IAerospikeClient client;
-    private final Connection connection;
+    protected final AerospikeConnection connection;
+
     protected String schema;
+    protected ResultSet resultSet;
+    protected int updateCount;
+
     private int maxRows = Integer.MAX_VALUE;
     private int queryTimeout;
-    private ResultSet resultSet;
-    private int updateCount;
 
     public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
         this.client = client;
@@ -50,12 +53,14 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     public ResultSet executeQuery(String sql) throws SQLException {
         logger.info(() -> "executeQuery: " + sql);
         AerospikeQuery query = parseQuery(sql);
+        runQuery(query);
+        return resultSet;
+    }
 
+    protected void runQuery(AerospikeQuery query) {
         Pair<ResultSet, Integer> result = QueryPerformer.executeQuery(client, this, query);
         resultSet = result.getLeft();
         updateCount = result.getRight();
-
-        return resultSet;
     }
 
     protected AerospikeQuery parseQuery(String sql) throws SQLException {
@@ -140,8 +145,10 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public boolean execute(String sql) throws SQLException {
-        resultSet = executeQuery(sql);
-        return true;
+        logger.info(() -> "execute: " + sql);
+        AerospikeQuery query = parseQuery(sql);
+        runQuery(query);
+        return query.getQueryType() == QueryType.SELECT;
     }
 
     @Override

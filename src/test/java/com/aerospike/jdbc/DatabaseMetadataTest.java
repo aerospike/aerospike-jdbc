@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.Objects;
 
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
+import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
@@ -25,10 +26,8 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         int count;
-        String query = String.format(
-                "insert into %s (bin1, int1, str1, bool1) values (11100, 1, \"bar\", true)",
-                tableName
-        );
+        String query = format("insert into %s (bin1, int1, str1, bool1) values (11100, 1, \"bar\", true)",
+                tableName);
         try {
             statement = connection.prepareStatement(query);
             count = statement.executeUpdate();
@@ -43,7 +42,7 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = String.format("delete from %s", tableName);
+        String query = format("delete from %s", tableName);
         try {
             statement = connection.prepareStatement(query);
             resultSet = statement.executeQuery();
@@ -57,7 +56,6 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-
         ResultSet rs = databaseMetaData.getTables(namespace, namespace, tableName, null);
 
         assertTrue(rs.next());
