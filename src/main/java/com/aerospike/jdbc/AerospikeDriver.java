@@ -22,7 +22,7 @@ public class AerospikeDriver implements Driver {
 
     static {
         try {
-            java.sql.DriverManager.registerDriver(new AerospikeDriver());
+            java.sql.DriverManager.registerDriver(new AerospikeDriver(), new AerospikeDriverAction());
         } catch (SQLException e) {
             throw new ExceptionInInitializerError("Can not register AerospikeDriver");
         }
@@ -48,8 +48,9 @@ public class AerospikeDriver implements Driver {
                 allInfo.add(new DriverPropertyInfo(kv[0], kv.length > 1 ? kv[1] : null));
             });
         }
-        allInfo.addAll(info.entrySet().stream().map(e -> new DriverPropertyInfo((String) e.getKey(),
-                (String) e.getValue())).collect(toList()));
+        allInfo.addAll(info.entrySet().stream()
+                .map(e -> new DriverPropertyInfo((String) e.getKey(), (String) e.getValue()))
+                .collect(toList()));
         return allInfo.toArray(new DriverPropertyInfo[0]);
     }
 
