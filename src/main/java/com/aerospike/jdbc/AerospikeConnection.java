@@ -94,6 +94,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public void close() {
+        logger.info(() -> "Close AerospikeConnection");
         client.close();
         closed = true;
     }

@@ -3,10 +3,12 @@ package com.aerospike.jdbc.async;
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
+import com.aerospike.client.ResultCode;
 import com.aerospike.client.listener.RecordSequenceListener;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.jdbc.model.DriverPolicy;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RecordSetRecordSequenceListener implements RecordSequenceListener {
@@ -34,7 +36,11 @@ public class RecordSetRecordSequenceListener implements RecordSequenceListener {
 
     @Override
     public void onFailure(AerospikeException exception) {
-        logger.warning(exception::getMessage);
+        if (exception.getResultCode() == ResultCode.QUERY_TERMINATED) {
+            logger.warning(exception::getMessage);
+        } else {
+            logger.log(Level.SEVERE, "Aerospike listener failure", exception);
+        }
         recordSet.abort();
     }
 
