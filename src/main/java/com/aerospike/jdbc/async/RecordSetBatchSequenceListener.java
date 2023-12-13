@@ -6,6 +6,7 @@ import com.aerospike.client.listener.BatchSequenceListener;
 import com.aerospike.client.query.KeyRecord;
 import com.aerospike.jdbc.model.DriverPolicy;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RecordSetBatchSequenceListener implements BatchSequenceListener {
@@ -35,7 +36,7 @@ public class RecordSetBatchSequenceListener implements BatchSequenceListener {
 
     @Override
     public void onFailure(AerospikeException e) {
-        logger.warning(e::getMessage);
+        logger.log(Level.SEVERE, "Aerospike listener failure", e);
         recordSet.abort();
     }
 
