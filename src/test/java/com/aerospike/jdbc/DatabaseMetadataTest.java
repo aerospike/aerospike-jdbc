@@ -87,4 +87,12 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
         assertFalse(catalogs.next());
         TestUtil.closeQuietly(catalogs);
     }
+
+    @Test
+    public void testJDBCVersion() throws SQLException {
+        DatabaseMetaData metadata = connection.getMetaData();
+
+        assertEquals(metadata.getJDBCMajorVersion(), 4);
+        assertEquals(metadata.getJDBCMinorVersion(), 2);
+    }
 }
