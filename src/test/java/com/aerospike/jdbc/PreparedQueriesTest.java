@@ -43,7 +43,6 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void tearDown() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
-        ResultSet resultSet = null;
         String query = format("delete from %s", tableName);
         try {
             statement = connection.prepareStatement(query);
@@ -51,7 +50,6 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             assertFalse(result);
         } finally {
             closeQuietly(statement);
-            closeQuietly(resultSet);
         }
         assertTrue(statement.getUpdateCount() > 0);
     }

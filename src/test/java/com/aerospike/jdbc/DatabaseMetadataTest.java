@@ -70,9 +70,9 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
 
         assertTrue(schemas.next());
         String schemaName = schemas.getString(1);
+        String catalogName = schemas.getString(2);
         assertEquals(schemas.getString("TABLE_SCHEM"), schemaName);
-        assertEquals(schemas.getString("TABLE_CATALOG"), schemaName);
-        assertEquals(schemas.getString(2), schemaName);
+        assertEquals(schemas.getString("TABLE_CATALOG"), catalogName);
         assertFalse(schemas.next());
         TestUtil.closeQuietly(schemas);
     }

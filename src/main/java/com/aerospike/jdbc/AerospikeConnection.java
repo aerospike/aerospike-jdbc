@@ -331,8 +331,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public String getSchema() throws SQLException {
-        return schema.get();
+    public String getSchema() {
+        return null;
     }
 
     @Override

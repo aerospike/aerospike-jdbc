@@ -84,17 +84,16 @@ public class AerospikeSecondaryIndex {
         return set;
     }
 
-    public Integer getBinValuesRatio()
-    {
+    public Integer getBinValuesRatio() {
         return binValuesRatio;
     }
 
     public String toKey() {
-        return key(namespace, set, indexName);
+        return key(namespace, set, binName);
     }
 
-    public static String key(String namespace, String set, String indexName) {
-        return String.format("%s/%s/%s", namespace, set, indexName);
+    public static String key(String namespace, String set, String binName) {
+        return String.format("%s.%s.%s", namespace, set, binName);
     }
 
     @SuppressWarnings("all")
@@ -149,7 +148,7 @@ public class AerospikeSecondaryIndex {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "(" + binName + ", " + indexName + ", " + indexType +
-                ", " + namespace + ", " + set + ")";
+        return String.format("%s(%s, %s, %s, %s, %s)", getClass().getSimpleName(),
+                binName, indexName, indexType, namespace, set);
     }
 }

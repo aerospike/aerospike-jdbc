@@ -42,11 +42,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
         this.client = client;
         this.connection = connection;
-        try {
-            this.schema = connection.getSchema();
-        } catch (SQLException e) {
-            logger.warning(e.getMessage());
-        }
+        this.schema = connection.getCatalog();
     }
 
     @Override

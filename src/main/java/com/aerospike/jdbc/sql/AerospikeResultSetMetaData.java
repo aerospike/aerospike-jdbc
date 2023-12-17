@@ -145,7 +145,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
     @Override
     public String getSchemaName(int column) throws SQLException {
         validateColumn(column);
-        return schema;
+        return "";
     }
 
     @Override
@@ -166,7 +166,8 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
 
     @Override
     public String getCatalogName(int column) throws SQLException {
-        return getSchemaName(column); // return schema
+        validateColumn(column);
+        return schema;
     }
 
     @Override
