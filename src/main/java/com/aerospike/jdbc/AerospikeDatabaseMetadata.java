@@ -25,7 +25,6 @@ import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -55,10 +54,10 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private final Connection connection;
     private final String dbBuild;
     private final String dbEdition;
+
     private final List<String> catalogs;
     private final Map<String, Collection<String>> tables;
     private final Map<String, Collection<AerospikeSecondaryIndex>> catalogIndexes;
-    private final Map<String, AerospikeSecondaryIndex> secondaryIndexes;
     private final AerospikeSchemaBuilder schemaBuilder;
     private final Cache<String, ResultSetMetaData> resultSetMetaDataCache;
 
@@ -102,9 +101,6 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                                         );
                             });
                 });
-        secondaryIndexes = catalogIndexes.values().stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toMap(AerospikeSecondaryIndex::toKey, Function.identity()));
 
         schemaBuilder = new AerospikeSchemaBuilder(client, connection.getConfiguration().getDriverPolicy());
         resultSetMetaDataCache = CacheBuilder.newBuilder().build();
@@ -763,7 +759,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     public ResultSet getSchemas() {
         return new ListRecordSet(null, "system", "schemas",
                 systemColumns(new String[]{"TABLE_SCHEM", "TABLE_CATALOG"}, new int[]{VARCHAR, VARCHAR}),
-                catalogs.stream().map(ns -> Arrays.asList(ns, ns)).collect(toList()));
+                catalogs.stream().map(ns -> Arrays.asList("", ns)).collect(toList()));
     }
 
     @Override
@@ -783,28 +779,27 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     @Override
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
                                 String columnNamePattern) throws SQLException {
-        logger.info(() -> format("AerospikeDatabaseMetadata getColumns; %s, %s, %s, %s", catalog,
-                schemaPattern, tableNamePattern, columnNamePattern));
+        logger.info(() -> format("getColumns: %s, %s, %s, %s", catalog, schemaPattern, tableNamePattern,
+                columnNamePattern));
         Pattern tableNameRegex = isNullOrEmpty(tableNamePattern) ? null
                 : Pattern.compile(tableNamePattern.replace("%", ".*"));
 
-        final String namespace = catalog == null ? schemaPattern : catalog;
-        final List<ResultSetMetaData> mds;
-        if (namespace == null) {
-            mds = tables.entrySet().stream()
+        final List<ResultSetMetaData> resultSetMetaDataList;
+        if (catalog == null) {
+            resultSetMetaDataList = tables.entrySet().stream()
                     .flatMap(p -> p.getValue().stream().map(t -> getMetadata(p.getKey(), t)))
                     .collect(toList());
         } else {
-            mds = tables.getOrDefault(namespace, Collections.emptyList()).stream()
+            resultSetMetaDataList = tables.getOrDefault(catalog, Collections.emptyList()).stream()
                     .filter(t -> tableNameRegex == null || tableNameRegex.matcher(t).matches())
-                    .map(t -> getMetadata(namespace, t))
+                    .map(t -> getMetadata(catalog, t))
                     .collect(toList());
         }
 
         List<List<?>> result = new ArrayList<>();
-        for (ResultSetMetaData md : mds) {
-            int n = md.getColumnCount();
-            for (int i = 1; i <= n; i++) {
+        for (ResultSetMetaData md : resultSetMetaDataList) {
+            int columnCount = md.getColumnCount();
+            for (int i = 1; i <= columnCount; i++) {
                 result.add(asList("".equals(tableNamePattern) ? "" : md.getCatalogName(i), null,
                         md.getTableName(1), md.getColumnName(i), md.getColumnType(i), md.getColumnTypeName(i),
                         0, 0, 0, 0, columnNullable, null, null, md.getColumnType(i), 0,
@@ -963,14 +958,17 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public ResultSet getIndexInfo(String catalog, String schema, String table, boolean unique, boolean approximate) {
+        logger.info(() -> format("getIndexInfo: %s, %s, %s", catalog, schema, table));
         Stream<AerospikeSecondaryIndex> secondaryIndexStream;
         if (catalog == null) {
-            secondaryIndexStream = catalogIndexes.entrySet().stream().flatMap(p -> p.getValue().stream());
+            secondaryIndexStream = catalogIndexes.entrySet().stream()
+                    .flatMap(p -> p.getValue().stream());
         } else {
-            secondaryIndexStream = getOrDefault(catalogIndexes, catalog, Collections.emptyList()).stream();
+            secondaryIndexStream = getOrDefault(catalogIndexes, catalog, Collections.emptyList()).stream()
+                    .filter(i -> i.getNamespace().equals(catalog));
         }
-        final Iterable<List<?>> indicesData = secondaryIndexStream
-                .filter(i -> i.getNamespace().equals(schema) && i.getSet().equals(table))
+        final Iterable<List<?>> indexData = secondaryIndexStream
+                .filter(i -> i.getSet().equals(table))
                 .map(this::indexInfoAsList)
                 .collect(Collectors.toList());
 
@@ -982,11 +980,11 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
                 VARCHAR, BIGINT, BIGINT, VARCHAR};
 
         return new ListRecordSet(null, "system", "index_info",
-                systemColumns(columns, sqlTypes), indicesData);
+                systemColumns(columns, sqlTypes), indexData);
     }
 
-    public Map<String, AerospikeSecondaryIndex> getSecondaryIndexes() {
-        return secondaryIndexes;
+    public Collection<AerospikeSecondaryIndex> getSecondaryIndexes(String catalog) {
+        return catalogIndexes.get(catalog);
     }
 
     @Override
@@ -1085,18 +1083,16 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public ResultSet getSuperTypes(String catalog, String schemaPattern, String typeNamePattern) {
-        List<List<?>> types = asList(
-                asList(catalog, null, "list", null, null, Object.class.getName()),
-                asList(catalog, null, "map", null, null, Object.class.getName()),
-                asList(catalog, null, "GeoJSON", null, null, Object.class.getName())
-        );
+        List<List<?>> typeNames = Stream.of("List", "Map", "GeoJSON")
+                .map(typeName -> asList(catalog, null, typeName, null, null, Object.class.getName()))
+                .collect(toList());
 
         String[] columns = new String[]{"TYPE_CAT", "TYPE_SCHEM", "TYPE_NAME", "SUPERTYPE_CAT", "SUPERTYPE_SCHEM",
                 "SUPERTYPE_NAME"};
         int[] sqlTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR};
 
         return new ListRecordSet(null, "system", "super_types",
-                systemColumns(columns, sqlTypes), types);
+                systemColumns(columns, sqlTypes), typeNames);
     }
 
     @Override
@@ -1203,24 +1199,19 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public ResultSet getClientInfoProperties() {
-        // TODO: add properties here once implemented
         String[] columns = new String[]{"NAME", "MAX_LEN", "DEFAULT_VALUE", "DESCRIPTION"};
         int[] sqlTypes = new int[]{VARCHAR, INTEGER, VARCHAR, VARCHAR};
-        return new ListRecordSet(null, "system", "client_inf_properties",
+        return new ListRecordSet(null, "system", "client_info_properties",
                 systemColumns(columns, sqlTypes), emptyList());
     }
 
     @Override
     public ResultSet getFunctions(String catalog, String schemaPattern, String functionNamePattern) {
-        //TODO: implement functions support
-        List<List<?>> functions = new ArrayList<>();
-
         String[] columns = new String[]{"FUNCTION_CAT", "FUNCTION_SCHEM", "FUNCTION_NAME", "REMARKS",
                 "FUNCTION_TYPE", "SPECIFIC_NAME"};
-
         int[] sqlTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, SMALLINT, VARCHAR};
         return new ListRecordSet(null, "system", "functions",
-                systemColumns(columns, sqlTypes), functions);
+                systemColumns(columns, sqlTypes), emptyList());
     }
 
     @Override
@@ -1295,8 +1286,8 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     private int ordinal(ResultSetMetaData md, String columnName) {
         int ordinal = 0;
         try {
-            int n = md.getColumnCount();
-            for (int i = 1; i <= n; i++) {
+            int columnCount = md.getColumnCount();
+            for (int i = 1; i <= columnCount; i++) {
                 if (columnName.equals(md.getColumnName(i))) {
                     ordinal = i;
                     break;

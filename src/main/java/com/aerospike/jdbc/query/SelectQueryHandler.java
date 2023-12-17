@@ -24,7 +24,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -130,23 +135,17 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (aerospikeVersion.isSIndexSupported() && query.isIndexable()) {
-            Map<String, AerospikeSecondaryIndex> indexMap = databaseMetadata.getSecondaryIndexes();
+            Collection<AerospikeSecondaryIndex> indexes = databaseMetadata.getSecondaryIndexes(query.getSchema());
             List<String> binNames = query.getPredicate().getBinNames();
-            if (!binNames.isEmpty() && indexMap != null && !indexMap.isEmpty()) {
-                if (binNames.size() == 1) {
-                    String binName = binNames.get(0);
-                    for (AerospikeSecondaryIndex index : indexMap.values()) {
-                        if (index.getBinName().equals(binName)) {
-                            return Optional.of(index);
-                        }
-                    }
-                } else {
-                    List<AerospikeSecondaryIndex> indexList = new ArrayList<>(indexMap.values());
-                    sortIndexList(indexList);
-                    for (AerospikeSecondaryIndex index : indexList) {
-                        if (binNames.contains(index.getBinName())) {
-                            return Optional.of(index);
-                        }
+            if (!binNames.isEmpty() && indexes != null && !indexes.isEmpty()) {
+                List<AerospikeSecondaryIndex> indexList = indexes.stream()
+                        .filter(i -> i.getSet().equals(query.getTable()))
+                        .sorted(secondaryIndexComparator())
+                        .collect(Collectors.toList());
+
+                for (AerospikeSecondaryIndex index : indexList) {
+                    if (binNames.contains(index.getBinName())) {
+                        return Optional.of(index);
                     }
                 }
             }
@@ -159,12 +158,11 @@ public class SelectQueryHandler extends BaseQueryHandler {
                 query.getTable(), filterColumns(query)), -1);
     }
 
-    private void sortIndexList(List<AerospikeSecondaryIndex> indexList) {
+    private Comparator<AerospikeSecondaryIndex> secondaryIndexComparator() {
         if (aerospikeVersion.isSIndexCardinalitySupported()) {
-            indexList.sort(Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio));
-        } else {
-            indexList.sort(Comparator.comparing(AerospikeSecondaryIndex::getBinName));
+            return Comparator.comparingInt(AerospikeSecondaryIndex::getBinValuesRatio);
         }
+        return Comparator.comparing(AerospikeSecondaryIndex::getBinName);
     }
 
     private List<DataColumn> filterColumns(AerospikeQuery query) {

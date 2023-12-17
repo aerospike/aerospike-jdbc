@@ -43,7 +43,6 @@ public class SimpleQueriesTest extends JdbcBaseTest {
     public void tearDown() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         Statement statement = null;
-        ResultSet resultSet = null;
         String query = format("DELETE FROM %s", tableName);
         try {
             statement = connection.createStatement();
@@ -51,7 +50,6 @@ public class SimpleQueriesTest extends JdbcBaseTest {
             assertFalse(result);
         } finally {
             closeQuietly(statement);
-            closeQuietly(resultSet);
         }
         assertTrue(statement.getUpdateCount() > 0);
     }
