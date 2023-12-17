@@ -43,19 +43,27 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public Object getObject(String columnLabel) {
         logger.fine(() -> "getObject: " + columnLabel);
+        Object obj;
         if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
-            return getUserKey().map(Value::getObject).orElse(null);
+            obj = getUserKey().map(Value::getObject).orElse(null);
+        } else {
+            obj = getBin(columnLabel).orElse(null);
         }
-        return getBin(columnLabel).orElse(null);
+        wasNull = obj == null;
+        return obj;
     }
 
     @Override
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
+        String str;
         if (columnLabel.equals(PRIMARY_KEY_COLUMN_NAME)) {
-            return getUserKey().map(Value::toString).orElse(null);
+            str = getUserKey().map(Value::toString).orElse(null);
+        } else {
+            str = getBin(columnLabel).map(Object::toString).orElse(null);
         }
-        return getBin(columnLabel).map(Object::toString).orElse(null);
+        wasNull = str == null;
+        return str;
     }
 
     @Override

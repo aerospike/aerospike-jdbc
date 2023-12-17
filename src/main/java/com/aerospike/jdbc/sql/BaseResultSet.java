@@ -24,9 +24,10 @@ public abstract class BaseResultSet<T> implements ResultSet,
     protected final List<DataColumn> columns;
     private final Statement statement;
     private final ResultSetMetaData metadata;
-    protected volatile int index;
+
+    protected int index;
     protected boolean afterLast;
-    private boolean wasNull;
+    protected boolean wasNull;
     private volatile boolean closed;
 
     protected BaseResultSet(Statement statement, String schema, String table, List<DataColumn> columns) {
