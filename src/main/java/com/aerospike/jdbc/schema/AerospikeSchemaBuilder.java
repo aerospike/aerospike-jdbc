@@ -3,9 +3,9 @@ package com.aerospike.jdbc.schema;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
+import com.aerospike.jdbc.model.CatalogTableName;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.DriverPolicy;
-import com.aerospike.jdbc.model.SchemaTableName;
 
 import java.sql.Types;
 import java.time.Duration;
@@ -32,9 +32,9 @@ public final class AerospikeSchemaBuilder {
         scanMaxRecords = driverPolicy.getSchemaBuilderMaxRecords();
     }
 
-    public List<DataColumn> getSchema(SchemaTableName schemaTableName) {
-        return schemaCache.get(schemaTableName).orElseGet(() -> {
-            logger.info(() -> "Fetching SchemaTableName: " + schemaTableName);
+    public List<DataColumn> getSchema(CatalogTableName catalogTableName) {
+        return schemaCache.get(catalogTableName).orElseGet(() -> {
+            logger.info(() -> "Fetching CatalogTableName: " + catalogTableName);
             final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
             ScanPolicy policy = new ScanPolicy(client.getScanPolicyDefault());
             policy.maxRecords = scanMaxRecords;
@@ -42,13 +42,13 @@ public final class AerospikeSchemaBuilder {
             // add record key column handler
             columnHandles.put(PRIMARY_KEY_COLUMN_NAME,
                     new DataColumn(
-                            schemaTableName.getSchemaName(),
-                            schemaTableName.getTableName(),
+                            catalogTableName.getCatalogName(),
+                            catalogTableName.getTableName(),
                             Types.VARCHAR,
                             PRIMARY_KEY_COLUMN_NAME,
                             PRIMARY_KEY_COLUMN_NAME));
 
-            client.scanAll(policy, schemaTableName.getSchemaName(), toSet(schemaTableName.getTableName()),
+            client.scanAll(policy, catalogTableName.getCatalogName(), toSet(catalogTableName.getTableName()),
                     (key, rec) -> {
                         Map<String, Object> bins = rec.bins;
                         if (bins != null) {
@@ -56,15 +56,15 @@ public final class AerospikeSchemaBuilder {
                                 logger.fine(() -> String.format("Bin: %s -> %s", k, value));
                                 int t = getBinType(value);
                                 if (k != null && t != 0) {
-                                    columnHandles.put(k, new DataColumn(schemaTableName.getSchemaName(),
-                                            schemaTableName.getTableName(), t, k, k));
+                                    columnHandles.put(k, new DataColumn(catalogTableName.getCatalogName(),
+                                            catalogTableName.getTableName(), t, k, k));
                                 }
                             });
                         }
                     });
 
             List<DataColumn> columns = new ArrayList<>(columnHandles.values());
-            schemaCache.put(schemaTableName, columns);
+            schemaCache.put(catalogTableName, columns);
             return columns;
         });
     }

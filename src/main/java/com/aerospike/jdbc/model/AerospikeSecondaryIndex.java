@@ -38,7 +38,7 @@ public class AerospikeSecondaryIndex {
     private final IndexType indexType;
 
     @Order(3)
-    @JsonProperty("schema_name")
+    @JsonProperty("catalog_name")
     private final String namespace;
 
     @Order(4)

@@ -24,7 +24,7 @@ import static java.util.stream.Collectors.toList;
 public class BasicArray extends SerialArray {
 
     private final transient List<DataColumn> columns;
-    private String schema;
+    private String catalog;
 
     public BasicArray(Array array, Map<String, Class<?>> map) throws SQLException {
         super(array, map);
@@ -36,7 +36,7 @@ public class BasicArray extends SerialArray {
         columns = columns(array.getBaseType());
     }
 
-    public BasicArray(String schema, String baseTypeName, Object[] elements) throws SQLException {
+    public BasicArray(String catalog, String baseTypeName, Object[] elements) throws SQLException {
         super(new Array() {
             private final int baseType = ofNullable(SqlLiterals.sqlTypeByName.get(baseTypeName))
                     .orElseThrow(() -> new IllegalArgumentException(format("Unsupported array type %s", baseTypeName)));
@@ -96,13 +96,13 @@ public class BasicArray extends SerialArray {
                 throw new IllegalStateException();
             }
         });
-        this.schema = schema;
+        this.catalog = catalog;
         columns = columns(getBaseType());
     }
 
     private List<DataColumn> columns(int baseType) {
-        return asList(new DataColumn(schema, null, "INDEX", "INDEX").withType(Types.INTEGER),
-                new DataColumn(schema, null, "VALUE", "VALUE").withType(baseType));
+        return asList(new DataColumn(catalog, null, "INDEX", "INDEX").withType(Types.INTEGER),
+                new DataColumn(catalog, null, "VALUE", "VALUE").withType(baseType));
     }
 
     @Override
@@ -127,6 +127,6 @@ public class BasicArray extends SerialArray {
                 .skip(index)
                 .map(e -> asList(counter.incrementAndGet(), e))
                 .collect(toList());
-        return new ListRecordSet(null, schema, null, columns, data);
+        return new ListRecordSet(null, catalog, null, columns, data);
     }
 }
