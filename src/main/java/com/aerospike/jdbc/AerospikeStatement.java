@@ -32,7 +32,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     protected final IAerospikeClient client;
     protected final AerospikeConnection connection;
 
-    protected String schema;
+    protected String catalog;
     protected ResultSet resultSet;
     protected int updateCount;
 
@@ -42,7 +42,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
         this.client = client;
         this.connection = connection;
-        this.schema = connection.getCatalog();
+        this.catalog = connection.getCatalog();
     }
 
     @Override
@@ -67,8 +67,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         } catch (SqlParseException e) {
             query = AuxStatementParser.hack(sql);
         }
-        if (query.getSchema() == null) {
-            query.setSchema(schema);
+        if (query.getCatalog() == null) {
+            query.setCatalog(catalog);
         }
         return query;
     }

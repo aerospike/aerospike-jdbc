@@ -48,7 +48,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
     }
 
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {
-        return new ListRecordSet(statement, query.getSchema(), query.getTable(),
+        return new ListRecordSet(statement, query.getCatalog(), query.getTable(),
                 emptyList(), emptyList());
     }
 

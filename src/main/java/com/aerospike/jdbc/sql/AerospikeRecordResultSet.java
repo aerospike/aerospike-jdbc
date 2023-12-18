@@ -22,11 +22,11 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public AerospikeRecordResultSet(
             RecordSet recordSet,
             Statement statement,
-            String schema,
+            String catalog,
             String table,
             List<DataColumn> columns // columns list
     ) {
-        super(statement, schema, table, columns);
+        super(statement, catalog, table, columns);
         this.recordSet = recordSet;
     }
 

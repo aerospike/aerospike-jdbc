@@ -19,7 +19,7 @@ import static java.lang.String.format;
 public abstract class BaseResultSet<T> implements ResultSet,
         IndexToLabelResultSet, UpdateResultSet, SimpleWrapper {
 
-    protected final String schema;
+    protected final String catalog;
     protected final String table;
     protected final List<DataColumn> columns;
     private final Statement statement;
@@ -30,12 +30,12 @@ public abstract class BaseResultSet<T> implements ResultSet,
     protected boolean wasNull;
     private volatile boolean closed;
 
-    protected BaseResultSet(Statement statement, String schema, String table, List<DataColumn> columns) {
+    protected BaseResultSet(Statement statement, String catalog, String table, List<DataColumn> columns) {
         this.statement = statement;
-        this.schema = schema;
+        this.catalog = catalog;
         this.table = table;
         this.columns = Collections.unmodifiableList(columns);
-        this.metadata = new AerospikeResultSetMetaData(schema, table, columns);
+        this.metadata = new AerospikeResultSetMetaData(catalog, table, columns);
     }
 
     @Override

@@ -31,7 +31,6 @@ public class AerospikeQuery {
     private static final String ASTERISK = "*";
 
     private String catalog;
-    private String schema;
     private String table;
     private QueryType queryType;
     private Integer offset;
@@ -59,15 +58,6 @@ public class AerospikeQuery {
         this.catalog = catalog;
     }
 
-    public String getSchema() {
-        return schema;
-    }
-
-    public void setSchema(String schema) {
-        this.catalog = schema; // TODO ?
-        this.schema = schema;
-    }
-
     public String getTable() {
         return table;
     }
@@ -75,13 +65,8 @@ public class AerospikeQuery {
     public void setTable(String table) {
         String[] spec = table.split("\\.");
         switch (spec.length) {
-            case 3:
-                this.catalog = spec[0];
-                this.schema = spec[1];
-                this.table = spec[2];
-                break;
             case 2:
-                this.schema = spec[0];
+                this.catalog = spec[0];
                 this.table = spec[1];
                 break;
             case 1:
@@ -99,8 +84,8 @@ public class AerospikeQuery {
         return table;
     }
 
-    public SchemaTableName getSchemaTable() {
-        return new SchemaTableName(schema, table);
+    public CatalogTableName getCatalogTable() {
+        return new CatalogTableName(catalog, table);
     }
 
     public QueryType getQueryType() {

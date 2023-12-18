@@ -34,7 +34,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             logger.info("DELETE primary key");
             FutureDeleteListener listener = new FutureDeleteListener(keyObjects.size());
             for (Object keyObject : keyObjects) {
-                Key key = new Key(query.getSchema(), query.getSetName(), Value.get(keyObject));
+                Key key = new Key(query.getCatalog(), query.getSetName(), Value.get(keyObject));
                 try {
                     client.delete(EventLoopProvider.getEventLoop(), listener, writePolicy, key);
                 } catch (AerospikeException e) {
@@ -49,7 +49,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             ScanPolicy scanPolicy = policyBuilder.buildScanPolicy(query);
             scanPolicy.includeBinData = false;
 
-            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
+            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getCatalog(),
                     query.getSetName());
 
             final WritePolicy deletePolicy = policyBuilder.buildDeleteWritePolicy();

@@ -28,7 +28,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.SELECT);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertEquals(query.getColumns(), Arrays.asList("pkup_datetime", "vendor_id"));
         assertNotNull(query.getPredicate());
@@ -45,7 +45,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.SELECT);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertEquals(query.getColumns(), Collections.singletonList("COUNT(*)"));
         assertNotNull(query.getPredicate());
@@ -60,7 +60,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.UPDATE);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertEquals(query.getColumns(), Collections.singletonList("archived"));
         assertEquals(query.getValues(), Collections.singletonList(true));
@@ -77,7 +77,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.INSERT);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertEquals(query.getColumns(), Arrays.asList("id", "cab_type", "trip_distance", "archived"));
         assertEquals(query.getValues().size(), 2);
@@ -93,7 +93,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.DELETE);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertNotNull(query.getPredicate());
     }
@@ -106,7 +106,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.DROP_TABLE);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertNull(query.getPredicate());
     }
@@ -119,7 +119,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.DROP_SCHEMA);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertNull(query.getTable());
         assertNull(query.getPredicate());
     }
@@ -133,7 +133,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.SELECT);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertNotNull(query.getPredicate());
         assertEquals(query.getColumns(), Collections.singletonList("trip_distance"));
@@ -148,7 +148,7 @@ public class QueryParserTest {
         AerospikeQuery query = parsed.accept(new AerospikeSqlVisitor());
 
         assertEquals(query.getQueryType(), QueryType.SELECT);
-        assertEquals(query.getSchema(), "test");
+        assertEquals(query.getCatalog(), "test");
         assertEquals(query.getTable(), "nyc-data");
         assertNotNull(query.getPredicate());
         assertEquals(query.getColumns(), Collections.singletonList("trip_distance"));
