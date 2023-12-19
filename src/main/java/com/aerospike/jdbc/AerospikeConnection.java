@@ -107,7 +107,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
         logger.fine(() -> "getMetaData request");
-        return metadataBuilder.build(url, client, this);
+        return metadataBuilder.build(url, this);
     }
 
     @Override

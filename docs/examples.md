@@ -314,3 +314,14 @@ TRUNCATE TABLE port_list;
 DELETE FROM port_list;
 ```
 
+## CREATE INDEX
+
+```sql
+CREATE INDEX port_idx ON port_list (port);
+```
+
+## DROP INDEX
+
+```sql
+DROP INDEX port_idx ON port_list;
+```

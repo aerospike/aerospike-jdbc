@@ -41,6 +41,14 @@ public final class QueryPerformer {
                 queryHandler = new TruncateQueryHandler(client, statement);
                 return queryHandler.execute(query);
 
+            case CREATE_INDEX:
+                queryHandler = new IndexCreateHandler(client, statement);
+                return queryHandler.execute(query);
+
+            case DROP_INDEX:
+                queryHandler = new IndexDropHandler(client, statement);
+                return queryHandler.execute(query);
+
             default:
                 throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
         }

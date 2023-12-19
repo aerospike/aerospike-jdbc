@@ -49,6 +49,7 @@ public class ParseJdbcUrlTest {
         assertEquals(config.getClientPolicy().authMode, AuthMode.EXTERNAL_INSECURE);
         assertEquals(config.getDriverPolicy().getRecordSetTimeoutMs(), 5000);
         assertFalse(Value.UseBoolBin);
+        Value.UseBoolBin = true;
 
         Properties update = new Properties();
         update.setProperty("totalTimeout", "3000");

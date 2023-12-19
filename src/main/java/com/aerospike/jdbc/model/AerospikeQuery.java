@@ -35,6 +35,7 @@ public class AerospikeQuery {
     private QueryType queryType;
     private Integer offset;
     private Integer limit;
+    private String index;
 
     private QueryPredicate predicate;
     private List<Object> values;
@@ -110,6 +111,14 @@ public class AerospikeQuery {
 
     public void setLimit(int limit) {
         this.limit = limit;
+    }
+
+    public String getIndex() {
+        return index;
+    }
+
+    public void setIndex(String index) {
+        this.index = index;
     }
 
     public QueryPredicate getPredicate() {

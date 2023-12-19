@@ -8,7 +8,6 @@ import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.query.KeyRecord;
-import com.aerospike.jdbc.AerospikeDatabaseMetadata;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.async.RecordSetBatchSequenceListener;
@@ -21,7 +20,6 @@ import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.Collection;
@@ -40,16 +38,10 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(SelectQueryHandler.class.getName());
 
-    protected final AerospikeDatabaseMetadata databaseMetadata;
     protected List<DataColumn> columns;
 
     public SelectQueryHandler(IAerospikeClient client, Statement statement) {
         super(client, statement);
-        try {
-            databaseMetadata = (AerospikeDatabaseMetadata) statement.getConnection().getMetaData();
-        } catch (SQLException e) {
-            throw new IllegalStateException("Failed to get AerospikeDatabaseMetadata", e);
-        }
     }
 
     @Override

@@ -7,6 +7,8 @@ public enum QueryType {
     SHOW_COLUMNS,
     DROP_SCHEMA,
     DROP_TABLE,
+    CREATE_INDEX,
+    DROP_INDEX,
     SELECT,
     INSERT,
     UPDATE,
