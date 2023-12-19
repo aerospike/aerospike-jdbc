@@ -225,7 +225,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public String getSQLKeywords() {
-        return "";
+        return "truncate";
     }
 
     @Override
