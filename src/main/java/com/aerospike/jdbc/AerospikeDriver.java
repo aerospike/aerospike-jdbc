@@ -14,6 +14,8 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.logging.Logger;
 
+import static com.aerospike.jdbc.util.Constants.DRIVER_MAJOR_VERSION;
+import static com.aerospike.jdbc.util.Constants.DRIVER_MINOR_VERSION;
 import static java.util.stream.Collectors.toList;
 
 public class AerospikeDriver implements Driver {
@@ -55,11 +57,11 @@ public class AerospikeDriver implements Driver {
     }
 
     public int getMajorVersion() {
-        return 1;
+        return DRIVER_MAJOR_VERSION;
     }
 
     public int getMinorVersion() {
-        return 0;
+        return DRIVER_MINOR_VERSION;
     }
 
     public boolean jdbcCompliant() {
