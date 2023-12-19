@@ -2,18 +2,18 @@ package com.aerospike.jdbc.model;
 
 import java.util.Objects;
 
-public class SchemaTableName {
+public class CatalogTableName {
 
-    private final String schemaName;
+    private final String catalogName;
     private final String tableName;
 
-    public SchemaTableName(String schemaName, String tableName) {
-        this.schemaName = schemaName;
+    public CatalogTableName(String catalogName, String tableName) {
+        this.catalogName = catalogName;
         this.tableName = tableName;
     }
 
-    public String getSchemaName() {
-        return schemaName;
+    public String getCatalogName() {
+        return catalogName;
     }
 
     public String getTableName() {
@@ -24,18 +24,18 @@ public class SchemaTableName {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        SchemaTableName that = (SchemaTableName) o;
-        return Objects.equals(schemaName, that.schemaName) &&
+        CatalogTableName that = (CatalogTableName) o;
+        return Objects.equals(catalogName, that.catalogName) &&
                 Objects.equals(tableName, that.tableName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(schemaName, tableName);
+        return Objects.hash(catalogName, tableName);
     }
 
     @Override
     public String toString() {
-        return String.format("%s(%s, %s)", getClass().getSimpleName(), schemaName, tableName);
+        return String.format("%s(%s, %s)", getClass().getSimpleName(), catalogName, tableName);
     }
 }

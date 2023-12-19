@@ -8,19 +8,20 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.logging.Logger;
 
-public class TruncateQueryHandler extends BaseQueryHandler {
+public class IndexDropHandler extends BaseQueryHandler {
 
-    private static final Logger logger = Logger.getLogger(TruncateQueryHandler.class.getName());
+    private static final Logger logger = Logger.getLogger(IndexDropHandler.class.getName());
 
-    public TruncateQueryHandler(IAerospikeClient client, Statement statement) {
+    protected IndexDropHandler(IAerospikeClient client, Statement statement) {
         super(client, statement);
     }
 
     @Override
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
-        logger.info("TRUNCATE/DROP statement");
-        client.truncate(null, query.getCatalog(), query.getSetName(), null);
+        logger.info("DROP INDEX statement");
+        client.dropIndex(null, query.getCatalog(), query.getTable(), query.getIndex());
 
+        databaseMetadata.resetCatalogIndexes();
         return new Pair<>(emptyRecordSet(query), 1);
     }
 }

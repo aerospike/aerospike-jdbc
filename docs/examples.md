@@ -24,7 +24,7 @@ To represent this in SQL, `__key` is a magic column. When developers use
 `sendKey=true` in their applications, the `__key` column will
 reflect the _userKey_ that is saved with any write operation. Otherwise, it
 will appear to be NULL, but each row still has a distinct object identifier,
-the Aerospike record's _diget_ (see the
+the Aerospike record's _digest_ (see the
 [Glossary](https://www.aerospike.com/docs/guide/glossary.html)). The Aerospike
 JDBC driver always sends the primary key.
 
@@ -248,7 +248,7 @@ snmptrap    |Simple Network Management Protocol Trap(SNMPTRAP)   |    1|  162|
 Since Aerospike is schemaless, the data browser may need to be refreshed for it
 to pick up the new _extra_ column.
 
-Aerospike columns (bins) can be dropped by assinging a `NULL` to them.
+Aerospike columns (bins) can be dropped by assigning a `NULL` to them.
 
 ```sql
 UPDATE port_list SET extra=NULL;
@@ -314,3 +314,14 @@ TRUNCATE TABLE port_list;
 DELETE FROM port_list;
 ```
 
+## CREATE INDEX
+
+```sql
+CREATE INDEX port_idx ON port_list (port);
+```
+
+## DROP INDEX
+
+```sql
+DROP INDEX port_idx ON port_list;
+```

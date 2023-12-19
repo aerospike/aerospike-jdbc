@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 public abstract class JdbcBaseTest {
 
@@ -42,7 +43,7 @@ public abstract class JdbcBaseTest {
     protected void assertAllByColumnLabel(ResultSet resultSet) throws SQLException {
         assertEquals(resultSet.getString(PRIMARY_KEY_COLUMN_NAME), "key1");
         assertEquals(resultSet.getInt("bin1"), 11100);
-        assertEquals(resultSet.getInt("bool1"), 1);
+        assertTrue(resultSet.getBoolean("bool1"));
         assertEquals(resultSet.getInt("int1"), 1);
         assertEquals(resultSet.getString("str1"), "bar");
     }
@@ -50,8 +51,16 @@ public abstract class JdbcBaseTest {
     protected void assertAllByColumnIndex(ResultSet resultSet) throws SQLException {
         assertEquals(resultSet.getString(1), "key1");
         assertEquals(resultSet.getInt(2), 11100);
-        assertEquals(resultSet.getInt(3), 1);
+        assertTrue(resultSet.getBoolean(3));
         assertEquals(resultSet.getInt(4), 1);
         assertEquals(resultSet.getString(5), "bar");
+    }
+
+    @SuppressWarnings("all")
+    protected void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+        }
     }
 }

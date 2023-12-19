@@ -42,21 +42,21 @@ public class ScanQueryHandler {
             long maxRecords = scanPolicy.maxRecords;
             PartitionFilter filter = getPartitionFilter(query);
             while (isScanRequired(maxRecords)) {
-                client.scanPartitions(scanPolicy, filter, query.getSchema(), query.getSetName(),
+                client.scanPartitions(scanPolicy, filter, query.getCatalog(), query.getSetName(),
                         callback, query.columnBins());
                 scanPolicy.maxRecords = maxRecords > 0 ? maxRecords - count : maxRecords;
                 filter = PartitionFilter.id(++currentPartition);
             }
             listener.onSuccess();
         } else {
-            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getSchema(),
+            client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getCatalog(),
                     query.getSetName(), query.columnBins());
         }
         return listener.getRecordSet();
     }
 
     private PartitionFilter getPartitionFilter(AerospikeQuery query) {
-        Key key = new Key(query.getSchema(), query.getSetName(), query.getOffset());
+        Key key = new Key(query.getCatalog(), query.getSetName(), query.getOffset());
         currentPartition = Partition.getPartitionId(key.digest);
         return PartitionFilter.after(key);
     }

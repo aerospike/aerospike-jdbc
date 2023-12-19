@@ -5,6 +5,7 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.AerospikeConnection;
+import com.aerospike.jdbc.AerospikeDatabaseMetadata;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.ListRecordSet;
@@ -29,6 +30,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
     protected final PolicyBuilder policyBuilder;
     protected final DriverConfiguration config;
     protected final AerospikeVersion aerospikeVersion;
+    protected final AerospikeDatabaseMetadata databaseMetadata;
 
     protected BaseQueryHandler(IAerospikeClient client, Statement statement) {
         this.client = client;
@@ -36,6 +38,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
         policyBuilder = new PolicyBuilder(client);
         config = getConfiguration();
         aerospikeVersion = getAerospikeVersion();
+        databaseMetadata = getDatabaseMetadata();
     }
 
     protected Bin[] getBins(AerospikeQuery query) {
@@ -48,7 +51,7 @@ public abstract class BaseQueryHandler implements QueryHandler {
     }
 
     protected ListRecordSet emptyRecordSet(AerospikeQuery query) {
-        return new ListRecordSet(statement, query.getSchema(), query.getTable(),
+        return new ListRecordSet(statement, query.getCatalog(), query.getTable(),
                 emptyList(), emptyList());
     }
 
@@ -80,6 +83,14 @@ public abstract class BaseQueryHandler implements QueryHandler {
             return ((AerospikeConnection) statement.getConnection()).getAerospikeVersion();
         } catch (SQLException e) {
             throw new IllegalStateException("Failed to get AerospikeVersion", e);
+        }
+    }
+
+    private AerospikeDatabaseMetadata getDatabaseMetadata() {
+        try {
+            return (AerospikeDatabaseMetadata) statement.getConnection().getMetaData();
+        } catch (SQLException e) {
+            throw new IllegalStateException("Failed to get AerospikeDatabaseMetadata", e);
         }
     }
 }

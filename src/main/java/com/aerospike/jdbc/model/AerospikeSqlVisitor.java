@@ -78,7 +78,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 query.setQueryType(QueryType.DROP_TABLE);
             } else if (sqlCall instanceof SqlDropSchema) {
                 SqlDropSchema sql = (SqlDropSchema) sqlCall;
-                query.setSchema(requireNonNull(sql.name).toString());
+                query.setCatalog(requireNonNull(sql.name).toString());
                 query.setQueryType(QueryType.DROP_SCHEMA);
             } else if (sqlCall instanceof SqlOrderBy) {
                 SqlOrderBy sql = (SqlOrderBy) sqlCall;

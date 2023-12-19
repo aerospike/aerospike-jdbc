@@ -7,7 +7,6 @@ import com.aerospike.jdbc.model.QueryType;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AuxStatementParser;
-import org.apache.calcite.sql.parser.SqlParseException;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -26,13 +25,14 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
+
     private static final String BATCH_NOT_SUPPORTED_MESSAGE = "Batch update is not supported";
     private static final String AUTO_GENERATED_KEYS_NOT_SUPPORTED_MESSAGE = "Auto-generated keys are not supported";
 
     protected final IAerospikeClient client;
     protected final AerospikeConnection connection;
 
-    protected String schema;
+    protected String catalog;
     protected ResultSet resultSet;
     protected int updateCount;
 
@@ -42,7 +42,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
         this.client = client;
         this.connection = connection;
-        this.schema = connection.getCatalog();
+        this.catalog = connection.getCatalog();
     }
 
     @Override
@@ -64,11 +64,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         AerospikeQuery query;
         try {
             query = AerospikeQuery.parse(sql);
-        } catch (SqlParseException e) {
-            query = AuxStatementParser.hack(sql);
+        } catch (Exception e) {
+            query = AuxStatementParser.parse(sql);
         }
-        if (query.getSchema() == null) {
-            query.setSchema(schema);
+        if (query.getCatalog() == null) {
+            query.setCatalog(catalog);
         }
         return query;
     }

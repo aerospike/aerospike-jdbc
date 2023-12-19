@@ -30,7 +30,7 @@ public class SecondaryIndexQueryHandler {
         statement.setRecordsPerSecond(client.getScanPolicyDefault().recordsPerSecond);
 
         statement.setIndexName(secondaryIndex.getIndexName());
-        statement.setNamespace(query.getSchema());
+        statement.setNamespace(query.getCatalog());
         statement.setSetName(query.getTable());
         statement.setBinNames(query.columnBins());
 

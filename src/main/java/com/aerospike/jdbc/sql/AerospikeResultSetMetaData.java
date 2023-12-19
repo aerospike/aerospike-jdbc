@@ -71,12 +71,12 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
         precisionByType.put(Types.TIMESTAMP_WITH_TIMEZONE, MAX_DATE_SIZE);
     }
 
-    private final String schema;
+    private final String catalog;
     private final String table;
     private final List<DataColumn> columns; // has the order of the inferred schema
 
-    public AerospikeResultSetMetaData(String schema, String table, List<DataColumn> columns) {
-        this.schema = schema;
+    public AerospikeResultSetMetaData(String catalog, String table, List<DataColumn> columns) {
+        this.catalog = catalog;
         this.table = table;
         this.columns = Collections.unmodifiableList(columns);
     }
@@ -167,7 +167,7 @@ public class AerospikeResultSetMetaData implements ResultSetMetaData, SimpleWrap
     @Override
     public String getCatalogName(int column) throws SQLException {
         validateColumn(column);
-        return schema;
+        return catalog;
     }
 
     @Override

@@ -231,8 +231,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         AerospikeQuery query = parseQuery(prepareQueryString());
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
-                .getSchema(query.getSchemaTable());
-        return new AerospikeResultSetMetaData(query.getSchema(), query.getTable(), columns);
+                .getSchema(query.getCatalogTable());
+        return new AerospikeResultSetMetaData(query.getCatalog(), query.getTable(), columns);
     }
 
     @Override
@@ -265,7 +265,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         AerospikeQuery query = parseQuery(prepareQueryString());
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
-                .getSchema(query.getSchemaTable());
+                .getSchema(query.getCatalogTable());
         return new SimpleParameterMetaData(columns);
     }
 

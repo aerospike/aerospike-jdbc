@@ -23,9 +23,9 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
     private final Map<String, Integer> nameToIndex;
     private List<?> currentRecord = null;
 
-    public ListRecordSet(Statement statement, String schema, String table, List<DataColumn> columns,
+    public ListRecordSet(Statement statement, String catalog, String table, List<DataColumn> columns,
                          Iterable<List<?>> data) {
-        super(statement, schema, table, columns);
+        super(statement, catalog, table, columns);
         this.it = data.iterator();
         nameToIndex = IntStream.range(0, columns.size()).boxed()
                 .collect(toMap(i -> columns.get(i).getName(), i -> i));

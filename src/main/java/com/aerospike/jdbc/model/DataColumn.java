@@ -62,8 +62,8 @@ public class DataColumn {
         return type;
     }
 
-    public SchemaTableName getSchemaTableName() {
-        return new SchemaTableName(catalog, table);
+    public CatalogTableName getSchemaTableName() {
+        return new CatalogTableName(catalog, table);
     }
 
     @Override

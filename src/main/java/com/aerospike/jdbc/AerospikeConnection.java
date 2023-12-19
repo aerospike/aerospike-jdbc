@@ -35,7 +35,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private final IAerospikeClient client;
     private final DatabaseMetadataBuilder metadataBuilder;
     private final AerospikeVersion aerospikeVersion;
-    private final AtomicReference<String> schema = new AtomicReference<>(null); // namespace
+    private final AtomicReference<String> catalog = new AtomicReference<>(null);
 
     private volatile boolean readOnly = false;
     private volatile Map<String, Class<?>> typeMap = emptyMap();
@@ -49,7 +49,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
         client = config.parse(url);
         metadataBuilder = new DatabaseMetadataBuilder(config.getDriverPolicy());
         aerospikeVersion = new AerospikeVersion(client);
-        schema.set(config.getSchema()); // namespace
+        catalog.set(config.getCatalog()); // namespace
     }
 
     @Override
@@ -107,7 +107,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
         logger.fine(() -> "getMetaData request");
-        return metadataBuilder.build(url, client, this);
+        return metadataBuilder.build(url, this);
     }
 
     @Override
@@ -125,12 +125,12 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public String getCatalog() {
-        return schema.get();
+        return catalog.get();
     }
 
     @Override
     public void setCatalog(String catalog) {
-        schema.set(catalog);
+        this.catalog.set(catalog);
     }
 
     @Override

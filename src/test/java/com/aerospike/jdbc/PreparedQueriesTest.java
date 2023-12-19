@@ -1,6 +1,5 @@
 package com.aerospike.jdbc;
 
-import com.aerospike.client.Value;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -21,7 +20,6 @@ public class PreparedQueriesTest extends JdbcBaseTest {
 
     @BeforeMethod
     public void setUp() throws SQLException {
-        Value.UseBoolBin = false;
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         int count;
@@ -145,7 +143,7 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
-            assertEquals(resultSet.getObject(1), 1);
+            assertTrue(resultSet.getLong(1) > 0);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

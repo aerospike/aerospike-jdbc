@@ -31,12 +31,12 @@ public final class DriverConfiguration {
 
     private static final String DEFAULT_AEROSPIKE_PORT = "3000";
 
-    private static final Pattern AS_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
-    private static final Pattern AS_JDBC_SCHEMA = Pattern.compile("/([^?]+)");
+    private static final Pattern AEROSPIKE_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
+    private static final Pattern AEROSPIKE_JDBC_CATALOG = Pattern.compile("/([^?]+)");
 
     private final Map<Object, Object> clientInfo = new ConcurrentHashMap<>();
     private volatile IAerospikeClient client;
-    private volatile String schema;
+    private volatile String catalog;
     private volatile ClientPolicy clientPolicy;
     private volatile DriverPolicy driverPolicy;
 
@@ -48,7 +48,7 @@ public final class DriverConfiguration {
     @SuppressWarnings("java:S2696")
     public IAerospikeClient parse(String url) {
         logger.info(() -> format("Parse URL: %s", url));
-        schema = parseSchema(url);
+        catalog = parseCatalog(url);
         updateClientInfo(url);
 
         Value.UseBoolBin = Optional.ofNullable(clientInfo.get("useBoolBin"))
@@ -113,7 +113,7 @@ public final class DriverConfiguration {
     }
 
     private Host[] parseHosts(String url, final String tlsName) {
-        Matcher m = AS_JDBC_URL.matcher(url);
+        Matcher m = AEROSPIKE_JDBC_URL.matcher(url);
         if (!m.find()) {
             throw new IllegalArgumentException("Cannot parse URL " + url);
         }
@@ -124,8 +124,8 @@ public final class DriverConfiguration {
                 .toArray(Host[]::new);
     }
 
-    private String parseSchema(String url) {
-        Matcher m = AS_JDBC_SCHEMA.matcher(url);
+    private String parseCatalog(String url) {
+        Matcher m = AEROSPIKE_JDBC_CATALOG.matcher(url);
         return m.find() ? m.group(1) : null;
     }
 
@@ -141,8 +141,8 @@ public final class DriverConfiguration {
         }
     }
 
-    public String getSchema() {
-        return schema;
+    public String getCatalog() {
+        return catalog;
     }
 
     public Properties getClientInfo() {
