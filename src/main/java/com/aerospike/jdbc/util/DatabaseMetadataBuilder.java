@@ -1,6 +1,5 @@
 package com.aerospike.jdbc.util;
 
-import com.aerospike.client.IAerospikeClient;
 import com.aerospike.jdbc.AerospikeConnection;
 import com.aerospike.jdbc.AerospikeDatabaseMetadata;
 import com.aerospike.jdbc.model.DriverPolicy;
@@ -21,10 +20,10 @@ public class DatabaseMetadataBuilder {
                 .build();
     }
 
-    public AerospikeDatabaseMetadata build(String url, IAerospikeClient client, AerospikeConnection connection)
+    public AerospikeDatabaseMetadata build(String url, AerospikeConnection connection)
             throws SQLException {
         try {
-            return metadataCache.get(url, () -> new AerospikeDatabaseMetadata(url, client, connection));
+            return metadataCache.get(url, () -> new AerospikeDatabaseMetadata(url, connection));
         } catch (ExecutionException e) {
             throw new SQLException(e);
         }

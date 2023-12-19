@@ -56,6 +56,8 @@ Packages documentation can be found [here](https://javadoc.io/doc/com.aerospike/
 * UPDATE
 * DELETE
 * TRUNCATE TABLE
+* CREATE INDEX
+* DROP INDEX
 
 See [examples](docs/examples.md) of SQL.
 

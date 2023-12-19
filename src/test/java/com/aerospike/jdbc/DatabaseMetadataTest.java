@@ -1,6 +1,5 @@
 package com.aerospike.jdbc;
 
-import com.aerospike.client.Value;
 import com.aerospike.jdbc.util.TestUtil;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -22,7 +21,6 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
 
     @BeforeClass
     public void setUp() throws SQLException {
-        Value.UseBoolBin = false;
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         int count;
@@ -41,16 +39,15 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     public void tearDown() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
-        ResultSet resultSet = null;
         String query = format("delete from %s", tableName);
         try {
             statement = connection.prepareStatement(query);
-            resultSet = statement.executeQuery();
-            resultSet.next();
+            boolean result = statement.execute();
+            assertFalse(result);
         } finally {
             closeQuietly(statement);
-            closeQuietly(resultSet);
         }
+        assertTrue(statement.getUpdateCount() > 0);
     }
 
     @Test
