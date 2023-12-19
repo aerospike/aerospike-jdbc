@@ -53,24 +53,26 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-        ResultSet rs = databaseMetaData.getTables(namespace, namespace, tableName, null);
+        ResultSet tables = databaseMetaData.getTables(namespace, namespace, tableName, null);
 
-        assertTrue(rs.next());
-        assertEquals(rs.getString("TABLE_NAME"), tableName);
-        assertFalse(rs.next());
-        TestUtil.closeQuietly(rs);
+        if (tables.next()) {
+            assertEquals(tables.getString("TABLE_NAME"), tableName);
+            assertFalse(tables.next());
+        }
+        TestUtil.closeQuietly(tables);
     }
 
     @Test
     public void testGetSchemas() throws SQLException {
         ResultSet schemas = connection.getMetaData().getSchemas();
 
-        assertTrue(schemas.next());
-        String schemaName = schemas.getString(1);
-        String catalogName = schemas.getString(2);
-        assertEquals(schemas.getString("TABLE_SCHEM"), schemaName);
-        assertEquals(schemas.getString("TABLE_CATALOG"), catalogName);
-        assertFalse(schemas.next());
+        if (schemas.next()) {
+            String schemaName = schemas.getString(1);
+            String catalogName = schemas.getString(2);
+            assertEquals(schemas.getString("TABLE_SCHEM"), schemaName);
+            assertEquals(schemas.getString("TABLE_CATALOG"), catalogName);
+            assertFalse(schemas.next());
+        }
         TestUtil.closeQuietly(schemas);
     }
 

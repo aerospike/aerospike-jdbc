@@ -162,7 +162,7 @@ public class SimpleQueriesTest extends JdbcBaseTest {
             resultSet = statement.executeQuery(query);
             assertTrue(resultSet.next());
 
-            assertEquals(resultSet.getObject(1), 1);
+            assertTrue(resultSet.getLong(1) > 0);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

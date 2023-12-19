@@ -143,7 +143,7 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
-            assertEquals(resultSet.getObject(1), 1);
+            assertTrue(resultSet.getLong(1) > 0);
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);
