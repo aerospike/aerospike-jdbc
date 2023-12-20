@@ -30,6 +30,11 @@ import java.util.stream.Stream;
 
 import static com.aerospike.jdbc.util.AerospikeUtils.getCatalogIndexes;
 import static com.aerospike.jdbc.util.AerospikeUtils.getClusterInfo;
+import static com.aerospike.jdbc.util.Constants.DRIVER_MAJOR_VERSION;
+import static com.aerospike.jdbc.util.Constants.DRIVER_MINOR_VERSION;
+import static com.aerospike.jdbc.util.Constants.DRIVER_VERSION;
+import static com.aerospike.jdbc.util.Constants.JDBC_MAJOR_VERSION;
+import static com.aerospike.jdbc.util.Constants.JDBC_MINOR_VERSION;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
@@ -155,17 +160,17 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public String getDriverVersion() {
-        return "NA";
+        return DRIVER_VERSION;
     }
 
     @Override
     public int getDriverMajorVersion() {
-        return 1;
+        return DRIVER_MAJOR_VERSION;
     }
 
     @Override
     public int getDriverMinorVersion() {
-        return 0;
+        return DRIVER_MINOR_VERSION;
     }
 
     @Override
@@ -1126,12 +1131,12 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public int getJDBCMajorVersion() {
-        return 4;
+        return JDBC_MAJOR_VERSION;
     }
 
     @Override
     public int getJDBCMinorVersion() {
-        return 0;
+        return JDBC_MINOR_VERSION;
     }
 
     @Override

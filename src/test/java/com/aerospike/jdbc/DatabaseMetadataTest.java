@@ -53,7 +53,7 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-        ResultSet tables = databaseMetaData.getTables(namespace, namespace, tableName, null);
+        ResultSet tables = databaseMetaData.getTables(namespace, "", tableName, null);
 
         if (tables.next()) {
             assertEquals(tables.getString("TABLE_NAME"), tableName);
@@ -66,13 +66,12 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     public void testGetSchemas() throws SQLException {
         ResultSet schemas = connection.getMetaData().getSchemas();
 
-        if (schemas.next()) {
-            String schemaName = schemas.getString(1);
-            String catalogName = schemas.getString(2);
-            assertEquals(schemas.getString("TABLE_SCHEM"), schemaName);
-            assertEquals(schemas.getString("TABLE_CATALOG"), catalogName);
-            assertFalse(schemas.next());
-        }
+        assertTrue(schemas.next());
+        String schemaName = schemas.getString(1);
+        String catalogName = schemas.getString(2);
+        assertEquals(schemas.getString("TABLE_SCHEM"), schemaName);
+        assertEquals(schemas.getString("TABLE_CATALOG"), catalogName);
+        assertFalse(schemas.next());
         TestUtil.closeQuietly(schemas);
     }
 
@@ -85,5 +84,13 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
         assertEquals(catalogs.getString("TABLE_CAT"), catalogName);
         assertFalse(catalogs.next());
         TestUtil.closeQuietly(catalogs);
+    }
+
+    @Test
+    public void testJDBCVersion() throws SQLException {
+        DatabaseMetaData metadata = connection.getMetaData();
+
+        assertEquals(metadata.getJDBCMajorVersion(), 4);
+        assertEquals(metadata.getJDBCMinorVersion(), 2);
     }
 }
