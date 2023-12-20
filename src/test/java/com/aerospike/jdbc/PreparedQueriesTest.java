@@ -18,18 +18,23 @@ import static org.testng.Assert.assertTrue;
 
 public class PreparedQueriesTest extends JdbcBaseTest {
 
+    private final byte[] blobValue = new byte[]{1, 2, 3, 4};
+
     @BeforeMethod
     public void setUp() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         int count;
         String query = format(
-                "insert into %s (%s, bin1, int1, str1, bool1) values (\"key1\", 11100, 1, \"bar\", true)",
+                "insert into %s (%s, bin1, int1, str1, bool1, val1, val2) values "
+                        + "(\"key1\", 11100, 1, \"bar\", true, ?, ?)",
                 tableName,
                 PRIMARY_KEY_COLUMN_NAME
         );
         try {
             statement = connection.prepareStatement(query);
+            statement.setBytes(1, blobValue);
+            statement.setNull(2, 0);
             count = statement.executeUpdate();
         } finally {
             closeQuietly(statement);
@@ -64,6 +69,7 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             while (resultSet.next()) {
                 assertAllByColumnLabel(resultSet);
                 assertAllByColumnIndex(resultSet);
+                assertBlobValue(resultSet);
 
                 total++;
             }
@@ -78,14 +84,17 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectByPrimaryKeyQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = format("select *, bin1 from %s where %s='key1'", tableName, PRIMARY_KEY_COLUMN_NAME);
+        String query = format("select *, bin1 from %s where %s=?", tableName, PRIMARY_KEY_COLUMN_NAME);
         int total = 0;
         try {
             statement = connection.prepareStatement(query);
+            statement.setString(1, "key1");
+
             resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 assertAllByColumnLabel(resultSet);
                 assertAllByColumnIndex(resultSet);
+                assertBlobValue(resultSet);
 
                 total++;
             }
@@ -100,9 +109,13 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testInsertQuery() throws SQLException {
         PreparedStatement statement = null;
         int count;
-        String query = format("insert into %s (bin1, int1) values (11101, 3), (11102, 4)", tableName);
+        String query = format("insert into %s (bin1, int1) values (?, ?), (?, ?)", tableName);
         try {
             statement = connection.prepareStatement(query);
+            statement.setInt(1, 11101);
+            statement.setInt(2, 3);
+            statement.setInt(3, 11102);
+            statement.setInt(4, 4);
             count = statement.executeUpdate();
         } finally {
             closeQuietly(statement);
@@ -114,19 +127,23 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testUpdateQuery() throws SQLException {
         PreparedStatement statement = null;
         int count;
-        String query = format("update %s set int1=100 where bin1>10000", tableName);
+        String query = format("update %s set int1=? where bin1>?", tableName);
         try {
             statement = connection.prepareStatement(query);
-            count = statement.executeUpdate(query);
+            statement.setInt(1, 100);
+            statement.setInt(2, 10000);
+            count = statement.executeUpdate();
         } finally {
             closeQuietly(statement);
         }
         assertEquals(count, 1);
 
-        query = format("update %s set int1=100 where bin1>20000", tableName);
+        query = format("update %s set int1=? where bin1>?", tableName);
         try {
             statement = connection.prepareStatement(query);
-            count = statement.executeUpdate(query);
+            statement.setInt(1, 100);
+            statement.setInt(2, 20000);
+            count = statement.executeUpdate();
         } finally {
             closeQuietly(statement);
         }
@@ -154,9 +171,11 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectEqualsQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = format("select %s from %s where int1 = 1", PRIMARY_KEY_COLUMN_NAME, tableName);
+        String query = format("select %s from %s where int1 = ?", PRIMARY_KEY_COLUMN_NAME, tableName);
         try {
             statement = connection.prepareStatement(query);
+            statement.setInt(1, 1);
+
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
@@ -172,9 +191,11 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectNotEqualsQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = format("select %s, int1 from %s where int1 <> 2", PRIMARY_KEY_COLUMN_NAME, tableName);
+        String query = format("select %s, int1 from %s where int1 <> ?", PRIMARY_KEY_COLUMN_NAME, tableName);
         try {
             statement = connection.prepareStatement(query);
+            statement.setInt(1, 2);
+
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
@@ -243,9 +264,12 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectInQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = format("select * from %s where int1 in (1, 2) and str1 is not null", tableName);
+        String query = format("select * from %s where int1 in (?, ?) and str1 is not null", tableName);
         try {
             statement = connection.prepareStatement(query);
+            statement.setInt(1, 1);
+            statement.setInt(2, 2);
+
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
@@ -261,9 +285,13 @@ public class PreparedQueriesTest extends JdbcBaseTest {
     public void testSelectBetweenQuery() throws SQLException {
         PreparedStatement statement = null;
         ResultSet resultSet = null;
-        String query = format("select * from %s where int1 between 1 and 3", tableName);
+        String query = format("select * from %s where int1 between ? and ? and val1=?", tableName);
         try {
             statement = connection.prepareStatement(query);
+            statement.setInt(1, 1);
+            statement.setInt(2, 3);
+            statement.setBytes(3, blobValue);
+
             resultSet = statement.executeQuery();
             assertTrue(resultSet.next());
 
@@ -273,5 +301,10 @@ public class PreparedQueriesTest extends JdbcBaseTest {
             closeQuietly(statement);
             closeQuietly(resultSet);
         }
+    }
+
+    private void assertBlobValue(ResultSet resultSet) throws SQLException {
+        assertEquals(resultSet.getBytes("val1"), blobValue);
+        assertEquals(resultSet.getBytes(6), blobValue);
     }
 }
