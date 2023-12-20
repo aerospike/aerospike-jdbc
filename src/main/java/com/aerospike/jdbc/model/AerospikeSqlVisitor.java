@@ -10,18 +10,30 @@ import org.apache.calcite.sql.fun.SqlLikeOperator;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.SqlVisitor;
 
+import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.stream.Collectors;
 
 import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
+import static com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
 
+    private static final String QUERY_PLACEHOLDER = "?";
+
     private final AerospikeQuery query;
+    private final Iterator<Object> sqlParametersIterator;
 
     public AerospikeSqlVisitor() {
+        this(null);
+    }
+
+    public AerospikeSqlVisitor(@Nullable Collection<Object> sqlParameters) {
         query = new AerospikeQuery();
+        sqlParametersIterator = sqlParameters != null ? sqlParameters.iterator() : null;
     }
 
     @Override
@@ -45,13 +57,13 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 SqlUpdate sql = (SqlUpdate) sqlCall;
                 query.setQueryType(QueryType.UPDATE);
                 query.setTable(requireNonNull(sql.getTargetTable()).toString());
+                query.setValues(sql.getSourceExpressionList().stream()
+                        .map(this::parseValue).collect(Collectors.toList()));
                 if (sql.getCondition() != null) {
                     query.setPredicate(parseWhere((SqlBasicCall) sql.getCondition()));
                 }
                 query.setColumns(sql.getTargetColumnList().stream()
                         .map(SqlNode::toString).collect(Collectors.toList()));
-                query.setValues(sql.getSourceExpressionList().stream()
-                        .map(this::parseValue).collect(Collectors.toList()));
             } else if (sqlCall instanceof SqlInsert) {
                 SqlInsert sql = (SqlInsert) sqlCall;
                 query.setQueryType(QueryType.INSERT);
@@ -97,8 +109,10 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
             } else {
                 throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
             }
+        } catch (UnsupportedOperationException e) {
+            throw e;
         } catch (Exception e) {
-            throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
+            throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE, e);
         }
         return query;
     }
@@ -142,7 +156,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
             }
         } else if (where.getOperator() instanceof SqlLikeOperator) {
             String binName = where.getOperandList().get(0).toString();
-            String expression = unwrapString(where.getOperandList().get(1).toString());
+            String expression = parseValue(where.getOperandList().get(1)).toString();
             return new QueryPredicateLike(binName, expression);
         } else if (where.getOperator() instanceof SqlBetweenOperator) {
             return new QueryPredicateRange(
@@ -168,6 +182,10 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
             }
         } else if (sqlNode instanceof SqlIdentifier) {
             return unwrapString(sqlNode.toString());
+        } else if (sqlNode instanceof SqlDynamicParam
+                && unwrapString(sqlNode.toString()).equals(QUERY_PLACEHOLDER)) {
+            checkState(sqlParametersIterator != null, "SQL parameters is null");
+            return sqlParametersIterator.next();
         }
         throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
     }

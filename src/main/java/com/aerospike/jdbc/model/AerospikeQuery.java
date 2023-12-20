@@ -45,10 +45,10 @@ public class AerospikeQuery {
         this.queryType = QueryType.UNKNOWN;
     }
 
-    public static AerospikeQuery parse(String sql) throws SqlParseException {
+    public static AerospikeQuery parse(String sql, Collection<Object> sqlParameters) throws SqlParseException {
         SqlParser parser = SqlParser.create(sql, sqlParserConfig);
         SqlNode parsed = parser.parseQuery();
-        return parsed.accept(new AerospikeSqlVisitor());
+        return parsed.accept(new AerospikeSqlVisitor(sqlParameters));
     }
 
     public String getCatalog() {

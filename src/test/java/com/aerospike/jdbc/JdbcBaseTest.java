@@ -1,7 +1,7 @@
 package com.aerospike.jdbc;
 
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeSuite;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -25,7 +25,7 @@ public abstract class JdbcBaseTest {
 
     protected static Connection connection;
 
-    @BeforeSuite
+    @BeforeClass
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
@@ -34,7 +34,7 @@ public abstract class JdbcBaseTest {
         connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
     }
 
-    @AfterSuite
+    @AfterClass
     public static void connectionClose() throws SQLException {
         logger.info("connectionClose");
         connection.close();

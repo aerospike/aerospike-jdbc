@@ -27,7 +27,6 @@ import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
-import static java.util.Objects.isNull;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
 
@@ -50,9 +49,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        String preparedQueryString = prepareQueryString();
-        logger.info(() -> "executeQuery: " + preparedQueryString);
-        AerospikeQuery query = parseQuery(preparedQueryString);
+        logger.info(() -> format("executeQuery: %s, params: %s", sqlStatement, Arrays.toString(sqlParameters)));
+        AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         runQuery(query);
         return resultSet;
     }
@@ -114,7 +112,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
-        setObject(parameterIndex, format("\"%s\"", x));
+        setObject(parameterIndex, x);
     }
 
     @Override
@@ -180,25 +178,15 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public boolean execute() throws SQLException {
-        String preparedQueryString = prepareQueryString();
-        logger.info(() -> "execute: " + preparedQueryString);
-        AerospikeQuery query = parseQuery(preparedQueryString);
+        logger.info(() -> format("execute: %s, params: %s", sqlStatement, Arrays.toString(sqlParameters)));
+        AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         runQuery(query);
         return query.getQueryType() == QueryType.SELECT;
     }
 
-    private String prepareQueryString() {
-        String preparedQueryString = sqlStatement;
-        for (Object value : sqlParameters) {
-            String replacement = isNull(value) ? "?" : value.toString();
-            preparedQueryString = preparedQueryString.replaceFirst("\\?", replacement);
-        }
-        return preparedQueryString;
-    }
-
     @Override
     public void addBatch() throws SQLException {
-        addBatch(prepareQueryString());
+        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
@@ -228,7 +216,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
-        AerospikeQuery query = parseQuery(prepareQueryString());
+        AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
                 .getSchema(query.getCatalogTable());
@@ -262,7 +250,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ParameterMetaData getParameterMetaData() throws SQLException {
-        AerospikeQuery query = parseQuery(prepareQueryString());
+        AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         List<DataColumn> columns = ((AerospikeDatabaseMetadata) connection.getMetaData())
                 .getSchemaBuilder()
                 .getSchema(query.getCatalogTable());

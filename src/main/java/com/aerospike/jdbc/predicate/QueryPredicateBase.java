@@ -20,28 +20,45 @@ public abstract class QueryPredicateBase implements QueryPredicate {
     }
 
     protected static Exp.Type getValueType(Object value) {
-        if (value instanceof String) {
+        if (value == null) {
+            return Exp.Type.NIL;
+        } else if (value instanceof String) {
             return Exp.Type.STRING;
-        } else if (value instanceof Long) {
+        } else if (value instanceof Long || value instanceof Integer
+                || value instanceof Short || value instanceof Byte) {
             return Exp.Type.INT;
-        } else if (value instanceof Double) {
+        } else if (value instanceof Double || value instanceof Float) {
             return Exp.Type.FLOAT;
         } else if (value instanceof Boolean) {
             return Exp.Type.BOOL;
+        } else if (value instanceof byte[]) {
+            return Exp.Type.BLOB;
         } else {
             return Exp.Type.STRING;
         }
     }
 
     protected Exp getValueExp(Object value) {
-        if (value instanceof String) {
+        if (value == null) {
+            return Exp.nil();
+        } else if (value instanceof String) {
             return Exp.val((String) value);
         } else if (value instanceof Long) {
             return Exp.val((long) value);
+        } else if (value instanceof Integer) {
+            return Exp.val((int) value);
+        } else if (value instanceof Short) {
+            return Exp.val((short) value);
+        } else if (value instanceof Byte) {
+            return Exp.val((byte) value);
         } else if (value instanceof Double) {
             return Exp.val((double) value);
+        } else if (value instanceof Float) {
+            return Exp.val((float) value);
         } else if (value instanceof Boolean) {
             return Exp.val((boolean) value);
+        } else if (value instanceof byte[]) {
+            return Exp.val((byte[]) value);
         } else {
             return Exp.val(value.toString());
         }

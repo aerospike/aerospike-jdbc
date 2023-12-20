@@ -47,7 +47,7 @@ public class PreparedStatement {
             }
         }
 
-        if (currentQuery.length() > 0 && currentQuery.toString().trim().length() > 0) {
+        if (currentQuery.length() > 0 && !currentQuery.toString().trim().isEmpty()) {
             appendNotEmpty(queries, currentQuery.toString());
         }
 
@@ -55,7 +55,7 @@ public class PreparedStatement {
     }
 
     private static void appendNotEmpty(Collection<String> queries, String query) {
-        if (query.trim().length() > 0) {
+        if (!query.trim().isEmpty()) {
             queries.add(query);
         }
     }

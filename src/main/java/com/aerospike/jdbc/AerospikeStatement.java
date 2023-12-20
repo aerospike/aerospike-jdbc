@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.Collection;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -24,9 +25,9 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
-    private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
+    protected static final String BATCH_NOT_SUPPORTED_MESSAGE = "Batch update is not supported";
 
-    private static final String BATCH_NOT_SUPPORTED_MESSAGE = "Batch update is not supported";
+    private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
     private static final String AUTO_GENERATED_KEYS_NOT_SUPPORTED_MESSAGE = "Auto-generated keys are not supported";
 
     protected final IAerospikeClient client;
@@ -48,7 +49,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         logger.info(() -> "executeQuery: " + sql);
-        AerospikeQuery query = parseQuery(sql);
+        AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
         return resultSet;
     }
@@ -59,11 +60,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         updateCount = result.getRight();
     }
 
-    protected AerospikeQuery parseQuery(String sql) throws SQLException {
+    protected AerospikeQuery parseQuery(String sql, Collection<Object> sqlParameters) throws SQLException {
         sql = sql.replace("\n", " ");
         AerospikeQuery query;
         try {
-            query = AerospikeQuery.parse(sql);
+            query = AerospikeQuery.parse(sql, sqlParameters);
         } catch (Exception e) {
             query = AuxStatementParser.parse(sql);
         }
@@ -142,7 +143,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public boolean execute(String sql) throws SQLException {
         logger.info(() -> "execute: " + sql);
-        AerospikeQuery query = parseQuery(sql);
+        AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
         return query.getQueryType() == QueryType.SELECT;
     }
