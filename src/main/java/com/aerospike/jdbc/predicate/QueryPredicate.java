@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public interface QueryPredicate {
 
-    Exp toFilterExpression();
+    Exp toFilterExpression(boolean withPrimaryKey);
 
     Optional<Filter> toFilter(String binName);
 

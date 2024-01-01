@@ -1,5 +1,6 @@
 package com.aerospike.jdbc;
 
+import com.aerospike.jdbc.util.TestRecord;
 import com.aerospike.jdbc.util.TestUtil;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -11,6 +12,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Objects;
 
+import static com.aerospike.jdbc.util.TestConfig.NAMESPACE;
+import static com.aerospike.jdbc.util.TestConfig.TABLE_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
@@ -19,13 +22,18 @@ import static org.testng.Assert.assertTrue;
 
 public class DatabaseMetadataTest extends JdbcBaseTest {
 
+    private final TestRecord testRecord;
+
+    DatabaseMetadataTest() {
+        testRecord = new TestRecord("key1", true, 11100, 1, "bar");
+    }
+
     @BeforeClass
     public void setUp() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
         int count;
-        String query = format("insert into %s (bin1, int1, str1, bool1) values (11100, 1, \"bar\", true)",
-                tableName);
+        String query = testRecord.toInsertQuery();
         try {
             statement = connection.prepareStatement(query);
             count = statement.executeUpdate();
@@ -39,7 +47,7 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     public void tearDown() throws SQLException {
         Objects.requireNonNull(connection, "connection is null");
         PreparedStatement statement = null;
-        String query = format("delete from %s", tableName);
+        String query = format("delete from %s", TABLE_NAME);
         try {
             statement = connection.prepareStatement(query);
             boolean result = statement.execute();
@@ -53,10 +61,10 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     @Test
     public void testGetTables() throws SQLException {
         DatabaseMetaData databaseMetaData = connection.getMetaData();
-        ResultSet tables = databaseMetaData.getTables(namespace, "", tableName, null);
+        ResultSet tables = databaseMetaData.getTables(NAMESPACE, "", TABLE_NAME, null);
 
         if (tables.next()) {
-            assertEquals(tables.getString("TABLE_NAME"), tableName);
+            assertEquals(tables.getString("TABLE_NAME"), TABLE_NAME);
             assertFalse(tables.next());
         }
         TestUtil.closeQuietly(tables);

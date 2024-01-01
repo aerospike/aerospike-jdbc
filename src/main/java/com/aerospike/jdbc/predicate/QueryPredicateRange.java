@@ -23,7 +23,7 @@ public class QueryPredicateRange extends QueryPredicateBase {
     }
 
     @Override
-    public Exp toFilterExpression() {
+    public Exp toFilterExpression(boolean withPrimaryKey) {
         return Exp.and(
                 Exp.ge(buildLeftExp(), getValueExp(lowValue)),
                 Exp.lt(buildLeftExp(), getValueExp(highValue))
