@@ -18,7 +18,7 @@ public class QueryPredicateLike extends QueryPredicateBase {
     }
 
     @Override
-    public Exp toFilterExpression() {
+    public Exp toFilterExpression(boolean withPrimaryKey) {
         return Exp.regexCompare(
                 expression,
                 RegexFlag.ICASE | RegexFlag.NEWLINE,

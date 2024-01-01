@@ -18,7 +18,7 @@ public class QueryPredicateIsNotNull implements QueryPredicate {
     }
 
     @Override
-    public Exp toFilterExpression() {
+    public Exp toFilterExpression(boolean withPrimaryKey) {
         return binName.equals(PRIMARY_KEY_COLUMN_NAME)
                 ? Exp.keyExists()
                 : Exp.binExists(binName);

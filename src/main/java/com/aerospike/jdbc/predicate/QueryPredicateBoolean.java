@@ -26,9 +26,19 @@ public class QueryPredicateBoolean implements QueryPredicate {
         this.right = right;
     }
 
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static <T> Optional<T> or(Optional<T> optional, Optional<T> fallback) {
+        return optional.isPresent() ? optional : fallback;
+    }
+
     @Override
-    public Exp toFilterExpression() {
-        return operator.exp(left.toFilterExpression(), right.toFilterExpression());
+    public Exp toFilterExpression(boolean withPrimaryKey) {
+        Exp leftExp = left.toFilterExpression(withPrimaryKey);
+        Exp rightExp = right.toFilterExpression(withPrimaryKey);
+        if (leftExp == null || rightExp == null) {
+            return leftExp == null ? rightExp : leftExp;
+        }
+        return operator.exp(leftExp, rightExp);
     }
 
     @Override
@@ -64,10 +74,5 @@ public class QueryPredicateBoolean implements QueryPredicate {
                     .collect(Collectors.toSet());
         }
         return Collections.emptyList();
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static <T> Optional<T> or(Optional<T> optional, Optional<T> fallback) {
-        return optional.isPresent() ? optional : fallback;
     }
 }

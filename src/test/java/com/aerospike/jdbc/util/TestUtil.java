@@ -12,16 +12,16 @@ public final class TestUtil {
     }
 
     public static void printResultSet(ResultSet rs) throws SQLException {
-        ResultSetMetaData rsmd = rs.getMetaData();
-        for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+        ResultSetMetaData resultSetMetaData = rs.getMetaData();
+        for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
             if (i != 1) {
                 System.out.print(", ");
             }
-            System.out.print(rsmd.getColumnName(i));
+            System.out.print(resultSetMetaData.getColumnName(i));
         }
         System.out.println();
         while (rs.next()) {
-            for (int i = 1; i <= rsmd.getColumnCount(); i++) {
+            for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
                 if (i != 1) {
                     System.out.print(", ");
                 }
@@ -41,11 +41,19 @@ public final class TestUtil {
     }
 
     public static boolean executeQuery(Connection conn, String sql) throws SQLException {
-        Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(sql);
-        boolean hasNext = rs.next();
-        rs.close();
-        stmt.close();
+        Statement statement = conn.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        boolean hasNext = resultSet.next();
+        resultSet.close();
+        statement.close();
         return hasNext;
+    }
+
+    @SuppressWarnings("all")
+    public static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+        }
     }
 }

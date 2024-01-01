@@ -1,7 +1,6 @@
 package com.aerospike.jdbc.query;
 
 import com.aerospike.client.IAerospikeClient;
-import com.aerospike.client.exp.Exp;
 import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.BatchWritePolicy;
 import com.aerospike.client.policy.QueryPolicy;
@@ -23,15 +22,13 @@ public class PolicyBuilder {
     public ScanPolicy buildScanPolicy(AerospikeQuery query) {
         ScanPolicy scanPolicy = new ScanPolicy(client.getScanPolicyDefault());
         scanPolicy.maxRecords = Objects.isNull(query.getLimit()) ? 0 : query.getLimit();
-        scanPolicy.filterExp = Objects.isNull(query.getPredicate())
-                ? null : Exp.build(query.getPredicate().toFilterExpression());
+        scanPolicy.filterExp = query.toFilterExpression(true);
         return scanPolicy;
     }
 
     public QueryPolicy buildQueryPolicy(AerospikeQuery query) {
         QueryPolicy queryPolicy = new QueryPolicy(client.getQueryPolicyDefault());
-        queryPolicy.filterExp = Objects.isNull(query.getPredicate())
-                ? null : Exp.build(query.getPredicate().toFilterExpression());
+        queryPolicy.filterExp = query.toFilterExpression(true);
         return queryPolicy;
     }
 
@@ -43,8 +40,7 @@ public class PolicyBuilder {
 
     public WritePolicy buildWritePolicy(AerospikeQuery query) {
         WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
-        writePolicy.filterExp = Objects.isNull(query.getPredicate())
-                ? null : Exp.build(query.getPredicate().toFilterExpression());
+        writePolicy.filterExp = query.toFilterExpression(true);
         return writePolicy;
     }
 
@@ -56,8 +52,7 @@ public class PolicyBuilder {
 
     public BatchReadPolicy buildBatchReadPolicy(AerospikeQuery query) {
         BatchReadPolicy batchReadPolicy = new BatchReadPolicy();
-        batchReadPolicy.filterExp = Objects.isNull(query.getPredicate())
-                ? null : Exp.build(query.getPredicate().toFilterExpression());
+        batchReadPolicy.filterExp = query.toFilterExpression(false);
         return batchReadPolicy;
     }
 

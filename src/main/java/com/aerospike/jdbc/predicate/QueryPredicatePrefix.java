@@ -21,8 +21,12 @@ public class QueryPredicatePrefix implements QueryPredicate {
     }
 
     @Override
-    public Exp toFilterExpression() {
-        return operator.exp(right.toFilterExpression());
+    public Exp toFilterExpression(boolean withPrimaryKey) {
+        Exp rightExp = right.toFilterExpression(withPrimaryKey);
+        if (rightExp == null) {
+            return null;
+        }
+        return operator.exp(rightExp);
     }
 
     @Override

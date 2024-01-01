@@ -1,10 +1,11 @@
 package com.aerospike.jdbc.predicate;
 
 import com.aerospike.client.exp.Exp;
-import com.aerospike.jdbc.util.Constants;
 
 import java.util.Collections;
 import java.util.List;
+
+import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public abstract class QueryPredicateBase implements QueryPredicate {
 
@@ -64,8 +65,12 @@ public abstract class QueryPredicateBase implements QueryPredicate {
         }
     }
 
+    protected boolean isPrimaryKeyPredicate() {
+        return binName.equals(PRIMARY_KEY_COLUMN_NAME);
+    }
+
     protected Exp buildLeftExp() {
-        return binName.equals(Constants.PRIMARY_KEY_COLUMN_NAME)
+        return isPrimaryKeyPredicate()
                 ? Exp.key(valueType)
                 : Exp.bin(binName, valueType);
     }

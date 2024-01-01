@@ -1,5 +1,7 @@
 package com.aerospike.jdbc.model;
 
+import com.aerospike.client.exp.Exp;
+import com.aerospike.client.exp.Expression;
 import com.aerospike.jdbc.predicate.QueryPredicate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -174,6 +176,14 @@ public class AerospikeQuery {
 
     public boolean isIndexable() {
         return Objects.nonNull(predicate) && predicate.isIndexable() && Objects.isNull(offset);
+    }
+
+    public Expression toFilterExpression(boolean withPrimaryKey) {
+        if (predicate == null) {
+            return null;
+        }
+        Exp exp = predicate.toFilterExpression(withPrimaryKey);
+        return exp == null ? null : Exp.build(exp);
     }
 
     @Override
