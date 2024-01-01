@@ -14,7 +14,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.Collection;
+import java.util.List;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -60,7 +60,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         updateCount = result.getRight();
     }
 
-    protected AerospikeQuery parseQuery(String sql, Collection<Object> sqlParameters) throws SQLException {
+    protected AerospikeQuery parseQuery(String sql, List<Object> sqlParameters) throws SQLException {
         sql = sql.replace("\n", " ");
         AerospikeQuery query;
         try {

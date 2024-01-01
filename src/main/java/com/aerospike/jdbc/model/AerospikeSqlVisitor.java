@@ -12,8 +12,8 @@ import org.apache.calcite.sql.util.SqlVisitor;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
@@ -31,7 +31,7 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
         this(null);
     }
 
-    public AerospikeSqlVisitor(@Nullable Collection<Object> sqlParameters) {
+    public AerospikeSqlVisitor(@Nullable List<Object> sqlParameters) {
         query = new AerospikeQuery();
         sqlParametersIterator = sqlParameters != null ? sqlParameters.iterator() : null;
     }
