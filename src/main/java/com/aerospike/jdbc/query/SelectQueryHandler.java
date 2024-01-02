@@ -163,6 +163,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         }
         return columns.stream()
                 .filter(c -> query.getColumns().contains(c.getName()))
+                .sorted(Comparator.comparing(c -> query.getColumns().indexOf(c.getName())))
                 .collect(Collectors.toList());
     }
 }

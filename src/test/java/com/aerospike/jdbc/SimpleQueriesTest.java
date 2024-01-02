@@ -220,7 +220,8 @@ public class SimpleQueriesTest {
     public void testSelectNotEqualsQuery() throws SQLException {
         Statement statement = null;
         ResultSet resultSet = null;
-        String query = format("SELECT %s, int2 FROM %s WHERE int2 <> 2", PRIMARY_KEY_COLUMN_NAME, TABLE_NAME);
+        String query = format("SELECT ne1, int2, ne2, bool1, ne3, %s, ne4 FROM %s WHERE int2 <> 2",
+                PRIMARY_KEY_COLUMN_NAME, TABLE_NAME);
         try {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
@@ -228,9 +229,11 @@ public class SimpleQueriesTest {
 
             assertEquals(resultSet.getString(PRIMARY_KEY_COLUMN_NAME), testRecord.getPrimaryKey());
             assertEquals(resultSet.getInt("int2"), testRecord.getInt2());
+            assertEquals(resultSet.getBoolean("bool1"), testRecord.getBool1());
 
-            assertEquals(resultSet.getString(1), testRecord.getPrimaryKey());
-            assertEquals(resultSet.getInt(2), testRecord.getInt2());
+            assertEquals(resultSet.getInt(1), testRecord.getInt2());
+            assertEquals(resultSet.getBoolean(2), testRecord.getBool1());
+            assertEquals(resultSet.getString(3), testRecord.getPrimaryKey());
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

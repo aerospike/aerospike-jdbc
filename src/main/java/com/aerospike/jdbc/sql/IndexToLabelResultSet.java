@@ -176,6 +176,7 @@ public interface IndexToLabelResultSet extends ResultSet {
         return getObject(getColumnLabel(columnIndex), type);
     }
 
+    @Override
     default Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
         return getObject(getColumnLabel(columnIndex), map);
     }
