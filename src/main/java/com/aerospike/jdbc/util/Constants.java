@@ -5,6 +5,10 @@ public final class Constants {
     public static final String PRIMARY_KEY_COLUMN_NAME = "__key";
     public static final String DEFAULT_SCHEMA_NAME = "__default";
 
+    public static final String METADATA_DIGEST_COLUMN_NAME = "__digest";
+    public static final String METADATA_TTL_COLUMN_NAME = "__ttl";
+    public static final String METADATA_GEN_COLUMN_NAME = "__gen";
+
     public static final String UNSUPPORTED_QUERY_TYPE_MESSAGE = "Unsupported query type";
 
     // Driver version

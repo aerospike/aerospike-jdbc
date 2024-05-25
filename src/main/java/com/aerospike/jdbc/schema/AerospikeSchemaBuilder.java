@@ -6,16 +6,21 @@ import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.jdbc.model.CatalogTableName;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.DriverPolicy;
+import com.aerospike.jdbc.model.Pair;
 
 import java.sql.Types;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.Constants.DEFAULT_SCHEMA_NAME;
+import static com.aerospike.jdbc.util.Constants.METADATA_DIGEST_COLUMN_NAME;
+import static com.aerospike.jdbc.util.Constants.METADATA_GEN_COLUMN_NAME;
+import static com.aerospike.jdbc.util.Constants.METADATA_TTL_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 
 public final class AerospikeSchemaBuilder {
@@ -23,30 +28,22 @@ public final class AerospikeSchemaBuilder {
     private static final Logger logger = Logger.getLogger(AerospikeSchemaBuilder.class.getName());
 
     private final IAerospikeClient client;
+    private final DriverPolicy driverPolicy;
     private final AerospikeSchemaCache schemaCache;
-    private final int scanMaxRecords;
 
     public AerospikeSchemaBuilder(IAerospikeClient client, DriverPolicy driverPolicy) {
         this.client = client;
+        this.driverPolicy = driverPolicy;
         schemaCache = new AerospikeSchemaCache(Duration.ofSeconds(driverPolicy.getMetadataCacheTtlSeconds()));
-        scanMaxRecords = driverPolicy.getSchemaBuilderMaxRecords();
     }
 
     public List<DataColumn> getSchema(CatalogTableName catalogTableName) {
         return schemaCache.get(catalogTableName).orElseGet(() -> {
             logger.info(() -> "Fetching CatalogTableName: " + catalogTableName);
-            final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
-            ScanPolicy policy = new ScanPolicy(client.getScanPolicyDefault());
-            policy.maxRecords = scanMaxRecords;
+            final Map<String, DataColumn> columnHandles = initColumnHandles(catalogTableName);
 
-            // add record key column handler
-            columnHandles.put(PRIMARY_KEY_COLUMN_NAME,
-                    new DataColumn(
-                            catalogTableName.getCatalogName(),
-                            catalogTableName.getTableName(),
-                            Types.VARCHAR,
-                            PRIMARY_KEY_COLUMN_NAME,
-                            PRIMARY_KEY_COLUMN_NAME));
+            ScanPolicy policy = new ScanPolicy(client.getScanPolicyDefault());
+            policy.maxRecords = driverPolicy.getSchemaBuilderMaxRecords();
 
             client.scanAll(policy, catalogTableName.getCatalogName(), toSet(catalogTableName.getTableName()),
                     (key, rec) -> {
@@ -67,6 +64,34 @@ public final class AerospikeSchemaBuilder {
             schemaCache.put(catalogTableName, columns);
             return columns;
         });
+    }
+
+    private Map<String, DataColumn> initColumnHandles(CatalogTableName catalogTableName) {
+        final Map<String, DataColumn> columnHandles = new TreeMap<>(String::compareToIgnoreCase);
+        final List<Pair<String, Integer>> metadataColumns = new ArrayList<>();
+
+        // add record key column handler
+        metadataColumns.add(Pair.of(PRIMARY_KEY_COLUMN_NAME, Types.VARCHAR));
+
+        // add record metadata column handlers
+        if (driverPolicy.getShowRecordMetadata()) {
+            metadataColumns.addAll(Arrays.asList(
+                    Pair.of(METADATA_DIGEST_COLUMN_NAME, Types.VARCHAR),
+                    Pair.of(METADATA_GEN_COLUMN_NAME, Types.INTEGER),
+                    Pair.of(METADATA_TTL_COLUMN_NAME, Types.INTEGER)
+            ));
+        }
+
+        for (Pair<String, Integer> md : metadataColumns) {
+            columnHandles.put(md.getLeft(),
+                    new DataColumn(
+                            catalogTableName.getCatalogName(),
+                            catalogTableName.getTableName(),
+                            md.getRight(),
+                            md.getLeft(),
+                            md.getLeft()));
+        }
+        return columnHandles;
     }
 
     private String toSet(String tableName) {
