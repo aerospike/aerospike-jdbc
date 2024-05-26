@@ -39,3 +39,4 @@ Consider setting a custom value if really necessary.
 | recordSetTimeoutMs      | 1000    | Timeout for the asynchronous queue write operation in milliseconds     |
 | metadataCacheTtlSeconds | 3600    | Database metadata cache TTL in seconds                                 |
 | schemaBuilderMaxRecords | 1000    | The number of records to be used to build the table schema             |
+| showRecordMetadata      | false   | Add record metadata columns (__digest, __ttl, __gen)                   |

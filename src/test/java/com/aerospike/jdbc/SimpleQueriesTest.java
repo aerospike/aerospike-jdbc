@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+import static com.aerospike.jdbc.util.Constants.METADATA_DIGEST_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.aerospike.jdbc.util.TestConfig.HOSTNAME;
 import static com.aerospike.jdbc.util.TestConfig.NAMESPACE;
@@ -25,6 +26,7 @@ import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 public class SimpleQueriesTest {
@@ -93,6 +95,7 @@ public class SimpleQueriesTest {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
             while (resultSet.next()) {
+                assertNull(resultSet.getObject(METADATA_DIGEST_COLUMN_NAME));
                 testRecord.assertResultSet(resultSet);
 
                 total++;

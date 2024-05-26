@@ -10,6 +10,10 @@ public class Pair<L, R> {
         this.right = right;
     }
 
+    public static <L, R> Pair<L, R> of(L left, R right) {
+        return new Pair<>(left, right);
+    }
+
     public L getLeft() {
         return left;
     }
