@@ -29,7 +29,7 @@
         <aerospike-client.version>7.2.0</aerospike-client.version>
         <netty.version>4.1.104.Final</netty.version>
         <jackson.version>2.16.1</jackson.version>
-        <calcite.version>1.36.0</calcite.version>
+        <calcite.version>1.37.0</calcite.version>
         <guava.version>33.0.0-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
