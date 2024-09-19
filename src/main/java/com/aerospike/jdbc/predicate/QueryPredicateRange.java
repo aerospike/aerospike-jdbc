@@ -24,9 +24,11 @@ public class QueryPredicateRange extends QueryPredicateBase {
 
     @Override
     public Exp toFilterExpression(boolean withPrimaryKey) {
+        // ANSI SQL defines the BETWEEN operator to be inclusive,
+        // so both boundary values are included in the range.
         return Exp.and(
                 Exp.ge(buildLeftExp(), getValueExp(lowValue)),
-                Exp.lt(buildLeftExp(), getValueExp(highValue))
+                Exp.le(buildLeftExp(), getValueExp(highValue))
         );
     }
 

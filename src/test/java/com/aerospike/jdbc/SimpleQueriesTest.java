@@ -304,10 +304,27 @@ public class SimpleQueriesTest {
     }
 
     @Test
-    public void testSelectBetweenQuery() throws SQLException {
+    public void testSelectLowerBoundaryBetweenQuery() throws SQLException {
         Statement statement = null;
         ResultSet resultSet = null;
         String query = format("SELECT * FROM %s WHERE int2 BETWEEN 1 AND 3", TABLE_NAME);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+
+            testRecord.assertResultSet(resultSet);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectUpperBoundaryBetweenQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = format("SELECT * FROM %s WHERE int2 BETWEEN 0 AND 1", TABLE_NAME);
         try {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
