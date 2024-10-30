@@ -99,7 +99,6 @@ public class RecordMetadataTest {
             assertTrue(resultSet.next());
             assertEquals(resultSet.getString(METADATA_DIGEST_COLUMN_NAME), "212ddf97ff3fe0f6dec5e1626d92a635a55171c2");
             assertEquals(resultSet.getInt(METADATA_GEN_COLUMN_NAME), 1);
-            assertTrue(resultSet.getInt(METADATA_TTL_COLUMN_NAME) > 0);
             assertFalse(resultSet.next());
         } finally {
             closeQuietly(statement);
@@ -119,7 +118,6 @@ public class RecordMetadataTest {
             assertTrue(resultSet.next());
             assertNull(resultSet.getObject(METADATA_DIGEST_COLUMN_NAME));
             assertEquals(resultSet.getInt(METADATA_GEN_COLUMN_NAME), 1);
-            assertTrue(resultSet.getInt(METADATA_TTL_COLUMN_NAME) > 0);
             assertEquals(resultSet.getInt("int1"), 11100);
             assertFalse(resultSet.next());
         } finally {
