@@ -11,6 +11,7 @@ import java.util.Properties;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
 
 public class ParseJdbcUrlTest {
@@ -68,6 +69,14 @@ public class ParseJdbcUrlTest {
 
         connection.setClientInfo("recordSetTimeoutMs", "7000");
         assertEquals(config.getDriverPolicy().getRecordSetTimeoutMs(), 7000);
+    }
+
+    @Test
+    public void testInapplicableUrl() throws Exception {
+        AerospikeDriver driver = (AerospikeDriver) Class.forName("com.aerospike.jdbc.AerospikeDriver")
+                .newInstance();
+        String url = "jdbc:postgresql://localhost:5432/sample";
+        assertNull(driver.connect(url, new Properties()));
     }
 
     private void assertTotalTimeoutAll(IAerospikeClient client, int timeout) {

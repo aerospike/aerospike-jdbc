@@ -21,6 +21,7 @@ import static java.util.stream.Collectors.toList;
 public class AerospikeDriver implements Driver {
 
     private static final Logger logger = Logger.getLogger("com.aerospike.jdbc");
+    private static final String AEROSPIKE_URL_PREFIX = "jdbc:aerospike:";
 
     static {
         try {
@@ -33,12 +34,19 @@ public class AerospikeDriver implements Driver {
         Log.setCallback(asLoggerCallback);
     }
 
-    public Connection connect(String url, Properties info) {
+    public Connection connect(String url, Properties info) throws SQLException {
+        if (url == null) {
+            throw new SQLException("url is null");
+        }
+        if (!url.startsWith(AEROSPIKE_URL_PREFIX)) {
+            return null;
+        }
+
         return new AerospikeConnection(url, info);
     }
 
     public boolean acceptsURL(String url) {
-        return Objects.nonNull(url) && url.startsWith("jdbc:aerospike:");
+        return Objects.nonNull(url) && url.startsWith(AEROSPIKE_URL_PREFIX);
     }
 
     public DriverPropertyInfo[] getPropertyInfo(String url, Properties info) {
