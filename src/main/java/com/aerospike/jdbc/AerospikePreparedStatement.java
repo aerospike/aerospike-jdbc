@@ -49,6 +49,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public ResultSet executeQuery() throws SQLException {
+        checkClosed();
+
         logger.info(() -> format("executeQuery: %s, params: %s", sqlStatement, Arrays.toString(sqlParameters)));
         AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         runQuery(query);
@@ -178,6 +180,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public boolean execute() throws SQLException {
+        checkClosed();
+
         logger.info(() -> format("execute: %s, params: %s", sqlStatement, Arrays.toString(sqlParameters)));
         AerospikeQuery query = parseQuery(sqlStatement, Arrays.asList(sqlParameters));
         runQuery(query);

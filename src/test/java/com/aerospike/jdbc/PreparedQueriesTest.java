@@ -27,6 +27,7 @@ import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 public class PreparedQueriesTest {
@@ -326,5 +327,15 @@ public class PreparedQueriesTest {
             closeQuietly(statement);
             closeQuietly(resultSet);
         }
+    }
+
+    @Test
+    public void testStatementClosed() {
+        String query = format("select * from %s limit 10", TABLE_NAME);
+        assertThrows(SQLException.class, () -> {
+            PreparedStatement statement = connection.prepareStatement(query);
+            statement.close();
+            statement.executeQuery();
+        });
     }
 }

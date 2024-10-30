@@ -15,6 +15,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
@@ -33,6 +34,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     protected final IAerospikeClient client;
     protected final AerospikeConnection connection;
 
+    private final AtomicBoolean isClosed = new AtomicBoolean();
+
     protected String catalog;
     protected ResultSet resultSet;
     protected int updateCount;
@@ -48,6 +51,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
+        checkClosed();
+
         logger.info(() -> "executeQuery: " + sql);
         AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
@@ -82,7 +87,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void close() {
-        // do nothing
+        isClosed.set(true);
     }
 
     @Override
@@ -142,6 +147,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public boolean execute(String sql) throws SQLException {
+        checkClosed();
+
         logger.info(() -> "execute: " + sql);
         AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
@@ -281,7 +288,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public boolean isClosed() {
-        return false;
+        return isClosed.get();
     }
 
     @Override
@@ -304,5 +311,11 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public boolean isCloseOnCompletion() {
         return false;
+    }
+
+    protected void checkClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Statement is closed");
+        }
     }
 }

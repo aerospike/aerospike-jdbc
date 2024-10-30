@@ -27,6 +27,7 @@ import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertThrows;
 import static org.testng.Assert.assertTrue;
 
 public class SimpleQueriesTest {
@@ -335,5 +336,15 @@ public class SimpleQueriesTest {
             closeQuietly(statement);
             closeQuietly(resultSet);
         }
+    }
+
+    @Test
+    public void testStatementClosed() {
+        String query = format("SELECT count(*) FROM %s", TABLE_NAME);
+        assertThrows(SQLException.class, () -> {
+            Statement statement = connection.createStatement();
+            statement.close();
+            statement.executeQuery(query);
+        });
     }
 }
