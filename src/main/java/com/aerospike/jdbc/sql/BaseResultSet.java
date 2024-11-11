@@ -85,7 +85,7 @@ public abstract class BaseResultSet<T> implements ResultSet,
 
     @Override
     public void clearWarnings() {
-        // do nothing
+        // no-op
     }
 
     @Override

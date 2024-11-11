@@ -10,6 +10,7 @@ import com.aerospike.jdbc.util.AerospikeVersion;
 import com.aerospike.jdbc.util.DatabaseMetadataBuilder;
 
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -28,7 +29,7 @@ import static java.util.Collections.emptyMap;
 public class AerospikeConnection implements Connection, SimpleWrapper {
 
     private static final Logger logger = Logger.getLogger(AerospikeConnection.class.getName());
-    private static final String NOT_TRANSACTIONAL_MESSAGE = "Connection is not transactional";
+    private static final String SAVEPOINT_NOT_SUPPORTED_MESSAGE = "Savepoint is not supported";
 
     private final String url;
     private final DriverConfiguration config;
@@ -69,22 +70,26 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public String nativeSQL(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException("nativeSQL is not supported");
+        checkClosed();
+        return sql;
     }
 
     @Override
-    public boolean getAutoCommit() {
+    public boolean getAutoCommit() throws SQLException {
+        checkClosed();
         return true;
     }
 
     @Override
-    public void setAutoCommit(boolean autoCommit) {
-        // do nothing
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
+        checkClosed();
+        // no-op
     }
 
     @Override
-    public void commit() {
-        // do nothing
+    public void commit() throws SQLException {
+        checkClosed();
+        // no-op
     }
 
     @Override
@@ -106,40 +111,44 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
+        checkClosed();
         logger.fine(() -> "getMetaData request");
         return metadataBuilder.build(url, this);
     }
 
     @Override
-    public boolean isReadOnly() {
+    public boolean isReadOnly() throws SQLException {
+        checkClosed();
         return readOnly;
     }
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
-        if (!isValid(1)) {
-            throw new SQLException("Cannot set read only mode on closed connection");
-        }
+        checkClosed();
         this.readOnly = readOnly;
     }
 
     @Override
-    public String getCatalog() {
+    public String getCatalog() throws SQLException {
+        checkClosed();
         return catalog.get();
     }
 
     @Override
-    public void setCatalog(String catalog) {
+    public void setCatalog(String catalog) throws SQLException {
+        checkClosed();
         this.catalog.set(catalog);
     }
 
     @Override
-    public int getTransactionIsolation() {
+    public int getTransactionIsolation() throws SQLException {
+        checkClosed();
         return TRANSACTION_NONE;
     }
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
+        checkClosed();
         if (level != TRANSACTION_NONE) {
             throw new SQLFeatureNotSupportedException(format("Aerospike does not support transactions," +
                     " so the only valid value here is TRANSACTION_NONE=%d", TRANSACTION_NONE));
@@ -147,13 +156,15 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public SQLWarning getWarnings() {
+    public SQLWarning getWarnings() throws SQLException {
+        checkClosed();
         return null;
     }
 
     @Override
-    public void clearWarnings() {
-        // do nothing
+    public void clearWarnings() throws SQLException {
+        checkClosed();
+        // no-op
     }
 
     @Override
@@ -173,26 +184,27 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public Map<String, Class<?>> getTypeMap() {
+    public Map<String, Class<?>> getTypeMap() throws SQLException {
+        checkClosed();
         return typeMap;
     }
 
     @Override
-    public void setTypeMap(Map<String, Class<?>> map) {
+    public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+        checkClosed();
         typeMap = map;
     }
 
     @Override
-    public int getHoldability() {
+    public int getHoldability() throws SQLException {
+        checkClosed();
         return holdability;
     }
 
     @Override
     public void setHoldability(int holdability) throws SQLException {
-        if (isClosed()) {
-            throw new SQLException("Cannot set holdability on closed connection");
-        }
-        if (!(holdability == HOLD_CURSORS_OVER_COMMIT || holdability == CLOSE_CURSORS_AT_COMMIT)) {
+        checkClosed();
+        if (holdability != HOLD_CURSORS_OVER_COMMIT && holdability != CLOSE_CURSORS_AT_COMMIT) {
             throw new SQLException(format(
                     "Unsupported holdability %d. Must be either HOLD_CURSORS_OVER_COMMIT=%d or CLOSE_CURSORS_AT_COMMIT=%d",
                     holdability,
@@ -205,27 +217,28 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public Savepoint setSavepoint() throws SQLException {
-        throw new SQLFeatureNotSupportedException(NOT_TRANSACTIONAL_MESSAGE);
+        throw new SQLFeatureNotSupportedException(SAVEPOINT_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public Savepoint setSavepoint(String name) throws SQLException {
-        throw new SQLFeatureNotSupportedException(NOT_TRANSACTIONAL_MESSAGE);
+        throw new SQLFeatureNotSupportedException(SAVEPOINT_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public void rollback(Savepoint savepoint) throws SQLException {
-        throw new SQLFeatureNotSupportedException(NOT_TRANSACTIONAL_MESSAGE);
+        throw new SQLFeatureNotSupportedException(SAVEPOINT_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public void releaseSavepoint(Savepoint savepoint) throws SQLException {
-        throw new SQLFeatureNotSupportedException(NOT_TRANSACTIONAL_MESSAGE);
+        throw new SQLFeatureNotSupportedException(SAVEPOINT_NOT_SUPPORTED_MESSAGE);
     }
 
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability)
             throws SQLException {
+        checkClosed();
         validateResultSetParameters(resultSetType, resultSetConcurrency, resultSetHoldability);
         return new AerospikeStatement(client, this);
     }
@@ -233,6 +246,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
                                               int resultSetHoldability) throws SQLException {
+        checkClosed();
         validateResultSetParameters(resultSetType, resultSetConcurrency, resultSetHoldability);
         return new AerospikePreparedStatement(client, this, sql);
     }
@@ -245,7 +259,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
         if (resultSetConcurrency != CONCUR_READ_ONLY) {
             throw new SQLFeatureNotSupportedException("Updatable ResultSet is not supported yet");
         }
-        if (!(resultSetHoldability == HOLD_CURSORS_OVER_COMMIT || resultSetHoldability == CLOSE_CURSORS_AT_COMMIT)) {
+        if (resultSetHoldability != HOLD_CURSORS_OVER_COMMIT && resultSetHoldability != CLOSE_CURSORS_AT_COMMIT) {
             throw new SQLException(format("Wrong value for the resultSetHoldability (%d). Supported values are: " +
                             "HOLD_CURSORS_OVER_COMMIT=%d or CLOSE_CURSORS_AT_COMMIT=%d", resultSetHoldability,
                     HOLD_CURSORS_OVER_COMMIT, CLOSE_CURSORS_AT_COMMIT));
@@ -274,17 +288,19 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public Clob createClob() {
-        return new StringClob();
+    public Clob createClob() throws SQLException {
+        return createNClob();
     }
 
     @Override
-    public Blob createBlob() {
+    public Blob createBlob() throws SQLException {
+        checkClosed();
         return new ByteArrayBlob();
     }
 
     @Override
-    public NClob createNClob() {
+    public NClob createNClob() throws SQLException {
+        checkClosed();
         return new StringClob();
     }
 
@@ -295,27 +311,45 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public boolean isValid(int timeout) {
-        return client.isConnected() && Objects.nonNull(client.getClusterStats());
+        return !isClosed() && client.isConnected() && Objects.nonNull(client.getClusterStats());
     }
 
     @Override
-    public void setClientInfo(String name, String value) {
+    public void setClientInfo(String name, String value) throws SQLClientInfoException {
+        try {
+            checkClosed();
+        } catch (final SQLException cause) {
+            Map<String, ClientInfoStatus> failedProperties = new HashMap<>();
+            failedProperties.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException(failedProperties, cause);
+        }
         logger.info(() -> format("Set client info: %s -> %s", name, value));
         config.put(name, value);
     }
 
     @Override
-    public String getClientInfo(String name) {
+    public String getClientInfo(String name) throws SQLException {
+        checkClosed();
         return config.getClientInfo().getProperty(name);
     }
 
     @Override
-    public Properties getClientInfo() {
+    public Properties getClientInfo() throws SQLException {
+        checkClosed();
         return config.getClientInfo();
     }
 
     @Override
-    public void setClientInfo(Properties properties) {
+    public void setClientInfo(Properties properties) throws SQLClientInfoException {
+        try {
+            checkClosed();
+        } catch (final SQLException cause) {
+            Map<String, ClientInfoStatus> failedProperties = new HashMap<>();
+            for (Object key : properties.keySet()) {
+                failedProperties.put((String) key, ClientInfoStatus.REASON_UNKNOWN);
+            }
+            throw new SQLClientInfoException(failedProperties, cause);
+        }
         logger.info(() -> format("Set client info: %s", properties));
         config.putAll(properties);
     }
@@ -331,22 +365,33 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public String getSchema() {
+    @SuppressWarnings("java:S4144")
+    public String getSchema() throws SQLException {
+        checkClosed();
         return null;
     }
 
     @Override
-    public void setSchema(String schema) {
-        // do nothing
+    public void setSchema(String schema) throws SQLException {
+        checkClosed();
+        // no-op
     }
 
     @Override
-    public void abort(Executor executor) {
+    public void abort(Executor executor) throws SQLException {
+        if (executor == null) {
+            throw new SQLException("executor is null");
+        }
         executor.execute(this::close);
     }
 
     @Override
-    public void setNetworkTimeout(Executor executor, int milliseconds) {
+    public void setNetworkTimeout(Executor executor, int milliseconds) throws SQLException {
+        checkClosed();
+        if (milliseconds < 0) {
+            throw new SQLException("Timeout must be a non-negative value in milliseconds");
+        }
+
         stream(new Policy[]{
                 client.getReadPolicyDefault(),
                 client.getWritePolicyDefault(),
@@ -361,8 +406,15 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
-    public int getNetworkTimeout() {
+    public int getNetworkTimeout() throws SQLException {
+        checkClosed();
         return client.getReadPolicyDefault().totalTimeout;
+    }
+
+    protected void checkClosed() throws SQLException {
+        if (isClosed()) {
+            throw new SQLException("Connection is closed");
+        }
     }
 
     public DriverConfiguration getConfiguration() {
