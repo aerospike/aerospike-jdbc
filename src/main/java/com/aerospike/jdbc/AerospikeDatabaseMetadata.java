@@ -114,7 +114,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
     }
 
     @Override
-    public String getUserName() {
+    public String getUserName() throws SQLException {
         return connection.getClientInfo().getProperty("user");
     }
 

@@ -43,7 +43,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     private int maxRows = Integer.MAX_VALUE;
     private int queryTimeout;
 
-    public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) {
+    public AerospikeStatement(IAerospikeClient client, AerospikeConnection connection) throws SQLException {
         this.client = client;
         this.connection = connection;
         this.catalog = connection.getCatalog();
@@ -112,7 +112,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void setEscapeProcessing(boolean enable) {
-        // do nothing
+        // no-op
     }
 
     @Override
@@ -137,7 +137,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void clearWarnings() {
-        // do nothing
+        // no-op
     }
 
     @Override
@@ -190,7 +190,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void setFetchSize(int rows) {
-        // do nothing supported size = 1.
+        // no-op; supported size = 1.
     }
 
     @Override
@@ -305,7 +305,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void closeOnCompletion() {
-        // do nothing
+        // no-op
     }
 
     @Override

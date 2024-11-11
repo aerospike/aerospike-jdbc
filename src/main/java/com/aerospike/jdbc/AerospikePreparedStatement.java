@@ -35,7 +35,8 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     private final String sqlStatement;
     private final Object[] sqlParameters;
 
-    public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection, String sqlStatement) {
+    public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection,
+                                      String sqlStatement) throws SQLException {
         super(client, connection);
         this.sqlStatement = sqlStatement;
         sqlParameters = buildSqlParameters(sqlStatement);
