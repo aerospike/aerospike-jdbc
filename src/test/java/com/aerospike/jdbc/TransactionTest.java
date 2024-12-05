@@ -49,7 +49,7 @@ public class TransactionTest {
         String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true&user=%s&password=%s&durableDelete=true",
                 HOSTNAME, PORT, NAMESPACE, "", "");
         connection = DriverManager.getConnection(url);
-        connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 50000);
+        connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
     }
 
     @AfterClass
