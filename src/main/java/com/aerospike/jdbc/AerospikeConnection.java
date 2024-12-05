@@ -189,15 +189,14 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public int getTransactionIsolation() throws SQLException {
         checkClosed();
-        return TRANSACTION_NONE;
+        return TRANSACTION_SERIALIZABLE;
     }
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
         checkClosed();
-        if (level != TRANSACTION_NONE) {
-            throw new SQLFeatureNotSupportedException(format("Aerospike does not support transactions," +
-                    " so the only valid value here is TRANSACTION_NONE=%d", TRANSACTION_NONE));
+        if (level != TRANSACTION_SERIALIZABLE) {
+            throw new SQLException(format("Unsupported transaction isolation level: %d", level));
         }
     }
 
