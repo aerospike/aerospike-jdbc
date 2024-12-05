@@ -31,7 +31,7 @@ public class UpdateQueryHandler extends BaseQueryHandler {
     public Pair<ResultSet, Integer> execute(AerospikeQuery query) {
         Collection<Object> keyObjects = query.getPrimaryKeys();
         final Bin[] bins = getBins(query);
-        final WritePolicy writePolicy = policyBuilder.buildUpdateOnlyPolicy();
+        final WritePolicy writePolicy = policyBuilder.buildUpdateOnlyPolicy(query);
         if (!keyObjects.isEmpty()) {
             logger.info("UPDATE primary key");
             FutureWriteListener listener = new FutureWriteListener(keyObjects.size());

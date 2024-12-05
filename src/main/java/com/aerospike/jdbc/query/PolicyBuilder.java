@@ -1,6 +1,7 @@
 package com.aerospike.jdbc.query;
 
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.policy.BatchPolicy;
 import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.BatchWritePolicy;
 import com.aerospike.client.policy.QueryPolicy;
@@ -41,13 +42,21 @@ public class PolicyBuilder {
     public WritePolicy buildWritePolicy(AerospikeQuery query) {
         WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
         writePolicy.filterExp = query.toFilterExpression(true);
+        writePolicy.txn = query.getTxn();
         return writePolicy;
     }
 
-    public WritePolicy buildDeleteWritePolicy() {
+    public WritePolicy buildDeleteWritePolicy(AerospikeQuery query) {
         WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
         writePolicy.sendKey = false;
+        writePolicy.txn = query.getTxn();
         return writePolicy;
+    }
+
+    public BatchPolicy buildBatchPolicyDefault(AerospikeQuery query) {
+        BatchPolicy batchPolicy = new BatchPolicy(client.getBatchPolicyDefault());
+        batchPolicy.txn = query.getTxn();
+        return batchPolicy;
     }
 
     public BatchReadPolicy buildBatchReadPolicy(AerospikeQuery query) {
@@ -64,15 +73,17 @@ public class PolicyBuilder {
         return batchWritePolicy;
     }
 
-    public WritePolicy buildCreateOnlyPolicy() {
+    public WritePolicy buildCreateOnlyPolicy(AerospikeQuery query) {
         WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
         writePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
+        writePolicy.txn = query.getTxn();
         return writePolicy;
     }
 
-    public WritePolicy buildUpdateOnlyPolicy() {
+    public WritePolicy buildUpdateOnlyPolicy(AerospikeQuery query) {
         WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
         writePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
+        writePolicy.txn = query.getTxn();
         return writePolicy;
     }
 }

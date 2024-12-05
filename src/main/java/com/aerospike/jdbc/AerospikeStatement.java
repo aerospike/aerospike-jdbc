@@ -76,6 +76,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         if (query.getCatalog() == null) {
             query.setCatalog(catalog);
         }
+        query.setTxn(connection.getTxn());
         return query;
     }
 

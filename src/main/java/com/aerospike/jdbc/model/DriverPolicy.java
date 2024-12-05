@@ -13,6 +13,7 @@ public class DriverPolicy {
     private final int recordSetTimeoutMs;
     private final int metadataCacheTtlSeconds;
     private final int schemaBuilderMaxRecords;
+    private final int txnTimeoutSeconds;
     private final boolean showRecordMetadata;
 
     public DriverPolicy(Properties properties) {
@@ -24,6 +25,7 @@ public class DriverPolicy {
                 DEFAULT_METADATA_CACHE_TTL_SECONDS);
         schemaBuilderMaxRecords = parseInt(properties.getProperty("schemaBuilderMaxRecords"),
                 DEFAULT_SCHEMA_BUILDER_MAX_RECORDS);
+        txnTimeoutSeconds = parseInt(properties.getProperty("txnTimeoutSeconds"), 0);
         showRecordMetadata = Boolean.parseBoolean(properties.getProperty("showRecordMetadata"));
     }
 
@@ -41,6 +43,10 @@ public class DriverPolicy {
 
     public int getSchemaBuilderMaxRecords() {
         return schemaBuilderMaxRecords;
+    }
+
+    public int getTxnTimeoutSeconds() {
+        return txnTimeoutSeconds;
     }
 
     public boolean getShowRecordMetadata() {
