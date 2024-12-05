@@ -89,10 +89,14 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         checkClosed();
-        if (autoCommit) {
-            txn = null;
+        if (this.autoCommit == autoCommit) {
+            return;
+        }
+        if (!this.autoCommit) {
+            commit();
         }
         this.autoCommit = autoCommit;
+        logger.fine(() -> format("setAutoCommit = %b", autoCommit));
     }
 
     /**
@@ -107,7 +111,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
             throw new SQLException("Connection is in auto-commit mode");
         }
         if (txn == null) {
-            throw new SQLException("txn is null");
+            logger.info("No active transaction to commit");
+            return;
         }
         try {
             CommitStatus status = client.commit(txn);
@@ -131,7 +136,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
             throw new SQLException("Connection is in auto-commit mode");
         }
         if (txn == null) {
-            throw new SQLException("txn is null");
+            logger.info("No active transaction to rollback");
+            return;
         }
         try {
             AbortStatus status = client.abort(txn);
