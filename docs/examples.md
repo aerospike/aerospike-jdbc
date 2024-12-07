@@ -325,3 +325,38 @@ CREATE INDEX port_idx ON port_list (port);
 ```sql
 DROP INDEX port_idx ON port_list;
 ```
+
+## Transactions
+**Note:** Wrapping multiple commands in a transaction requires Aerospike Database version 8.0+.
+
+[JDBC transactions](https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html) are started by setting auto-commit to false, which acts as an implicit `BEGIN`. Every subsequent command is part of the transaction until a
+commit or rollback are issued. A new transaction begins automatically after either is executed. Switching back to auto-commit will rollback an uncommitted transaction.
+
+In a data browser like DBeaver, the UI has buttons to control switching the auto-commit on and off, along with commit and rollback buttons.
+
+```sql
+-- Switch to manual (begins the transaction)
+SELECT * FROM port_list WHERE __key="ntp";
+UPDATE port_list SET port=124 where __key="ntp";
+UPDATE port_list SET port=162 where __key="snmp";
+--COMMIT
+
+--Switch to auto
+SELECT * FROM port_list WHERE __key IN ("ntp", "snmp");
+
+-- Switch to manual (begins the transaction)
+UPDATE port_list SET port=123 where __key="ntp";
+UPDATE port_list SET port=161 where __key="snmp";
+--Rollback
+
+-- Switch to auto
+SELECT * FROM port_list WHERE __key IN ("ntp", "snmp");
+
+-- Switch to manual (begins the transaction)
+UPDATE port_list SET port=123 where __key="ntp";
+UPDATE port_list SET port=161 where __key="snmp";
+--Commit
+
+-- Switch to auto
+SELECT * FROM port_list WHERE __key IN ("ntp", "snmp");
+```
