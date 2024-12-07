@@ -327,7 +327,7 @@ DROP INDEX port_idx ON port_list;
 ```
 
 ## Transactions
-**Note:** Wrapping multiple commands in a transaction requires Aerospike Database version 8.0+.
+**Note:** Wrapping multiple commands in a transaction requires Aerospike Database version 8.0+. Requires the namespace to be configured up with [`strong-consistency true`](https://aerospike.com/docs/server/operations/configure/consistency).
 
 [JDBC transactions](https://docs.oracle.com/javase/tutorial/jdbc/basics/transactions.html) are started by setting auto-commit to false, which acts as an implicit `BEGIN`. Every subsequent command is part of the transaction until a
 commit or rollback are issued. A new transaction begins automatically after either is executed. Switching back to auto-commit will rollback an uncommitted transaction.
