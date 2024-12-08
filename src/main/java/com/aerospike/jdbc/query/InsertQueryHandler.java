@@ -43,7 +43,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
         List<String> binNames = getBinNames(query);
 
         FutureWriteListener listener = new FutureWriteListener(query.getValues().size());
-        WritePolicy writePolicy = policyBuilder.buildCreateOnlyPolicy();
+        WritePolicy writePolicy = policyBuilder.buildCreateOnlyPolicy(query);
 
         for (Object aerospikeRecord : query.getValues()) {
             @SuppressWarnings("unchecked")
@@ -84,7 +84,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
                     )
             );
         }
-        BatchPolicy batchPolicy = client.getBatchPolicyDefault();
+        BatchPolicy batchPolicy = policyBuilder.buildBatchPolicyDefault(query);
         try {
             client.operate(EventLoopProvider.getEventLoop(), listener, batchPolicy, batchRecords);
         } catch (AerospikeException e) {

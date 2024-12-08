@@ -1,6 +1,10 @@
 package com.aerospike.jdbc;
 
+import com.aerospike.client.AbortStatus;
+import com.aerospike.client.AerospikeException;
+import com.aerospike.client.CommitStatus;
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.Txn;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.SimpleWrapper;
@@ -42,6 +46,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     private volatile Map<String, Class<?>> typeMap = emptyMap();
     private volatile int holdability = HOLD_CURSORS_OVER_COMMIT;
     private volatile boolean closed;
+    private boolean autoCommit = true;
+    private Txn txn;
 
     public AerospikeConnection(String url, Properties props) {
         logger.info("Init AerospikeConnection");
@@ -77,24 +83,70 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public boolean getAutoCommit() throws SQLException {
         checkClosed();
-        return true;
+        return autoCommit;
     }
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         checkClosed();
-        // no-op
+        if (this.autoCommit == autoCommit) {
+            return;
+        }
+        if (!this.autoCommit) {
+            commit();
+        }
+        this.autoCommit = autoCommit;
+        logger.fine(() -> format("setAutoCommit = %b", autoCommit));
     }
 
+    /**
+     * Requires Aerospike Server 8.0+.
+     *
+     * @throws SQLException if the transaction commit fails.
+     */
     @Override
     public void commit() throws SQLException {
         checkClosed();
-        // no-op
+        if (autoCommit) {
+            throw new SQLException("Connection is in auto-commit mode");
+        }
+        if (txn == null) {
+            logger.info("No active transaction to commit");
+            return;
+        }
+        try {
+            CommitStatus status = client.commit(txn);
+            logger.info(() -> format("MRT %d commit status: %s", txn.getId(), status));
+        } catch (AerospikeException e) {
+            throw new SQLException(e);
+        } finally {
+            txn = null;
+        }
     }
 
+    /**
+     * Requires Aerospike Server 8.0+.
+     *
+     * @throws SQLException if the transaction rollback fails.
+     */
     @Override
     public void rollback() throws SQLException {
-        throw new SQLFeatureNotSupportedException("rollback is not supported");
+        checkClosed();
+        if (autoCommit) {
+            throw new SQLException("Connection is in auto-commit mode");
+        }
+        if (txn == null) {
+            logger.info("No active transaction to rollback");
+            return;
+        }
+        try {
+            AbortStatus status = client.abort(txn);
+            logger.info(() -> format("MRT %d rollback status: %s", txn.getId(), status));
+        } catch (AerospikeException e) {
+            throw new SQLException(e);
+        } finally {
+            txn = null;
+        }
     }
 
     @Override
@@ -143,15 +195,14 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     @Override
     public int getTransactionIsolation() throws SQLException {
         checkClosed();
-        return TRANSACTION_NONE;
+        return TRANSACTION_SERIALIZABLE;
     }
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
         checkClosed();
-        if (level != TRANSACTION_NONE) {
-            throw new SQLFeatureNotSupportedException(format("Aerospike does not support transactions," +
-                    " so the only valid value here is TRANSACTION_NONE=%d", TRANSACTION_NONE));
+        if (level != TRANSACTION_SERIALIZABLE) {
+            throw new SQLException(format("Unsupported transaction isolation level: %d", level));
         }
     }
 
@@ -168,11 +219,13 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     }
 
     @Override
+    @SuppressWarnings("MagicConstant")
     public Statement createStatement(int resultSetType, int resultSetConcurrency) throws SQLException {
         return createStatement(resultSetType, resultSetConcurrency, holdability);
     }
 
     @Override
+    @SuppressWarnings("MagicConstant")
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
             throws SQLException {
         return prepareStatement(sql, resultSetType, resultSetConcurrency, holdability);
@@ -239,6 +292,7 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability)
             throws SQLException {
         checkClosed();
+        checkTxn();
         validateResultSetParameters(resultSetType, resultSetConcurrency, resultSetHoldability);
         return new AerospikeStatement(client, this);
     }
@@ -247,8 +301,16 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
                                               int resultSetHoldability) throws SQLException {
         checkClosed();
+        checkTxn();
         validateResultSetParameters(resultSetType, resultSetConcurrency, resultSetHoldability);
         return new AerospikePreparedStatement(client, this, sql);
+    }
+
+    private void checkTxn() {
+        if (!autoCommit && txn == null) {
+            txn = new Txn();
+            txn.setTimeout(config.getDriverPolicy().getTxnTimeoutSeconds());
+        }
     }
 
     private void validateResultSetParameters(int resultSetType, int resultSetConcurrency, int resultSetHoldability)
@@ -427,5 +489,9 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     public IAerospikeClient getClient() {
         return client;
+    }
+
+    public Txn getTxn() {
+        return txn;
     }
 }

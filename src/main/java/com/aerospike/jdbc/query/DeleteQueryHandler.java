@@ -52,7 +52,7 @@ public class DeleteQueryHandler extends BaseQueryHandler {
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getCatalog(),
                     query.getSetName());
 
-            final WritePolicy deletePolicy = policyBuilder.buildDeleteWritePolicy();
+            final WritePolicy deletePolicy = policyBuilder.buildDeleteWritePolicy(query);
             final AtomicInteger count = new AtomicInteger();
             listener.getRecordSet().forEach(r -> {
                 try {

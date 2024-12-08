@@ -1,5 +1,6 @@
 package com.aerospike.jdbc.model;
 
+import com.aerospike.client.Txn;
 import com.aerospike.client.exp.Exp;
 import com.aerospike.client.exp.Expression;
 import com.aerospike.jdbc.predicate.QueryPredicate;
@@ -42,6 +43,8 @@ public class AerospikeQuery {
     private QueryPredicate predicate;
     private List<Object> values;
     private List<String> columns;
+
+    private Txn txn;
 
     public AerospikeQuery() {
         this.queryType = QueryType.UNKNOWN;
@@ -145,6 +148,14 @@ public class AerospikeQuery {
 
     public void setColumns(List<String> columns) {
         this.columns = columns;
+    }
+
+    public Txn getTxn() {
+        return txn;
+    }
+
+    public void setTxn(Txn txn) {
+        this.txn = txn;
     }
 
     public String[] columnBins() {

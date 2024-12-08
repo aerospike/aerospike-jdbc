@@ -58,6 +58,7 @@ Packages documentation can be found [here](https://javadoc.io/doc/com.aerospike/
 * TRUNCATE TABLE
 * CREATE INDEX
 * DROP INDEX
+* Transactions
 
 See [examples](docs/examples.md) of SQL.
 

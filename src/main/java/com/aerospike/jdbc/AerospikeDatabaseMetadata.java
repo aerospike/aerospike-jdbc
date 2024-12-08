@@ -39,6 +39,7 @@ import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 import static java.sql.Connection.TRANSACTION_NONE;
+import static java.sql.Connection.TRANSACTION_SERIALIZABLE;
 import static java.sql.Types.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -340,7 +341,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public boolean supportsMultipleTransactions() {
-        return false;
+        return true;
     }
 
     @Override
@@ -655,17 +656,17 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public int getDefaultTransactionIsolation() {
-        return TRANSACTION_NONE;
+        return TRANSACTION_SERIALIZABLE;
     }
 
     @Override
     public boolean supportsTransactions() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean supportsTransactionIsolationLevel(int level) {
-        return TRANSACTION_NONE == level;
+        return TRANSACTION_NONE == level || TRANSACTION_SERIALIZABLE == level;
     }
 
     @Override
@@ -675,7 +676,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public boolean supportsDataManipulationTransactionsOnly() {
-        return false;
+        return true;
     }
 
     @Override
