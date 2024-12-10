@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.9.2</version>
+    <version>1.10.0</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -27,8 +27,8 @@
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
 
         <aerospike-client.version>9.0.2</aerospike-client.version>
-        <netty.version>4.1.114.Final</netty.version>
-        <jackson.version>2.18.1</jackson.version>
+        <netty.version>4.1.115.Final</netty.version>
+        <jackson.version>2.18.2</jackson.version>
         <calcite.version>1.38.0</calcite.version>
         <guava.version>33.3.1-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
