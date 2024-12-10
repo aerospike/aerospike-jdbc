@@ -12,9 +12,9 @@ public final class Constants {
     public static final String UNSUPPORTED_QUERY_TYPE_MESSAGE = "Unsupported query type";
 
     // Driver version
-    public static final String DRIVER_VERSION = "1.9.2";
+    public static final String DRIVER_VERSION = "1.10.0";
     public static final int DRIVER_MAJOR_VERSION = 1;
-    public static final int DRIVER_MINOR_VERSION = 9;
+    public static final int DRIVER_MINOR_VERSION = 10;
 
     // JDBC specification
     public static final String JDBC_VERSION = "4.2";
