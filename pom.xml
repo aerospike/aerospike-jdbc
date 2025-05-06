@@ -30,7 +30,7 @@
         <netty.version>4.1.119.Final</netty.version>
         <jackson.version>2.18.3</jackson.version>
         <calcite.version>1.39.0</calcite.version>
-        <guava.version>33.4.0-jre</guava.version>
+        <guava.version>33.4.8-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
         <assertj.version>3.25.0</assertj.version>
