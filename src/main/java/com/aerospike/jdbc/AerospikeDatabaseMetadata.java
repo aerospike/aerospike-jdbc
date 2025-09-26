@@ -970,12 +970,12 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public boolean supportsResultSetType(int type) {
-        return false;
+        return type == ResultSet.TYPE_FORWARD_ONLY;
     }
 
     @Override
     public boolean supportsResultSetConcurrency(int type, int concurrency) {
-        return false;
+        return type == ResultSet.TYPE_FORWARD_ONLY && concurrency == ResultSet.CONCUR_READ_ONLY;
     }
 
     @Override
