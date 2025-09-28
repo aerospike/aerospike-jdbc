@@ -118,6 +118,16 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
         return getValue(columnLabel).map(Value::getObject).map(byte[].class::cast).orElse(null);
     }
 
+    @Override
+    public void close() {
+        super.close();
+        cancel();
+    }
+
+    public void cancel() {
+        recordSet.invalidate();
+    }
+
     private Optional<Value> getValue(String columnLabel) {
         if (!columnNames.contains(columnLabel)) {
             return Optional.empty();

@@ -5,6 +5,7 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.model.QueryType;
 import com.aerospike.jdbc.query.QueryPerformer;
+import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
 import com.aerospike.jdbc.util.AuxStatementParser;
 
@@ -19,7 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static java.lang.String.format;
-import static java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
 import static java.sql.ResultSet.CONCUR_READ_ONLY;
 import static java.sql.ResultSet.FETCH_FORWARD;
 import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
@@ -87,8 +87,18 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public void close() {
-        isClosed.set(true);
+    public void close() throws SQLException {
+        if (!isClosed.compareAndSet(false, true)) {
+            return;
+        }
+        try {
+            if (resultSet != null) {
+                resultSet.close();
+            }
+        } finally {
+            resultSet = null;
+        }
+        logger.info("Statement closed");
     }
 
     @Override
@@ -128,7 +138,14 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void cancel() throws SQLException {
-        throw new SQLFeatureNotSupportedException("Statement cannot be canceled");
+        checkClosed();
+        if (resultSet == null) {
+            return;
+        }
+        if (resultSet instanceof AerospikeRecordResultSet) {
+            ((AerospikeRecordResultSet) resultSet).cancel();
+            logger.info("Statement cancelled");
+        }
     }
 
     @Override
@@ -283,8 +300,8 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     }
 
     @Override
-    public int getResultSetHoldability() {
-        return CLOSE_CURSORS_AT_COMMIT;
+    public int getResultSetHoldability() throws SQLException {
+        return connection.getHoldability();
     }
 
     @Override

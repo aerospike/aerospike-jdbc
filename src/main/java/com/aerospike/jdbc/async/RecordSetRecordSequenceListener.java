@@ -26,7 +26,9 @@ public class RecordSetRecordSequenceListener implements RecordSequenceListener {
 
     @Override
     public void onRecord(Key key, Record rec) throws AerospikeException {
-        recordSet.put(new KeyRecord(key, rec));
+        if (!recordSet.put(new KeyRecord(key, rec))) {
+            throw new AerospikeException.QueryTerminated();
+        }
     }
 
     @Override
