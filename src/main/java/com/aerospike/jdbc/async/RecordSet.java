@@ -8,6 +8,7 @@ import com.aerospike.client.query.KeyRecord;
 import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,10 @@ public final class RecordSet
         queue.clear();
     }
 
+    public void invalidate() {
+        valid = false;
+    }
+
     @Override
     public void close() {
         put(END);
@@ -80,9 +85,12 @@ public final class RecordSet
         if (valid) {
             try {
                 if (!queue.offer(keyRecord, timeoutMs, TimeUnit.MILLISECONDS)) {
-                    logger.fine(() -> "Timeout in put");
-                    abort();
-                    throw new AerospikeException.QueryTerminated();
+                    if (valid) {
+                        logger.info(() -> "Timeout in put");
+                        abort();
+                        throw new AerospikeException.QueryTerminated();
+                    }
+                    logger.info(() -> "RecordSet closed by consumer");
                 }
             } catch (InterruptedException e) {
                 logger.info(() -> "InterruptedException in put");
@@ -118,7 +126,10 @@ public final class RecordSet
         }
 
         @Override
-        public KeyRecord next() {
+        public KeyRecord next() throws NoSuchElementException {
+            if (!more) {
+                throw new NoSuchElementException();
+            }
             KeyRecord nextKeyRecord = recordSet.keyRecord;
             more = recordSet.next();
             return nextKeyRecord;

@@ -25,7 +25,9 @@ public class RecordSetBatchSequenceListener implements BatchSequenceListener {
     @Override
     public void onRecord(BatchRead batchRead) {
         if (batchRead != null && batchRead.record != null) {
-            recordSet.put(new KeyRecord(batchRead.key, batchRead.record));
+            if (!recordSet.put(new KeyRecord(batchRead.key, batchRead.record))) {
+                throw new AerospikeException.QueryTerminated();
+            }
         }
     }
 
