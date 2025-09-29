@@ -2,6 +2,7 @@ package com.aerospike.jdbc.query;
 
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.jdbc.model.AerospikeQuery;
+import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
@@ -17,12 +18,13 @@ public final class QueryPerformer {
     public static Pair<ResultSet, Integer> executeQuery(
             IAerospikeClient client,
             Statement statement,
-            AerospikeQuery query
+            AerospikeQuery query,
+            DriverPolicy driverPolicy
     ) {
         QueryHandler queryHandler;
         switch (query.getQueryType()) {
             case SELECT:
-                queryHandler = new SelectQueryHandler(client, statement);
+                queryHandler = new SelectQueryHandler(client, statement, driverPolicy);
                 return queryHandler.execute(query);
 
             case INSERT:

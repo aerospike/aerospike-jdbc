@@ -41,3 +41,4 @@ Consider setting a custom value if really necessary.
 | schemaBuilderMaxRecords | 1000    | The number of records to be used to build the table schema             |
 | showRecordMetadata      | false   | Add record metadata columns (__digest, __ttl, __gen)                   |
 | txnTimeoutSeconds       | 10      | Multi-record transaction timeout in seconds                            |
+| refuseScan              | false   | Forbid queries without an available secondary index                    |

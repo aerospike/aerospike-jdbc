@@ -34,7 +34,7 @@ public final class AerospikeUtils {
     private AerospikeUtils() {
     }
 
-    public static Map<String, String> getTableInfo(InfoPolicy infoPolicy, String ns, String set, Node node) {
+    private static Map<String, String> getTableInfo(InfoPolicy infoPolicy, String ns, String set, Node node) {
         String sets = Info.request(infoPolicy, node, "sets");
         Optional<String> tableInfo = Splitter.on(";").trimResults().splitToList(sets).stream()
                 .filter(s -> s.startsWith("ns=" + ns + ":set=" + set))
@@ -46,7 +46,7 @@ public final class AerospikeUtils {
                 .collect(Collectors.toMap(e -> e[0], e -> e[1]))).orElse(null);
     }
 
-    public static Map<String, String> getSchemaInfo(IAerospikeClient client, String ns) {
+    private static Map<String, String> getSchemaInfo(IAerospikeClient client, String ns) {
         String schemaInfo = Info.request(client.getInfoPolicyDefault(),
                 client.getCluster().getRandomNode(), "namespace/" + ns);
 
@@ -169,5 +169,13 @@ public final class AerospikeUtils {
             logger.log(Level.WARNING, format("Failed to fetch secondary index %s cardinality", indexName), e);
             return null;
         }
+    }
+
+    public static boolean hasSetIndex(IAerospikeClient client, String namespace, String set) {
+        Map<String, String> tableInfo = getTableInfo(client.getInfoPolicyDefault(),
+                namespace, set, client.getCluster().getRandomNode());
+        return Optional.ofNullable(tableInfo.get("enable-index"))
+                .map(Boolean::valueOf)
+                .orElse(false);
     }
 }

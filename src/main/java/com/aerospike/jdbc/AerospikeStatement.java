@@ -52,15 +52,20 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public ResultSet executeQuery(String sql) throws SQLException {
         checkClosed();
-
         logger.info(() -> "executeQuery: " + sql);
         AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
         return resultSet;
     }
 
-    protected void runQuery(AerospikeQuery query) {
-        Pair<ResultSet, Integer> result = QueryPerformer.executeQuery(client, this, query);
+    protected void runQuery(AerospikeQuery query) throws SQLException {
+        Pair<ResultSet, Integer> result;
+        try {
+            result = QueryPerformer.executeQuery(client, this, query,
+                    connection.getConfiguration().getDriverPolicy());
+        } catch (Exception e) {
+            throw new SQLException(e);
+        }
         resultSet = result.getLeft();
         updateCount = result.getRight();
     }
@@ -166,7 +171,6 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     @Override
     public boolean execute(String sql) throws SQLException {
         checkClosed();
-
         logger.info(() -> "execute: " + sql);
         AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);

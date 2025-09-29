@@ -118,6 +118,10 @@ public class AerospikeQuery {
         this.limit = limit;
     }
 
+    public boolean hasLimit(int limit) {
+        return this.limit != null && this.limit == limit;
+    }
+
     public String getIndex() {
         return index;
     }
