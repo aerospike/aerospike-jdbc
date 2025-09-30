@@ -1,8 +1,10 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.AerospikeException;
 import com.aerospike.client.BatchRead;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
+import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.QueryPolicy;
@@ -16,6 +18,7 @@ import com.aerospike.jdbc.async.SecondaryIndexQueryHandler;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 
@@ -33,15 +36,18 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
+import static com.aerospike.jdbc.util.AerospikeUtils.hasSetIndex;
 
 public class SelectQueryHandler extends BaseQueryHandler {
 
     private static final Logger logger = Logger.getLogger(SelectQueryHandler.class.getName());
 
     protected List<DataColumn> columns;
+    protected DriverPolicy driverPolicy;
 
-    public SelectQueryHandler(IAerospikeClient client, Statement statement) {
+    public SelectQueryHandler(IAerospikeClient client, Statement statement, DriverPolicy driverPolicy) {
         super(client, statement);
+        this.driverPolicy = driverPolicy;
     }
 
     @Override
@@ -106,6 +112,12 @@ public class SelectQueryHandler extends BaseQueryHandler {
     }
 
     private Pair<ResultSet, Integer> executeScan(AerospikeQuery query) {
+        if (driverPolicy.getRefuseScan()
+                && !query.hasLimit(1) // For metadata queries
+                && !hasSetIndex(client, query.getCatalog(), query.getTable())) {
+            throw new AerospikeException(ResultCode.INDEX_NOTFOUND, "No secondary index for this query to use");
+        }
+
         logger.info(() -> "SELECT scan " + (Objects.nonNull(query.getOffset()) ? "partition" : "all"));
 
         ScanPolicy policy = policyBuilder.buildScanPolicy(query);

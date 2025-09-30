@@ -9,13 +9,13 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Objects;
 
+import static com.aerospike.jdbc.util.Asserts.expectThrowsCause;
 import static com.aerospike.jdbc.util.TestConfig.TABLE_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
 import static com.aerospike.jdbc.util.TestUtil.sleep;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertThrows;
 
 public class IndexQueriesTest extends JdbcBaseTest {
 
@@ -74,7 +74,7 @@ public class IndexQueriesTest extends JdbcBaseTest {
     public void testIndexCreateMultiColumn() throws SQLException {
         String query = format("CREATE INDEX multi_idx ON %s (str1, int1)", TABLE_NAME);
         final Statement statement = connection.createStatement();
-        assertThrows(UnsupportedOperationException.class, () -> statement.executeUpdate(query));
+        expectThrowsCause(UnsupportedOperationException.class, () -> statement.executeUpdate(query));
         closeQuietly(statement);
     }
 
@@ -82,7 +82,7 @@ public class IndexQueriesTest extends JdbcBaseTest {
     public void testIndexCreateUnsupportedType() throws SQLException {
         String query = format("CREATE INDEX bool1_idx ON %s (bool1)", TABLE_NAME);
         final Statement statement = connection.createStatement();
-        assertThrows(UnsupportedOperationException.class, () -> statement.executeUpdate(query));
+        expectThrowsCause(UnsupportedOperationException.class, () -> statement.executeUpdate(query));
         closeQuietly(statement);
     }
 
@@ -90,7 +90,7 @@ public class IndexQueriesTest extends JdbcBaseTest {
     public void testIndexCreateNonExistentColumn() throws SQLException {
         String query = format("CREATE INDEX ne_idx ON %s (ne)", TABLE_NAME);
         final Statement statement = connection.createStatement();
-        assertThrows(IllegalArgumentException.class, () -> statement.executeUpdate(query));
+        expectThrowsCause(IllegalArgumentException.class, () -> statement.executeUpdate(query));
         closeQuietly(statement);
     }
 
