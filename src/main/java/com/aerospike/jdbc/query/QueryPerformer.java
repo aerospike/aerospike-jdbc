@@ -51,6 +51,10 @@ public final class QueryPerformer {
                 queryHandler = new IndexDropHandler(client, statement);
                 return queryHandler.execute(query);
 
+            case EXPLAIN:
+                queryHandler = new ExplainQueryHandler(client, statement, driverPolicy);
+                return queryHandler.execute(query);
+
             default:
                 throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
         }

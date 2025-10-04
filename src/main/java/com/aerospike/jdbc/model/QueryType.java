@@ -13,5 +13,6 @@ public enum QueryType {
     INSERT,
     UPDATE,
     DELETE,
+    EXPLAIN,
     UNKNOWN
 }

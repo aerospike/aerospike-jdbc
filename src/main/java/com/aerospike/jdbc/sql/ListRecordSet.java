@@ -36,36 +36,37 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
         return currentRecord;
     }
 
-    protected Object getValue(String columnLabel) {
+    @Override
+    public Object getObject(String columnLabel) {
         return getRecord().get(nameToIndex.get(columnLabel));
     }
 
     @Override
     public String getString(String columnLabel) {
-        Object value = getValue(columnLabel);
-        return Objects.isNull(value) ? "" : value.toString();
+        Object value = getObject(columnLabel);
+        return Objects.isNull(value) ? null : value.toString();
     }
 
     @Override
     public boolean getBoolean(String columnLabel) {
-        return Boolean.parseBoolean(getValue(columnLabel).toString());
+        return Boolean.parseBoolean(getObject(columnLabel).toString());
     }
 
     @Override
     public byte getByte(String columnLabel) {
-        return (byte) getValue(columnLabel);
+        return (byte) getObject(columnLabel);
     }
 
     @Override
     public short getShort(String columnLabel) {
-        return (short) getValue(columnLabel);
+        return (short) getObject(columnLabel);
     }
 
     @Override
     public int getInt(String columnLabel) {
         String strVal = null;
         try {
-            strVal = getValue(columnLabel).toString();
+            strVal = getObject(columnLabel).toString();
             return Integer.parseInt(strVal);
         } catch (Exception e) {
             logger.warning("getInt Exception for " + columnLabel + ", " + strVal);
@@ -77,7 +78,7 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
     public long getLong(String columnLabel) {
         String strVal = null;
         try {
-            strVal = getValue(columnLabel).toString();
+            strVal = getObject(columnLabel).toString();
             return Long.parseLong(strVal);
         } catch (Exception e) {
             logger.warning("getLong Exception for " + columnLabel + ", " + strVal);
@@ -87,12 +88,12 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
 
     @Override
     public float getFloat(String columnLabel) {
-        return (float) getValue(columnLabel);
+        return (float) getObject(columnLabel);
     }
 
     @Override
     public double getDouble(String columnLabel) {
-        return (double) getValue(columnLabel);
+        return (double) getObject(columnLabel);
     }
 
     @Override
@@ -102,7 +103,7 @@ public class ListRecordSet extends BaseResultSet<List<?>> {
 
     @Override
     public byte[] getBytes(String columnLabel) {
-        return (byte[]) getValue(columnLabel);
+        return (byte[]) getObject(columnLabel);
     }
 
     @Override
