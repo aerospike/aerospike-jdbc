@@ -72,12 +72,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     protected AerospikeQuery parseQuery(String sql, List<Object> sqlParameters) throws SQLException {
         sql = sql.replace("\n", " ");
-        AerospikeQuery query;
-        try {
-            query = AerospikeQuery.parse(sql, sqlParameters);
-        } catch (Exception e) {
-            query = AuxStatementParser.parse(sql);
-        }
+        AerospikeQuery query = AuxStatementParser.parse(sql, sqlParameters);
         if (query.getCatalog() == null) {
             query.setCatalog(catalog);
         }
@@ -174,7 +169,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
         logger.info(() -> "execute: " + sql);
         AerospikeQuery query = parseQuery(sql, null);
         runQuery(query);
-        return query.getQueryType() == QueryType.SELECT;
+        return query.getQueryType() == QueryType.SELECT || query.getQueryType() == QueryType.EXPLAIN;
     }
 
     @Override

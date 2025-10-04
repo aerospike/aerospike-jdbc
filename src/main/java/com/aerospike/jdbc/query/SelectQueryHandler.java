@@ -137,7 +137,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         return queryResult(recordSet, query);
     }
 
-    private Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
+    protected Optional<AerospikeSecondaryIndex> secondaryIndex(AerospikeQuery query) {
         if (aerospikeVersion.isSIndexSupported() && query.isIndexable()) {
             Collection<AerospikeSecondaryIndex> indexes = databaseMetadata.getSecondaryIndexes(query.getCatalog());
             List<String> binNames = query.getPredicate().getBinNames();

@@ -326,6 +326,13 @@ CREATE INDEX port_idx ON port_list (port);
 DROP INDEX port_idx ON port_list;
 ```
 
+## EXPLAIN
+EXPLAIN queries reveal information about the execution path a SELECT query will take, including any indexes used.
+
+```sql
+EXPLAIN SELECT * FROM port_list WHERE port = 47;
+```
+
 ## Transactions
 **Note:** Wrapping multiple commands in a transaction requires Aerospike Database version 8.0+. Requires the namespace to be configured up with [`strong-consistency true`](https://aerospike.com/docs/server/operations/configure/consistency).
 
