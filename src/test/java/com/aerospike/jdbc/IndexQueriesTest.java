@@ -5,6 +5,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Objects;
@@ -16,6 +17,8 @@ import static com.aerospike.jdbc.util.TestUtil.sleep;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
 
 public class IndexQueriesTest extends JdbcBaseTest {
 
@@ -106,5 +109,35 @@ public class IndexQueriesTest extends JdbcBaseTest {
             closeQuietly(statement);
         }
         assertEquals(count, 1);
+    }
+
+    @Test
+    public void testExplainQuery() throws SQLException {
+        Statement statement = null;
+        ResultSet resultSet = null;
+        String query = format("EXPLAIN SELECT * FROM %s", TABLE_NAME);
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+            assertTrue(resultSet.next());
+
+            assertEquals(resultSet.getString(1), "pi_query");
+            assertEquals(resultSet.getString("COMMAND_TYPE"), "pi_query");
+            assertEquals(resultSet.getString(2), TABLE_NAME);
+            assertEquals(resultSet.getString("SET_NAME"), TABLE_NAME);
+            assertEquals(resultSet.getString(3), "primary_index");
+            assertEquals(resultSet.getString("INDEX_TYPE"), "primary_index");
+            assertNull(resultSet.getString(4));
+            assertNull(resultSet.getString("INDEX_NAME"));
+            assertNull(resultSet.getString(5));
+            assertNull(resultSet.getString("BIN_NAME"));
+            assertTrue(resultSet.getInt(6) > 0);
+            assertTrue(resultSet.getInt("COUNT") > 0);
+            assertEquals(resultSet.getInt(7), 1);
+            assertEquals(resultSet.getInt("ENTRIES_PER_VALUE"), 1);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
     }
 }

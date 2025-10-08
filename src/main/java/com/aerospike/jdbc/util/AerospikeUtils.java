@@ -9,6 +9,7 @@ import com.aerospike.jdbc.model.AerospikeClusterInfo;
 import com.aerospike.jdbc.model.AerospikeSecondaryIndex;
 import com.google.common.base.Splitter;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
@@ -34,7 +35,7 @@ public final class AerospikeUtils {
     private AerospikeUtils() {
     }
 
-    private static Map<String, String> getTableInfo(InfoPolicy infoPolicy, String ns, String set, Node node) {
+    private static Map<String, String> getTableInfo(InfoPolicy infoPolicy, Node node, String ns, String set) {
         String sets = Info.request(infoPolicy, node, "sets");
         Optional<String> tableInfo = Splitter.on(";").trimResults().splitToList(sets).stream()
                 .filter(s -> s.startsWith("ns=" + ns + ":set=" + set))
@@ -46,22 +47,25 @@ public final class AerospikeUtils {
                 .collect(Collectors.toMap(e -> e[0], e -> e[1]))).orElse(null);
     }
 
-    private static Map<String, String> getSchemaInfo(IAerospikeClient client, String ns) {
-        String schemaInfo = Info.request(client.getInfoPolicyDefault(),
-                client.getCluster().getRandomNode(), "namespace/" + ns);
+    private static Map<String, String> getSchemaInfo(InfoPolicy infoPolicy, Node node, String ns) {
+        String schemaInfo = Info.request(infoPolicy, node, "namespace/" + ns);
 
         return Splitter.on(";").trimResults().splitToList(schemaInfo).stream()
                 .map(s -> s.split("=", 2))
                 .collect(Collectors.toMap(e -> e[0], e -> e[1]));
     }
 
-    public static int getTableRecordsNumber(IAerospikeClient client, String ns, String set) {
+    public static int getRecordsNumber(IAerospikeClient client, String ns, @Nullable String set) {
+        final InfoPolicy infoPolicy = client.getInfoPolicyDefault();
         int allRecords = Arrays.stream(client.getNodes())
-                .map(n -> getTableInfo(client.getInfoPolicyDefault(), ns, set, n))
+                .map(n -> Objects.isNull(set)
+                        ? getSchemaInfo(infoPolicy, n, ns)
+                        : getTableInfo(infoPolicy, n, ns, set))
                 .map(m -> Integer.parseInt(m.get("objects")))
                 .reduce(0, Integer::sum);
 
-        int replicationFactor = Integer.parseInt(getSchemaInfo(client, ns).get("effective_replication_factor"));
+        int replicationFactor = Integer.parseInt(getSchemaInfo(infoPolicy, client.getCluster().getRandomNode(), ns)
+                .get("effective_replication_factor"));
 
         return (int) Math.floor((double) allRecords / replicationFactor);
     }
@@ -173,8 +177,9 @@ public final class AerospikeUtils {
 
     public static boolean hasSetIndex(IAerospikeClient client, String namespace, String set) {
         Map<String, String> tableInfo = getTableInfo(client.getInfoPolicyDefault(),
-                namespace, set, client.getCluster().getRandomNode());
-        return Optional.ofNullable(tableInfo.get("enable-index"))
+                client.getCluster().getRandomNode(), namespace, set);
+        return Optional.ofNullable(tableInfo)
+                .map(info -> info.get("enable-index"))
                 .map(Boolean::valueOf)
                 .orElse(false);
     }
