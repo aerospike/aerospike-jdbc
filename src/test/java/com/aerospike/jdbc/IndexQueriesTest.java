@@ -131,7 +131,9 @@ public class IndexQueriesTest extends JdbcBaseTest {
             assertNull(resultSet.getString("INDEX_NAME"));
             assertNull(resultSet.getString(5));
             assertNull(resultSet.getString("BIN_NAME"));
-            assertEquals(resultSet.getInt(6), 1);
+            assertTrue(resultSet.getInt(6) > 0);
+            assertTrue(resultSet.getInt("COUNT") > 0);
+            assertEquals(resultSet.getInt(7), 1);
             assertEquals(resultSet.getInt("ENTRIES_PER_VALUE"), 1);
         } finally {
             closeQuietly(statement);

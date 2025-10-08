@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import static com.aerospike.jdbc.util.AerospikeUtils.getTableRecordsNumber;
+import static com.aerospike.jdbc.util.AerospikeUtils.getRecordsNumber;
 import static com.aerospike.jdbc.util.AerospikeUtils.hasSetIndex;
 
 public class SelectQueryHandler extends BaseQueryHandler {
@@ -72,7 +72,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
         String countLabel = query.getColumns().get(0);
         int recordNumber;
         if (Objects.isNull(query.getPredicate())) {
-            recordNumber = getTableRecordsNumber(client, query.getCatalog(), query.getTable());
+            recordNumber = getRecordsNumber(client, query.getCatalog(), query.getTable());
         } else {
             ScanPolicy policy = policyBuilder.buildScanNoBinDataPolicy(query);
             RecordSet recordSet = ScanQueryHandler.create(client, config.getDriverPolicy())

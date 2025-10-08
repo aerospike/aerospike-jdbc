@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+import static com.aerospike.jdbc.util.AerospikeUtils.getRecordsNumber;
 import static com.aerospike.jdbc.util.AerospikeUtils.hasSetIndex;
 import static java.sql.Types.INTEGER;
 import static java.sql.Types.VARCHAR;
@@ -33,8 +34,8 @@ public class ExplainQueryHandler extends SelectQueryHandler {
 
     static {
         String[] columnNames = new String[]{"COMMAND_TYPE", "SET_NAME", "INDEX_TYPE", "INDEX_NAME",
-                "BIN_NAME", "ENTRIES_PER_VALUE"};
-        int[] columnTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER};
+                "BIN_NAME", "COUNT", "ENTRIES_PER_VALUE"};
+        int[] columnTypes = new int[]{VARCHAR, VARCHAR, VARCHAR, VARCHAR, VARCHAR, INTEGER, INTEGER};
 
         explainColumns = range(0, columnNames.length).boxed()
                 .map(i -> new DataColumn(EXPLAIN_CATALOG, EXPLAIN_TABLE,
@@ -54,16 +55,19 @@ public class ExplainQueryHandler extends SelectQueryHandler {
         Optional<AerospikeSecondaryIndex> indexOptional = secondaryIndex(query);
         if (indexOptional.isPresent()) {
             AerospikeSecondaryIndex idx = indexOptional.get();
-            explainResult.add(asList("si_query", idx.getSet(), idx.getIndexType(), idx.getIndexName(),
-                    idx.getBinName(), idx.getBinValuesRatio()));
-        } else if (hasSetIndex(client, query.getCatalog(), query.getTable())) {
-            explainResult.add(asList("set_query", query.getTable(), "set_index", null, null, 1));
+            explainResult.add(asList("si_query", idx.getSet(), "bin_index", idx.getIndexName(),
+                    idx.getBinName(), 0, idx.getBinValuesRatio()));
         } else if (!query.getPrimaryKeys().isEmpty()) {
-            explainResult.add(asList("key_query", query.getTable(), "primary_index", null, null, 1));
+            explainResult.add(asList("key_query", query.getTable(), "primary_index", null, null,
+                    query.getPrimaryKeys().size(), 1));
         } else if (query.isCount() && Objects.isNull(query.getPredicate())) {
-            explainResult.add(asList("info_query", query.getTable(), null, null, null, 0));
+            explainResult.add(asList("info_query", query.getTable(), null, null, null, 0, 0));
+        } else if (hasSetIndex(client, query.getCatalog(), query.getTable())) {
+            explainResult.add(asList("set_query", query.getTable(), "set_index", null, null,
+                    getRecordsNumber(client, query.getCatalog(), query.getTable()), 1));
         } else {
-            explainResult.add(asList("pi_query", query.getTable(), "primary_index", null, null, 1));
+            explainResult.add(asList("pi_query", query.getTable(), "primary_index", null, null,
+                    getRecordsNumber(client, query.getCatalog(), null), 1));
         }
 
         ResultSet resultSet = new ListRecordSet(null, EXPLAIN_CATALOG, EXPLAIN_TABLE,
