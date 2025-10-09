@@ -42,3 +42,4 @@ Consider setting a custom value if really necessary.
 | showRecordMetadata      | false   | Add record metadata columns (__digest, __ttl, __gen)                   |
 | txnTimeoutSeconds       | 10      | Multi-record transaction timeout in seconds                            |
 | refuseScan              | false   | Forbid queries without an available secondary index                    |
+| queryLimit              | 0       | Apply default record limit to queries                                  |
