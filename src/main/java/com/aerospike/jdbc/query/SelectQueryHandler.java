@@ -61,6 +61,9 @@ public class SelectQueryHandler extends BaseQueryHandler {
         } else if (!keyObjects.isEmpty()) {
             result = executeSelectByPrimaryKey(query, keyObjects);
         } else {
+            if (query.getLimit() == null && driverPolicy.getQueryLimit() > 0) {
+                query.setLimit(driverPolicy.getQueryLimit());
+            }
             result = sIndex.map(secondaryIndex -> executeQuery(query, secondaryIndex))
                     .orElseGet(() -> executeScan(query));
         }
