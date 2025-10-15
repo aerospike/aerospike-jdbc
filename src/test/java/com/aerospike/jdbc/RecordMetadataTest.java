@@ -46,7 +46,7 @@ public class RecordMetadataTest {
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
-        String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true&showRecordMetadata=true",
+        String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true&showRecordMetadata=true&refuseScan=false",
                 HOSTNAME, PORT, NAMESPACE);
         connection = DriverManager.getConnection(url);
         connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
