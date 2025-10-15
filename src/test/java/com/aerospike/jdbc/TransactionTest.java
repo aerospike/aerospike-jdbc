@@ -46,7 +46,8 @@ public class TransactionTest {
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
-        String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true&user=%s&password=%s&durableDelete=true",
+        String url = String.format(
+                "jdbc:aerospike:%s:%d/%s?sendKey=true&user=%s&password=%s&durableDelete=true&refuseScan=false",
                 HOSTNAME, PORT, NAMESPACE, "", "");
         connection = DriverManager.getConnection(url);
         connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);

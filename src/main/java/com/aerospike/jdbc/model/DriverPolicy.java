@@ -29,8 +29,8 @@ public class DriverPolicy {
                 DEFAULT_SCHEMA_BUILDER_MAX_RECORDS);
         txnTimeoutSeconds = parseInt(properties.getProperty("txnTimeoutSeconds"), 0);
         queryLimit = parseInt(properties.getProperty("queryLimit"), 0);
-        showRecordMetadata = Boolean.parseBoolean(properties.getProperty("showRecordMetadata"));
-        refuseScan = Boolean.parseBoolean(properties.getProperty("refuseScan"));
+        showRecordMetadata = parseBool(properties.getProperty("showRecordMetadata"), false);
+        refuseScan = parseBool(properties.getProperty("refuseScan"), true);
     }
 
     public int getRecordSetQueueCapacity() {
@@ -68,6 +68,13 @@ public class DriverPolicy {
     private int parseInt(String value, int defaultValue) {
         if (value != null) {
             return Integer.parseInt(value);
+        }
+        return defaultValue;
+    }
+
+    private boolean parseBool(String value, boolean defaultValue) {
+        if (value != null) {
+            return Boolean.parseBoolean(value);
         }
         return defaultValue;
     }
