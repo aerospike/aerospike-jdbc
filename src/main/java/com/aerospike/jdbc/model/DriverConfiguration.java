@@ -10,6 +10,7 @@ import com.aerospike.client.policy.TlsPolicy;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyBuilder;
 import com.aerospike.jdbc.tls.AerospikeTLSPolicyConfig;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
@@ -23,9 +24,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static java.lang.String.format;
+import static java.lang.String.join;
+import static java.util.Collections.nCopies;
 import static java.util.Objects.requireNonNull;
 
 public final class DriverConfiguration {
+
+    public static final String REDACTED_STRING = join("", nCopies(8, "*"));
 
     private static final Logger logger = Logger.getLogger(DriverConfiguration.class.getName());
 
@@ -33,6 +38,7 @@ public final class DriverConfiguration {
 
     private static final Pattern AEROSPIKE_JDBC_URL = Pattern.compile("^jdbc:aerospike:(?://)?([^/?]+)");
     private static final Pattern AEROSPIKE_JDBC_CATALOG = Pattern.compile("/([^?]+)");
+    private static final Pattern SENSITIVE_PARAM = Pattern.compile("((?i)[^&;=]*password=)[^&;]*");
 
     private final Map<Object, Object> clientInfo = new ConcurrentHashMap<>();
     private volatile IAerospikeClient client;
@@ -45,9 +51,24 @@ public final class DriverConfiguration {
         clientInfo.putAll(props);
     }
 
+    @VisibleForTesting
+    public static String sanitizeUrl(String rawUrl) {
+        if (rawUrl == null || rawUrl.isEmpty()) {
+            return rawUrl;
+        }
+
+        Matcher matcher = SENSITIVE_PARAM.matcher(rawUrl);
+        StringBuffer sanitizedUrl = new StringBuffer();
+        while (matcher.find()) {
+            matcher.appendReplacement(sanitizedUrl, matcher.group(1) + REDACTED_STRING);
+        }
+
+        return matcher.appendTail(sanitizedUrl).toString();
+    }
+
     @SuppressWarnings("java:S2696")
     public IAerospikeClient parse(String url) {
-        logger.info(() -> format("Parse URL: %s", url));
+        logger.info(() -> format("Parse URL: %s", sanitizeUrl(url)));
         catalog = parseCatalog(url);
         updateClientInfo(url);
 

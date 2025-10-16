@@ -9,6 +9,8 @@ import org.testng.annotations.Test;
 import java.sql.DriverManager;
 import java.util.Properties;
 
+import static com.aerospike.jdbc.model.DriverConfiguration.REDACTED_STRING;
+import static com.aerospike.jdbc.model.DriverConfiguration.sanitizeUrl;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNull;
@@ -77,6 +79,16 @@ public class ParseJdbcUrlTest {
                 .newInstance();
         String url = "jdbc:postgresql://localhost:5432/sample";
         assertNull(driver.connect(url, new Properties()));
+    }
+
+    @Test
+    public void testSanitizeUrl() {
+        String urlPattern = "jdbc:aerospike:localhost:3000/test?totalTimeout=1000&tlsKeystorePassword=%s" +
+                "&tlsKeyPassword=%s&tlsTruststorePassword=%s&password=%s&sendKey=true";
+        String url = String.format(urlPattern, "secret1", "secret2", "secret3", "secret4");
+        String sanitized = sanitizeUrl(url);
+        String expected = String.format(urlPattern, REDACTED_STRING, REDACTED_STRING, REDACTED_STRING, REDACTED_STRING);
+        assertEquals(sanitized, expected);
     }
 
     private void assertTotalTimeoutAll(IAerospikeClient client, int timeout) {
