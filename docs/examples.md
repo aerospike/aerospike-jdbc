@@ -14,8 +14,8 @@ SELECT * FROM port_list;
 ```
 
 | __key<sup>[1](#key)</sup> |
-| ------------------------- |
-|         &nbsp;            |
+|---------------------------|
+| &nbsp;                    |
 
 <sup name="key">1</sup> Aerospike always has a primary key index
 on an identifier that isn't one of the bins (columns).
@@ -39,7 +39,9 @@ see the Aerospike documentation.
 You should be aware of the [known limitations](https://docs.aerospike.com/guide/limitations)
 on table (set) and column (bin) names in Aerospike.
 
-> Names can include only Latin lowercase and uppercase letters with no diacritical marks (a-z, A-Z), digits 0-9, underscores (_), hyphens (-), and dollar signs ($). This naming guideline is not enforced; however, if you do not follow it, some Aerospike features and tools might not function properly.
+> Names can include only Latin lowercase and uppercase letters with no diacritical marks (a-z, A-Z), digits 0-9,
+> underscores (_), hyphens (-), and dollar signs ($). This naming guideline is not enforced; however,
+> if you do not follow it, some Aerospike features and tools might not function properly.
 
 Table names are limited to 63 characters and column names to 15 characters.
 
@@ -86,9 +88,9 @@ A simple query over the rows in the table:
 SELECT * FROM port_list WHERE port < 100;
 ```
 
-__key                               |description|port|
-------------------------------------|-----------|----|
-05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|           |  47|
+| __key                                | description | port |
+|--------------------------------------|-------------|------|
+| 05511f2b-4ace-4fc3-93b6-7053a6fe5d8c |             | 47   |
 
 A simple SELECT query with a limit on the number of rows in the result:
 
@@ -98,13 +100,13 @@ SELECT * FROM port_list WHERE description IS NOT NULL LIMIT 5;
 
 Will result in:
 
-__key       |description                                        |port |
-------------|---------------------------------------------------|-----|
-snmp        |Simple Network Management Protocol (SNMP)          |  161|
-ntp         |Network Time Protocol used for time synchronization|  123|
-aerospike   |Aerospike Database                                 | 3000|
-battlefield2|Battlefield 2                                      |16567|
-cloud9ide   |Cloud9 IDE Server                                  | 3000|
+| __key        | description                                         | port  |
+|--------------|-----------------------------------------------------|-------|
+| snmp         | Simple Network Management Protocol (SNMP)           | 161   |
+| ntp          | Network Time Protocol used for time synchronization | 123   |
+| aerospike    | Aerospike Database                                  | 3000  |
+| battlefield2 | Battlefield 2                                       | 16567 |
+| cloud9ide    | Cloud9 IDE Server                                   | 3000  |
 
 Query for a specific row using its primary key:
 
@@ -112,9 +114,9 @@ Query for a specific row using its primary key:
 SELECT * FROM port_list WHERE __key="memcache";
 ```
 
-__key   |description|port |
---------|-----------|-----|
-memcache|Memcached  |11211|
+| __key    | description | port  |
+|----------|-------------|-------|
+| memcache | Memcached   | 11211 |
 
 Batch query for rows in a list of primary keys:
 
@@ -122,10 +124,10 @@ Batch query for rows in a list of primary keys:
 SELECT * FROM port_list WHERE __key IN ("ntp", "ror");
 ```
 
-__key|description                                        |extra|port|
------|---------------------------------------------------|-----|----|
-ror  |Ruby on Rails development default                  |     |3000|
-ntp  |Network Time Protocol used for time synchronization|     | 123|
+| __key | description                                         | extra | port |
+|-------|-----------------------------------------------------|-------|------|
+| ror   | Ruby on Rails development default                   |       | 3000 |
+| ntp   | Network Time Protocol used for time synchronization |       | 123  |
 
 
 ### Multiple predicates
@@ -135,28 +137,28 @@ Query for rows that satisfy a `WHERE` with more than one predicate
 SELECT * FROM port_list WHERE description="Battlefield 2" AND port=16567;
 ```
 
-__key       |description  |port |
-------------|-------------|-----|
-battlefield2|Battlefield 2|16567|
+| __key        | description   | port  |
+|--------------|---------------|-------|
+| battlefield2 | Battlefield 2 | 16567 |
 
 ```sql
 SELECT * FROM port_list WHERE port=123 OR port=161;
 ```
 
-__key |description                                        |port |
-------|---------------------------------------------------|-----|
-snmp  |Simple Network Management Protocol (SNMP)          | 161 |
-ntp   |Network Time Protocol used for time synchronization| 123 |
+| __key | description                                         | port |
+|-------|-----------------------------------------------------|------|
+| snmp  | Simple Network Management Protocol (SNMP)           | 161  |
+| ntp   | Network Time Protocol used for time synchronization | 123  |
 
 ```sql
 SELECT * FROM port_list WHERE port=3000 AND NOT(description="Aerospike Database");
 ```
 
-__key    |description                             |port|
----------|----------------------------------------|----|
-cloud9ide|Cloud9 IDE Server                       |3000|
-dis      |Distributed Interactive Simulation (DIS)|3000|
-ror      |Ruby on Rails development default       |3000|
+| __key     | description                              | port |
+|-----------|------------------------------------------|------|
+| cloud9ide | Cloud9 IDE Server                        | 3000 |
+| dis       | Distributed Interactive Simulation (DIS) | 3000 |
+| ror       | Ruby on Rails development default        | 3000 |
 
 Range queries are done using `BETWEEN`.
 
@@ -164,11 +166,11 @@ Range queries are done using `BETWEEN`.
 SELECT * FROM port_list WHERE port BETWEEN 100 AND 200;
 ```
 
-__key   |description                                        |port|
---------|---------------------------------------------------|----|
-snmp    |Simple Network Management Protocol (SNMP)          | 161|
-snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
-ntp     |Network Time Protocol used for time synchronization| 123|
+| __key    | description                                         | port |
+|----------|-----------------------------------------------------|------|
+| snmp     | Simple Network Management Protocol (SNMP)           | 161  |
+| snmptrap | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
+| ntp      | Network Time Protocol used for time synchronization | 123  |
 
 ### Secondary Indexes
 
@@ -196,16 +198,16 @@ Count the records in the table that don't use port 3000:
 SELECT COUNT(*) FROM port_list WHERE port <> 3000;
 ```
 
-COUNT(*)|
---------|
-       7|
+| COUNT(*) |
+|----------|
+| 7        |
 
 ## EXPLAIN
 Explains the way a SELECT query will be executed, including information about the indexes that will be used.
 
 ### Result Columns
 
-#### command\_type
+#### command_type
 This states what type of query is being used.
 
 * `key_query` is a batch-read with one or more keys.
@@ -214,43 +216,43 @@ This states what type of query is being used.
 * `si_query` is any kind of secondary index query (on a bin index or an expression index).
 * `info_query` is a query using server statistics to deduce information, such as a `COUNT()`.
 
-#### set\_name
+#### set_name
 Displays the set name. A string or NULL, depending on whether a set name is being used in the query.
 
-#### index\_type
+#### index_type
 Displays the index name or NULL.
 
-#### bin\_name
+#### bin_name
 Displays the bin name used by the secondary index or NULL.
 
 #### count
 Number of records being accessed, or NULL when it’s unknown. 
 
-#### entries\_per\_value
-If it’s a secondary index, display the `entries_per_bval` metric. Otherwise it’s 1.
+#### entries_per_value
+If it’s a secondary index, display the `entries_per_bval` metric. Otherwise, it’s 1.
 
 ### Single key command
-Reading a single record from namespace test and set port\_list.
+Reading a single record from namespace `test` and set `port_list`.
 
 ```sql
 EXPLAIN SELECT * FROM port_list WHERE __key="ntp";
-command_type | set_name | index_type    | index_name | bin_name   | count | entries_per_value
----------------------------------------------------------------------------------------------
-key_query    | port_list| primary_index | NULL       | NULL       | 1     | 1
+command_type | set_name  | index_type    | index_name | bin_name | count | entries_per_value
+--------------------------------------------------------------------------------------------
+key_query    | port_list | primary_index | NULL       | NULL     | 1     | 1
 ```
 
 ### Batched command
-Reading a batch of records from namespace test and set port\_list.
+Reading a batch of records from namespace `test` and set `port_list`.
 
 ```sql
 EXPLAIN SELECT * FROM port_list WHERE __key IN ("ntp", "snmp");
-command_type | set_name | index_type    | index_name | bin_name   | count | entries_per_value
----------------------------------------------------------------------------------------------
-key_query    | port_list| primary_index | NULL       | NULL       | 2     | 1
+command_type | set_name  | index_type    | index_name | bin_name | count | entries_per_value
+--------------------------------------------------------------------------------------------
+key_query    | port_list | primary_index | NULL       | NULL     | 2     | 1
 ```
 
 ### Scan (namespace or set without a set index)
-Scanning the set port\_list in namespace test, which has no set index. Should return the count of the objects in the namespace.
+Scanning the set `port_list` in namespace `test`, which has no set index. Should return the count of the objects in the namespace.
 ```sql
 EXPLAIN SELECT * FROM port_list;
 command_type|set_name |index_type   |index_name|bin_name|count|entries_per_value|
@@ -258,7 +260,7 @@ command_type|set_name |index_type   |index_name|bin_name|count|entries_per_value
 pi_query    |port_list|primary_index| NULL     | NULL   |  408|                1|
 ```
 
-Getting a count should return the count of the objects in the namespace.
+Getting a count without filters should use the info query.
 ```sql
 EXPLAIN SELECT COUNT(*) FROM port_list;
 command_type|set_name |index_type |index_name|bin_name|count|entries_per_value|
@@ -267,33 +269,31 @@ info_query  |port_list| NULL      | NULL     | NULL   |    0|                0|
 ```
 
 ### Set query (AKA scan with a set index)
-Assume there’s a set index on set _offices_ in namespace _test_. Should return the count of objects in the set.
+Assume there’s a set index on set `offices` in namespace `test`. Should return the count of objects in the set.
 
 ```sql
-EXPLAIN SELECT * FROM office;
-command_type | set_name | index_type | index_name   | bin_name   | count | entries_per_value
---------------------------------------------------------------------------------------------
-set_query    | offices  | set_index  | NULL         | NULL       | 12    | 1      
+EXPLAIN SELECT * FROM offices;
+command_type | set_name | index_type | index_name | bin_name | count | entries_per_value
+----------------------------------------------------------------------------------------
+set_query    | offices  | set_index  | NULL       | NULL     | 12    | 1      
 ```
-Getting a count of the set offices. Should return the count of objects in the set.
 
-
+Getting a count of the set `offices`. Should return the count of objects in the set.
 ```sql
-EXPLAIN SELECT COUNT(*) FROM office;
-command_type | set_name | index_type | index_name   | bin_name   | count | entries_per_value
---------------------------------------------------------------------------------------------
-set_query    | offices  | set_index  | NULL         | NULL       | 12    | 1      
+EXPLAIN SELECT COUNT(*) FROM offices WHERE num_employees > 100;
+command_type | set_name | index_type | index_name | bin_name | count | entries_per_value
+----------------------------------------------------------------------------------------
+set_query    | offices  | set_index  | NULL       | NULL     | 12    | 1      
 ```
 
 ### Secondary index query on a bin index
 
-
 ```sql
 CREATE INDEX port_idx ON port_list (port);
 EXPLAIN SELECT * FROM port_list WHERE port=3000;
-command_type | set_name | index_type | index_name | bin_name   | count | entries_per_value
-------------------------------------------------------------------------------------------
-si_query     |port_list |bin_index   |port_idx    |port        | 0     |                2
+command_type | set_name  | index_type | index_name | bin_name | count | entries_per_value
+-----------------------------------------------------------------------------------------
+si_query     | port_list | bin_index  | port_idx   | port     | 0     | 2
 ```
 
 ## UPDATE
@@ -304,9 +304,9 @@ UPDATE port_list SET description="Battlefield 2 and mods" WHERE __key="battlefie
 SELECT * FROM port_list WHERE __key="battlefield2";
 ```
 
-__key       |description           |port |
-------------|----------------------|-----|
-battlefield2|Battlefield 2 and mods|16567|
+| __key        | description            | port  |
+|--------------|------------------------|-------|
+| battlefield2 | Battlefield 2 and mods | 16567 |
 
 A simple update statement using a non-PK predicate:
 
@@ -315,9 +315,9 @@ UPDATE port_list SET description="Reserved" WHERE description IS NULL;
 SELECT * FROM port_list WHERE port = 47;
 ```
 
-__key                               |description|port|
-------------------------------------|-----------|----|
-05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|Reserved   |  47|
+| __key                                | description | port |
+|--------------------------------------|-------------|------|
+| 05511f2b-4ace-4fc3-93b6-7053a6fe5d8c | Reserved    | 47   |
 
 A column (bin) can be added to the table using an update statement without a
 `WHERE` clause.
@@ -327,19 +327,19 @@ UPDATE port_list SET extra=1;
 SELECT * FROM port_list WHERE port <> 47;
 ```
 
-__key       |description                                         |extra|port |
-------------|----------------------------------------------------|-----|-----|
-snmp        |Simple Network Management Protocol (SNMP)           |    1|  161|
-ntp         |Network Time Protocol used for time synchronization |    1|  123|
-aerospike   |Aerospike Database                                  |    1| 3000|
-battlefield2|Battlefield 2 and mods                              |    1|16567|
-cloud9ide   |Cloud9 IDE Server                                   |    1| 3000|
-dis         |Distributed Interactive Simulation (DIS)            |    1| 3000|
-metasys     |Johnson Controls Metasys java AC control environment|    1|11001|
-fcip        |Fibre Channel over IP (FCIP)                        |    1| 3225|
-memcache    |Memcached                                           |    1|11211|
-ror         |Ruby on Rails development default                   |    1| 3000|
-snmptrap    |Simple Network Management Protocol Trap(SNMPTRAP)   |    1|  162|
+| __key        | description                                          | extra | port  |
+|--------------|------------------------------------------------------|-------|-------|
+| snmp         | Simple Network Management Protocol (SNMP)            | 1     | 161   |
+| ntp          | Network Time Protocol used for time synchronization  | 1     | 123   |
+| aerospike    | Aerospike Database                                   | 1     | 3000  |
+| battlefield2 | Battlefield 2 and mods                               | 1     | 16567 |
+| cloud9ide    | Cloud9 IDE Server                                    | 1     | 3000  |
+| dis          | Distributed Interactive Simulation (DIS)             | 1     | 3000  |
+| metasys      | Johnson Controls Metasys java AC control environment | 1     | 11001 |
+| fcip         | Fibre Channel over IP (FCIP)                         | 1     | 3225  |
+| memcache     | Memcached                                            | 1     | 11211 |
+| ror          | Ruby on Rails development default                    | 1     | 3000  |
+| snmptrap     | Simple Network Management Protocol Trap(SNMPTRAP)    | 1     | 162   |
 
 Since Aerospike is schemaless, the data browser may need to be refreshed for it
 to pick up the new _extra_ column.
@@ -351,11 +351,11 @@ UPDATE port_list SET extra=NULL;
 SELECT * FROM port_list WHERE port < 200;
 ```
 
-__key   |description                                        |port|
---------|---------------------------------------------------|----|
-ntp     |Network Time Protocol used for time synchronization| 123|
-snmp    |Simple Network Management Protocol (SNMP)          | 161|
-snmptrap|Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
+| __key    | description                                         | port |
+|----------|-----------------------------------------------------|------|
+| ntp      | Network Time Protocol used for time synchronization | 123  |
+| snmp     | Simple Network Management Protocol (SNMP)           | 161  |
+| snmptrap | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
 
 ## DELETE
 
@@ -366,12 +366,12 @@ DELETE FROM port_list WHERE port > 200;
 SELECT * FROM port_list;
 ```
 
-__key                               |description                                        |port|
-------------------------------------|---------------------------------------------------|----|
-05511f2b-4ace-4fc3-93b6-7053a6fe5d8c|Reserved                                           |  47|
-snmp                                |Simple Network Management Protocol (SNMP)          | 161|
-ntp                                 |Network Time Protocol used for time synchronization| 123|
-snmptrap                            |Simple Network Management Protocol Trap(SNMPTRAP)  | 162|
+| __key                                | description                                         | port |
+|--------------------------------------|-----------------------------------------------------|------|
+| 05511f2b-4ace-4fc3-93b6-7053a6fe5d8c | Reserved                                            | 47   |
+| snmp                                 | Simple Network Management Protocol (SNMP)           | 161  |
+| ntp                                  | Network Time Protocol used for time synchronization | 123  |
+| snmptrap                             | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
 
 Delete a row by its primary key (the __key column).
 
@@ -380,9 +380,9 @@ DELETE FROM port_list WHERE __key="snmp";
 SELECT COUNT(*) FROM port_list;
 ```
 
-|COUNT(*)|
-|--------|
-|       3|
+| COUNT(*) |
+|----------|
+| 3        |
 
 
 To delete all the rows in a table:
@@ -392,9 +392,9 @@ DELETE FROM port_list;
 SELECT COUNT(*) FROM port_list;
 ```
 
-|COUNT(*)|
-|--------|
-|       0|
+| COUNT(*) |
+|----------|
+| 0        |
 
 
 ## TRUNCATE
