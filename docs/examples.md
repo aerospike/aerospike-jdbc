@@ -200,6 +200,102 @@ COUNT(*)|
 --------|
        7|
 
+## EXPLAIN
+Explains the way a SELECT query will be executed, including information about the indexes that will be used.
+
+### Result Columns
+
+#### command\_type
+This states what type of query is being used.
+
+* `key_query` is a batch-read with one or more keys.
+* `pi_query` for a scan (AKA primary index query).
+* `set_query` is a scan on a set with a set index (AKA set index query).
+* `si_query` is any kind of secondary index query (on a bin index or an expression index).
+* `info_query` is a query using server statistics to deduce information, such as a `COUNT()`.
+
+#### set\_name
+Displays the set name. A string or NULL, depending on whether a set name is being used in the query.
+
+#### index\_type
+Displays the index name or NULL.
+
+#### bin\_name
+Displays the bin name used by the secondary index or NULL.
+
+#### count
+Number of records being accessed, or NULL when it’s unknown. 
+
+#### entries\_per\_value
+If it’s a secondary index, display the `entries_per_bval` metric. Otherwise it’s 1.
+
+### Single key command
+Reading a single record from namespace test and set port\_list.
+
+```sql
+EXPLAIN SELECT * FROM port_list WHERE __key="ntp";
+command_type | set_name | index_type    | index_name | bin_name   | count | entries_per_value
+---------------------------------------------------------------------------------------------
+key_query    | port_list| primary_index | NULL       | NULL       | 1     | 1
+```
+
+### Batched command
+Reading a batch of records from namespace test and set port\_list.
+
+```sql
+EXPLAIN SELECT * FROM port_list WHERE __key IN ("ntp", "snmp");
+command_type | set_name | index_type    | index_name | bin_name   | count | entries_per_value
+---------------------------------------------------------------------------------------------
+key_query    | port_list| primary_index | NULL       | NULL       | 2     | 1
+```
+
+### Scan (namespace or set without a set index)
+Scanning the set port\_list in namespace test, which has no set index. Should return the count of the objects in the namespace.
+```sql
+EXPLAIN SELECT * FROM port_list;
+command_type|set_name |index_type   |index_name|bin_name|count|entries_per_value|
+------------+---------+-------------+----------+--------+-----+-----------------+
+pi_query    |port_list|primary_index| NULL     | NULL   |  408|                1|
+```
+
+Getting a count should return the count of the objects in the namespace.
+```sql
+EXPLAIN SELECT COUNT(*) FROM port_list;
+command_type|set_name |index_type |index_name|bin_name|count|entries_per_value|
+------------+---------+-----------+----------+--------+-----+-----------------+
+info_query  |port_list| NULL      | NULL     | NULL   |    0|                0|
+```
+
+### Set query (AKA scan with a set index)
+Assume there’s a set index on set _offices_ in namespace _test_. Should return the count of objects in the set.
+
+```sql
+EXPLAIN SELECT * FROM office;
+command_type | set_name | index_type | index_name   | bin_name   | count | entries_per_value
+--------------------------------------------------------------------------------------------
+set_query    | offices  | set_index  | NULL         | NULL       | 12    | 1      
+```
+Getting a count of the set offices. Should return the count of objects in the set.
+
+
+```sql
+EXPLAIN SELECT COUNT(*) FROM office;
+command_type | set_name | index_type | index_name   | bin_name   | count | entries_per_value
+--------------------------------------------------------------------------------------------
+set_query    | offices  | set_index  | NULL         | NULL       | 12    | 1      
+```
+
+### Secondary index query on a bin index
+
+
+```sql
+CREATE INDEX port_idx ON port_list (port);
+EXPLAIN SELECT * FROM port_list WHERE port=3000;
+command_type | set_name | index_type | index_name | bin_name   | count | entries_per_value
+------------------------------------------------------------------------------------------
+si_query     |port_list |bin_index   |port_idx    |port        | 0     |                2
+```
+
 ## UPDATE
 Update a row using its primary key:
 
@@ -324,13 +420,6 @@ CREATE INDEX port_idx ON port_list (port);
 
 ```sql
 DROP INDEX port_idx ON port_list;
-```
-
-## EXPLAIN
-EXPLAIN queries reveal information about the execution path a SELECT query will take, including any indexes used.
-
-```sql
-EXPLAIN SELECT * FROM port_list WHERE port = 47;
 ```
 
 ## Transactions
