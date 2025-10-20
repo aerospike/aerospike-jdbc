@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>1.10.1</version>
+    <version>2.0.0</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -20,20 +20,20 @@
 
         <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.0</maven-surefire-plugin.version>
-        <nexus-staging-maven-plugin.version>1.6.14</nexus-staging-maven-plugin.version>
         <maven-javadoc-plugin.version>3.11.1</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
+        <central.publishing.maven.plugin>0.9.0</central.publishing.maven.plugin>
 
-        <aerospike-client.version>9.0.5</aerospike-client.version>
-        <netty.version>4.1.119.Final</netty.version>
-        <jackson.version>2.18.3</jackson.version>
-        <calcite.version>1.39.0</calcite.version>
-        <guava.version>33.4.0-jre</guava.version>
+        <aerospike-client.version>9.2.0</aerospike-client.version>
+        <netty.version>4.1.128.Final</netty.version>
+        <jackson.version>2.19.2</jackson.version>
+        <calcite.version>1.40.0</calcite.version>
+        <guava.version>33.5.0-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
-        <assertj.version>3.25.0</assertj.version>
+        <assertj.version>3.27.6</assertj.version>
         <testng.version>7.5.1</testng.version> <!-- latest for JDK 8 -->
         <jdbi.version>3.37.1</jdbi.version> <!-- latest for JDK 8 -->
     </properties>
@@ -121,6 +121,11 @@
             <artifactId>guava</artifactId>
             <version>${guava.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -167,18 +172,6 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>${nexus-staging-maven-plugin.version}</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
                 </configuration>
             </plugin>
 
@@ -269,6 +262,16 @@
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <skipTests>${skipTests}</skipTests>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>${central.publishing.maven.plugin}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
                 </configuration>
             </plugin>
         </plugins>
