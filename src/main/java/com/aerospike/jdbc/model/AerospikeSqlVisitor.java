@@ -186,6 +186,15 @@ public class AerospikeSqlVisitor implements SqlVisitor<AerospikeQuery> {
                 && unwrapString(sqlNode.toString()).equals(QUERY_PLACEHOLDER)) {
             checkState(sqlParametersIterator != null, "SQL parameters is null");
             return sqlParametersIterator.next();
+        } else if (sqlNode instanceof SqlBasicCall) {
+            SqlBasicCall call = (SqlBasicCall) sqlNode;
+            // handle arrays
+            if (call.getOperator().getName().equalsIgnoreCase("ARRAY") ||
+                    call.getOperator().getName().equals("[")) {
+                return call.getOperandList().stream()
+                        .map(this::parseValue)
+                        .collect(Collectors.toList());
+            }
         }
         throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
     }

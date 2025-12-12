@@ -38,7 +38,7 @@ public class BasicArray extends SerialArray {
 
     public BasicArray(String catalog, String baseTypeName, Object[] elements) throws SQLException {
         super(new Array() {
-            private final int baseType = ofNullable(SqlLiterals.sqlTypeByName.get(baseTypeName))
+            private final int baseType = ofNullable(SqlLiterals.sqlTypeByName.get(baseTypeName.toLowerCase()))
                     .orElseThrow(() -> new IllegalArgumentException(format("Unsupported array type %s", baseTypeName)));
 
             @Override

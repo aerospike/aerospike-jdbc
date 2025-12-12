@@ -55,9 +55,16 @@ public class SqlLiterals {
         sqlTypeNames.put(Types.ARRAY, "list");
     }
 
-    public static final Map<String, Integer> sqlTypeByName = sqlTypeNames.entrySet().stream()
-            .filter(name -> name.getKey() != Types.ARRAY)
-            .collect(toMap(Entry::getValue, Entry::getKey, (v1, v2) -> v1, TreeMap::new));
+    public static final Map<String, Integer> sqlTypeByName;
+
+    static {
+        sqlTypeByName = sqlTypeNames.entrySet().stream()
+                .filter(name -> name.getKey() != Types.ARRAY)
+                .collect(toMap(Entry::getValue, Entry::getKey, (v1, v2) -> v1, TreeMap::new));
+
+        sqlTypeByName.put("bigint", Types.BIGINT);
+        sqlTypeByName.put("smallint", Types.SMALLINT);
+    }
 
     public static final Map<Integer, Class<?>> sqlToJavaTypes = new HashMap<>();
 
