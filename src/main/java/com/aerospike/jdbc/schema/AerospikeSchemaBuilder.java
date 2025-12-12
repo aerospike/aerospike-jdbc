@@ -47,6 +47,14 @@ public final class AerospikeSchemaBuilder {
 
             client.scanAll(policy, catalogTableName.getCatalogName(), toSet(catalogTableName.getTableName()),
                     (key, rec) -> {
+                        if (key != null && key.userKey != null) {
+                            columnHandles.put(PRIMARY_KEY_COLUMN_NAME,
+                                    new DataColumn(catalogTableName.getCatalogName(),
+                                            catalogTableName.getTableName(),
+                                            getBinType(key.userKey.getObject()),
+                                            PRIMARY_KEY_COLUMN_NAME,
+                                            PRIMARY_KEY_COLUMN_NAME));
+                        }
                         Map<String, Object> bins = rec.bins;
                         if (bins != null) {
                             bins.forEach((k, value) -> {
