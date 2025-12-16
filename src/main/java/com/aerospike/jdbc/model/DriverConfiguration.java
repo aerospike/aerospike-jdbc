@@ -108,6 +108,10 @@ public final class DriverConfiguration {
         @SuppressWarnings("unchecked")
         Class<T> clazz = (Class<T>) object.getClass();
         clientInfo.forEach((key, value) -> {
+            // skip empty configuration values
+            if (value == null || value.toString().trim().isEmpty()) {
+                return;
+            }
             try {
                 Field field = clazz.getField((String) key);
                 if (field.getType().equals(Integer.TYPE)) {
