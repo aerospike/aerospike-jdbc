@@ -414,6 +414,7 @@ public class PreparedQueriesTest {
                 updateStmt.setInt(1, 9999);
                 updateStmt.setString(2, "batch_key1");
                 updateStmt.addBatch();
+
                 assertThrows(SQLException.class, updateStmt::executeBatch);
             }
         } finally {
