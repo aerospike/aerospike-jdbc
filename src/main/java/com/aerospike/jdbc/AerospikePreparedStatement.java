@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
 
@@ -173,12 +174,18 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        if (parameterIndex <= 0 || parameterIndex > sqlParameters.length) {
-            throw new SQLDataException(sqlParameters.length == 0
-                    ? "Current SQL statement does not have parameters"
-                    : format("The parameter index %d is out of range, number of parameters: %d",
+        checkClosed();
+
+        if (parameterIndex < 1 || parameterIndex > sqlParameters.length) {
+            throw new SQLException(format("Parameter index %d out of range [1, %d]",
                     parameterIndex, sqlParameters.length));
         }
+
+        if (x instanceof java.sql.Array) {
+            setArray(parameterIndex, (java.sql.Array) x);
+            return;
+        }
+
         sqlParameters[parameterIndex - 1] = x;
     }
 
@@ -264,8 +271,41 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        setObject(parameterIndex, x);
+        checkClosed();
+
+        if (x == null) {
+            setObject(parameterIndex, null);
+            return;
+        }
+
+        Object array = x.getArray();
+        List<Object> objectList;
+        if (array instanceof Object[]) {
+            objectList = Arrays.asList((Object[]) array);
+        } else if (array instanceof List<?>) {
+            objectList = (List<Object>) array;
+        } else {
+            objectList = convertToObjectList(array);
+        }
+
+        setObject(parameterIndex, objectList);
+    }
+
+    private List<Object> convertToObjectList(Object array) throws SQLException {
+        if (array instanceof Object[]) {
+            return Arrays.asList((Object[]) array);
+        } else if (array instanceof List<?>) {
+            return new ArrayList<>((List<?>) array);
+        } else if (array instanceof long[]) {
+            long[] longArray = (long[]) array;
+            return Arrays.stream(longArray).boxed().collect(toList());
+        } else if (array instanceof double[]) {
+            double[] doubleArray = (double[]) array;
+            return Arrays.stream(doubleArray).boxed().collect(toList());
+        }
+        throw new SQLException(format("Unsupported array type: %s", array.getClass().getName()));
     }
 
     @Override
