@@ -20,8 +20,10 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -34,6 +36,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     private final String sqlStatement;
     private final Object[] sqlParameters;
+    private final List<Object> batchParameters = new ArrayList<>();
 
     public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection,
                                       String sqlStatement) throws SQLException {
@@ -191,7 +194,53 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void addBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
+        checkClosed();
+
+        List<Object> batchEntry = new ArrayList<>(sqlParameters.length);
+        Collections.addAll(batchEntry, sqlParameters);
+        batchParameters.add(batchEntry);
+
+        // Reset parameters for next batch entry
+        Arrays.fill(sqlParameters, null);
+
+        logger.fine(() -> format("Added batch entry, total batches: %d", batchParameters.size()));
+    }
+
+    @Override
+    public void clearBatch() throws SQLException {
+        checkClosed();
+
+        batchParameters.clear();
+        logger.fine("Cleared batch");
+    }
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        checkClosed();
+
+        if (batchParameters.isEmpty()) {
+            return new int[0];
+        }
+
+        int batchSize = batchParameters.size();
+        logger.info(() -> format("Executing batch with %d entries", batchSize));
+        AerospikeQuery query = parseQuery(sqlStatement, batchParameters);
+        QueryType queryType = query.getQueryType();
+
+        if (queryType != QueryType.INSERT) {
+            throw new SQLException(format("Batch execution is only supported for INSERT statements, got: %s",
+                    queryType));
+        }
+
+        try {
+            runQuery(query);
+
+            int[] updateCounts = new int[batchSize];
+            Arrays.fill(updateCounts, 1);
+            return updateCounts;
+        } finally {
+            batchParameters.clear();
+        }
     }
 
     @Override

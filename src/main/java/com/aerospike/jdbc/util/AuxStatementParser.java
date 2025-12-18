@@ -5,8 +5,10 @@ import com.aerospike.jdbc.model.QueryType;
 
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,6 +49,11 @@ public final class AuxStatementParser {
      */
     public static AerospikeQuery parse(String sql, List<Object> sqlParameters) throws SQLException {
         try {
+            // Check if sqlParameters is a batch.
+            Optional<AerospikeQuery> batchQuery = parseBatchQuery(sql, sqlParameters);
+            if (batchQuery.isPresent()) {
+                return batchQuery.get();
+            }
             // Attempt to parse the SQL query directly.
             return AerospikeQuery.parse(sql, sqlParameters);
         } catch (Exception e) {
@@ -64,6 +71,34 @@ public final class AuxStatementParser {
             // Attempt to parse other non-standard query types.
             return parse(sql);
         }
+    }
+
+    /**
+     * Attempts to parse a batch query from the given SQL string and parameters.
+     */
+    private static Optional<AerospikeQuery> parseBatchQuery(String sql, List<?> sqlParameters) throws SQLException {
+        if (sqlParameters == null || sqlParameters.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (!sqlParameters.stream().allMatch(p -> p instanceof List<?>)) {
+            return Optional.empty();
+        }
+
+        @SuppressWarnings("unchecked")
+        List<List<Object>> batchParams = (List<List<Object>>) sqlParameters;
+
+        // Parse query structure using first parameter set
+        AerospikeQuery query = parse(sql, batchParams.get(0));
+        if (query.getQueryType() != QueryType.INSERT) {
+            return Optional.empty();
+        }
+
+        // Set all batch entries as values
+        List<Object> batchValues = new ArrayList<>(batchParams);
+        query.setValues(batchValues);
+
+        return Optional.of(query);
     }
 
     /**
