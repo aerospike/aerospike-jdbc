@@ -14,6 +14,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -46,17 +47,17 @@ public class InsertQueryHandler extends BaseQueryHandler {
         WritePolicy writePolicy = policyBuilder.buildCreateOnlyPolicy(query);
 
         for (Object aerospikeRecord : query.getValues()) {
-            @SuppressWarnings("unchecked")
-            List<Object> values = (List<Object>) aerospikeRecord;
-            Value recordKey = extractInsertKey(query, values);
-            Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
-            Bin[] bins = buildBinArray(binNames, values);
+            for (List<Object> values : toObjectList(aerospikeRecord)) {
+                Value recordKey = extractInsertKey(query, values);
+                Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
+                Bin[] bins = buildBinArray(binNames, values);
 
-            try {
-                client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
-            } catch (AerospikeException e) {
-                logAerospikeException(e);
-                listener.onFailure(e);
+                try {
+                    client.put(EventLoopProvider.getEventLoop(), listener, writePolicy, key, bins);
+                } catch (AerospikeException e) {
+                    logAerospikeException(e);
+                    listener.onFailure(e);
+                }
             }
         }
         return new Pair<>(emptyRecordSet(query), getUpdateCount(listener.getTotal()));
@@ -70,19 +71,19 @@ public class InsertQueryHandler extends BaseQueryHandler {
         BatchWritePolicy batchWritePolicy = policyBuilder.buildBatchCreateOnlyPolicy();
 
         for (Object aerospikeRecord : query.getValues()) {
-            @SuppressWarnings("unchecked")
-            List<Object> values = (List<Object>) aerospikeRecord;
-            Value recordKey = extractInsertKey(query, values);
-            Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
-            batchRecords.add(
-                    new BatchWrite(
-                            batchWritePolicy,
-                            key,
-                            Arrays.stream(buildBinArray(binNames, values))
-                                    .map(Operation::put)
-                                    .toArray(Operation[]::new)
-                    )
-            );
+            for (List<Object> values : toObjectList(aerospikeRecord)) {
+                Value recordKey = extractInsertKey(query, values);
+                Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
+                batchRecords.add(
+                        new BatchWrite(
+                                batchWritePolicy,
+                                key,
+                                Arrays.stream(buildBinArray(binNames, values))
+                                        .map(Operation::put)
+                                        .toArray(Operation[]::new)
+                        )
+                );
+            }
         }
         BatchPolicy batchPolicy = policyBuilder.buildBatchPolicyDefault(query);
         try {
@@ -120,5 +121,23 @@ public class InsertQueryHandler extends BaseQueryHandler {
             }
         }
         return Value.get(UUID.randomUUID().toString());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<List<Object>> toObjectList(Object aerospikeRecord) {
+        if (aerospikeRecord instanceof List<?>) {
+            List<?> recordsList = (List<?>) aerospikeRecord;
+
+            if (recordsList.isEmpty()) {
+                return Collections.emptyList();
+            }
+
+            if (recordsList.get(0) instanceof List<?>) {
+                return (List<List<Object>>) aerospikeRecord;
+            }
+            return Collections.singletonList((List<Object>) aerospikeRecord);
+        }
+        throw new IllegalArgumentException(String.format("Unsupported record type: %s",
+                aerospikeRecord.getClass().getName()));
     }
 }
