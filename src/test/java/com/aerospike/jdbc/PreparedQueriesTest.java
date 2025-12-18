@@ -12,6 +12,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -337,5 +338,89 @@ public class PreparedQueriesTest {
             statement.close();
             statement.executeQuery();
         });
+    }
+
+    @Test
+    public void testBatchInsert() throws SQLException {
+        PreparedStatement insertStmt = null;
+        Statement selectStmt = null;
+        ResultSet rs = null;
+
+        try {
+            // Test basic batch INSERT with multiple entries
+            String insertQuery = format("INSERT INTO %s (%s, int1, int2, str1) VALUES (?, ?, ?, ?)",
+                    TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+            insertStmt = connection.prepareStatement(insertQuery);
+
+            // Add 5 entries to batch
+            for (int i = 1; i <= 5; i++) {
+                insertStmt.setString(1, "batch_key" + i);
+                insertStmt.setInt(2, 2000 + i);
+                insertStmt.setInt(3, i);
+                insertStmt.setString(4, "batch_value" + i);
+                insertStmt.addBatch();
+            }
+
+            // Execute batch
+            int[] updateCounts = insertStmt.executeBatch();
+            assertEquals(updateCounts.length, 5);
+            for (int count : updateCounts) {
+                assertTrue(count >= 0, "Update count should be non-negative");
+            }
+
+            // Verify all records were inserted correctly
+            String selectQuery = format("SELECT %s, int1, int2, str1 FROM %s WHERE %s LIKE 'batch_key'",
+                    PRIMARY_KEY_COLUMN_NAME, TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+            selectStmt = connection.createStatement();
+            rs = selectStmt.executeQuery(selectQuery);
+
+            int count = 0;
+            while (rs.next()) {
+                count++;
+            }
+            assertEquals(count, 5, "Should have inserted 5 records");
+
+            // Test clearBatch
+            insertStmt.setString(1, "batch_key6");
+            insertStmt.setInt(2, 2006);
+            insertStmt.setInt(3, 6);
+            insertStmt.setString(4, "batch_value6");
+            insertStmt.addBatch();
+            insertStmt.clearBatch();
+
+            int[] emptyCounts = insertStmt.executeBatch();
+            assertEquals(emptyCounts.length, 0, "Cleared batch should be empty");
+
+            // Test batch with null values
+            insertStmt.setString(1, "batch_key_null");
+            insertStmt.setInt(2, 2100);
+            insertStmt.setInt(3, 10);
+            insertStmt.setNull(4, java.sql.Types.VARCHAR);
+            insertStmt.addBatch();
+
+            int[] nullCounts = insertStmt.executeBatch();
+            assertEquals(nullCounts.length, 1);
+
+            // Verify null value was handled
+            String nullQuery = format("SELECT str1 FROM %s WHERE %s='batch_key_null'",
+                    TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+            rs = selectStmt.executeQuery(nullQuery);
+            assertTrue(rs.next());
+            assertNull(rs.getString("str1"));
+
+            // Test that batch only supports INSERT
+            try (PreparedStatement updateStmt = connection.prepareStatement(
+                    format("UPDATE %s SET int1=? WHERE %s=?", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME))) {
+                updateStmt.setInt(1, 9999);
+                updateStmt.setString(2, "batch_key1");
+                updateStmt.addBatch();
+
+                assertThrows(SQLException.class, updateStmt::executeBatch);
+            }
+        } finally {
+            closeQuietly(rs);
+            closeQuietly(selectStmt);
+            closeQuietly(insertStmt);
+        }
     }
 }
