@@ -239,8 +239,8 @@ public abstract class BaseResultSet<T> implements ResultSet,
     }
 
     @Override
-    public Array getArray(String columnLabel) {
-        return null;
+    public Array getArray(String columnLabel) throws SQLException {
+        throw new SQLFeatureNotSupportedException();
     }
 
     @Override

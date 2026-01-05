@@ -4,11 +4,17 @@ import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.model.DataColumn;
+import com.aerospike.jdbc.sql.type.BasicArray;
+import com.aerospike.jdbc.util.SqlLiterals;
 import com.google.common.io.BaseEncoding;
 
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -18,6 +24,7 @@ import static com.aerospike.jdbc.util.Constants.METADATA_DIGEST_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.METADATA_GEN_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.METADATA_TTL_COLUMN_NAME;
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
+import static com.aerospike.jdbc.util.SqlLiterals.sqlTypeNames;
 
 public class AerospikeRecordResultSet extends BaseResultSet<Record> {
 
@@ -116,6 +123,59 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public byte[] getBytes(String columnLabel) {
         logger.fine(() -> "getBytes: " + columnLabel);
         return getValue(columnLabel).map(Value::getObject).map(byte[].class::cast).orElse(null);
+    }
+
+    @Override
+    public Array getArray(String columnLabel) throws SQLException {
+        logger.fine(() -> "getArray: " + columnLabel);
+        Object obj = getValue(columnLabel).map(Value::getObject).orElse(null);
+        wasNull = obj == null;
+
+        if (obj == null) {
+            return null;
+        }
+
+        if (obj instanceof List<?>) {
+            List<?> list = (List<?>) obj;
+            // determine element type by inspecting list elements
+            String elementTypeName = determineListElementType(list);
+            return new BasicArray(catalog, elementTypeName, list.toArray());
+        }
+
+        if (obj instanceof java.sql.Array) {
+            return (java.sql.Array) obj;
+        }
+
+        // for other types, wrap in array
+        String typeName = determineObjectType(obj);
+        return new BasicArray(catalog, typeName, new Object[]{obj});
+    }
+
+    /**
+     * Determines the SQL type name for list elements by inspecting the first non-null element.
+     * Falls back to VARCHAR if list is empty or all elements are null.
+     */
+    private String determineListElementType(List<?> list) {
+        // find first non-null element
+        Object firstElement = list.stream()
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+
+        if (firstElement == null) {
+            // all elements are null, default to VARCHAR
+            return sqlTypeNames.get(Types.VARCHAR);
+        }
+
+        return determineObjectType(firstElement);
+    }
+
+    /**
+     * Determines the SQL type name for an object.
+     */
+    private String determineObjectType(Object value) {
+        int sqlType = SqlLiterals.getSqlType(value);
+        return sqlTypeNames.getOrDefault(sqlType, sqlTypeNames.get(Types.VARCHAR));
     }
 
     @Override

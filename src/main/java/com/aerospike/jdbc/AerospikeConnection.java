@@ -8,6 +8,7 @@ import com.aerospike.client.Txn;
 import com.aerospike.client.policy.Policy;
 import com.aerospike.jdbc.model.DriverConfiguration;
 import com.aerospike.jdbc.sql.SimpleWrapper;
+import com.aerospike.jdbc.sql.type.BasicArray;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.AerospikeVersion;
@@ -418,7 +419,8 @@ public class AerospikeConnection implements Connection, SimpleWrapper {
 
     @Override
     public Array createArrayOf(String typeName, Object[] elements) throws SQLException {
-        throw new SQLFeatureNotSupportedException();
+        checkClosed();
+        return new BasicArray(catalog.get(), typeName, elements);
     }
 
     @Override
