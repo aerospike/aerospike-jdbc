@@ -249,8 +249,8 @@ public class SimpleQueriesTest {
     public void testSelectOrQuery() throws SQLException {
         Statement statement = null;
         ResultSet resultSet = null;
-        String query = format("SELECT int2, str1 FROM %s WHERE int2<>1 OR str1 LIKE 'bar' OR int1 IS NULL",
-                TABLE_NAME);
+        String query = format("SELECT int2, str1 FROM %s WHERE %s='key1' OR %s='key2'",
+                TABLE_NAME, PRIMARY_KEY_COLUMN_NAME, PRIMARY_KEY_COLUMN_NAME);
         try {
             statement = connection.createStatement();
             resultSet = statement.executeQuery(query);
@@ -333,6 +333,64 @@ public class SimpleQueriesTest {
             assertTrue(resultSet.next());
 
             testRecord.assertResultSet(resultSet);
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+    }
+
+    @Test
+    public void testSelectInQueryWithStringValues() throws SQLException {
+        Statement statement = null;
+        // Insert additional records with different string values
+        String insertQuery1 = format("INSERT INTO %s (%s, bool1, int1, int2, str1) VALUES ('key2', false, 11101, 2, 'foo')", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+        String insertQuery2 = format("INSERT INTO %s (%s, bool1, int1, int2, str1) VALUES ('key3', true, 11102, 3, 'baz')", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+        String insertQuery3 = format("INSERT INTO %s (%s, bool1, int1, int2, str1) VALUES ('key4', false, 11103, 4, 'qux')", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+
+        try {
+            statement = connection.createStatement();
+            statement.executeUpdate(insertQuery1);
+            statement.executeUpdate(insertQuery2);
+            statement.executeUpdate(insertQuery3);
+        } finally {
+            closeQuietly(statement);
+        }
+
+        ResultSet resultSet = null;
+        String query = format("SELECT * FROM %s WHERE %s IN ('key2', 'key3', 'foo')", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+        int count = 0;
+        try {
+            statement = connection.createStatement();
+            //SELECT * FROM jdbc WHERE __key IN ('key2', 'key3', 'foo')
+            resultSet = statement.executeQuery(query);
+
+            while (resultSet.next()) {
+                String str1 = resultSet.getString(PRIMARY_KEY_COLUMN_NAME);
+                assertTrue(str1.equals("key2") || str1.equals("key3"),
+                        "__key should be one of: key2, key3, but was: " + str1);
+                count++;
+            }
+            assertEquals(count, 2, "Should return 2 records matching IN clause");
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(resultSet);
+        }
+
+        resultSet = null;
+        query = format("SELECT * FROM %s WHERE %s='key2' OR %s='key4' OR %s='foo'",
+                TABLE_NAME, PRIMARY_KEY_COLUMN_NAME, PRIMARY_KEY_COLUMN_NAME, PRIMARY_KEY_COLUMN_NAME);
+        count = 0;
+        try {
+            statement = connection.createStatement();
+            resultSet = statement.executeQuery(query);
+
+            while (resultSet.next()) {
+                String str1 = resultSet.getString(PRIMARY_KEY_COLUMN_NAME);
+                assertTrue(str1.equals("key2") || str1.equals("key4"),
+                        "__key should be one of: key2, key3, but was: " + str1);
+                count++;
+            }
+            assertEquals(count, 2, "Should return 2 records matching OR clause");
         } finally {
             closeQuietly(statement);
             closeQuietly(resultSet);

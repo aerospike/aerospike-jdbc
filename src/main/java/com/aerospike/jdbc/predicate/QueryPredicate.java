@@ -18,7 +18,7 @@ public interface QueryPredicate {
 
     List<String> getBinNames();
 
-    default Collection<Object> getPrimaryKeys() {
+    default Collection<Object> getPrimaryKeys(Operator operator) {
         return Collections.emptyList();
     }
 }

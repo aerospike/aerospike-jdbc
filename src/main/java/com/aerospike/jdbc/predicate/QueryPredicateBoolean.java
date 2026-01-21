@@ -68,10 +68,20 @@ public class QueryPredicateBoolean implements QueryPredicate {
     }
 
     @Override
-    public Collection<Object> getPrimaryKeys() {
+    public Collection<Object> getPrimaryKeys(Operator rootOperator) {
+        if (rootOperator != null && rootOperator != operator) {
+            return Collections.emptyList();
+        }
         if (operator == OperatorBinary.AND) {
-            return Stream.concat(left.getPrimaryKeys().stream(), right.getPrimaryKeys().stream())
+            return Stream.concat(left.getPrimaryKeys(operator).stream(), right.getPrimaryKeys(operator).stream())
                     .collect(Collectors.toSet());
+        } else if (operator == OperatorBinary.OR) {
+            Collection<Object> leftKeys = left.getPrimaryKeys(operator);
+            Collection<Object> rightKeys = right.getPrimaryKeys(operator);
+
+            if (!leftKeys.isEmpty() && !rightKeys.isEmpty()) {
+                return Stream.concat(leftKeys.stream(), rightKeys.stream()).collect(Collectors.toSet());
+            }
         }
         return Collections.emptyList();
     }

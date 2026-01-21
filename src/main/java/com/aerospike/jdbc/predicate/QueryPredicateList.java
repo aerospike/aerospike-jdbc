@@ -42,7 +42,7 @@ public class QueryPredicateList extends QueryPredicateBase {
     }
 
     @Override
-    public Collection<Object> getPrimaryKeys() {
+    public Collection<Object> getPrimaryKeys(Operator operator) {
         if (isPrimaryKeyPredicate()) {
             return Arrays.asList(values);
         }

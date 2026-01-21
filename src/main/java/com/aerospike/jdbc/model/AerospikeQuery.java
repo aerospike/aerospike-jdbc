@@ -172,7 +172,7 @@ public class AerospikeQuery {
 
     public Collection<Object> getPrimaryKeys() {
         if (predicate != null) {
-            return predicate.getPrimaryKeys();
+            return predicate.getPrimaryKeys(null);
         }
         return Collections.emptyList();
     }

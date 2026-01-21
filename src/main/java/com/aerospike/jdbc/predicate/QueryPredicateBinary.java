@@ -39,7 +39,7 @@ public class QueryPredicateBinary extends QueryPredicateBase {
     }
 
     @Override
-    public Collection<Object> getPrimaryKeys() {
+    public Collection<Object> getPrimaryKeys(Operator rootOperator) {
         if (isPrimaryKeyPredicate() && operator == OperatorBinary.EQ) {
             return Collections.singletonList(value);
         }
