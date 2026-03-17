@@ -37,8 +37,7 @@ After the run finishes, get the **build number** for **Promote to Prod** in one 
 1. Go to **Actions** → **Promote to Prod**.
 2. Click **Run workflow**.
 3. Enter the **build number** from step 2.
-4. **Dry run (default):** Leave **dry-run** checked to test the workflow without changing JFrog, GitHub, or Sonatype (Sonatype publish and JF/GH steps are echo-only; `CLIENT_BOT_PAT` not required). Uncheck **dry-run** and ensure `CLIENT_BOT_PAT` and other secrets are set for a real promote.
-5. Run the workflow.
+4. Run the workflow.
 
 This runs **promote**: it promotes that build in JFrog, uploads to Sonatype (staging), and creates a **draft** GitHub release with the artifacts. The artifact is **not** on Maven Central until you approve it in Sonatype.
 

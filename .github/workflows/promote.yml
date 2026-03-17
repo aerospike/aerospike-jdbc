@@ -27,15 +27,14 @@ on:
       dry-run:
         type: boolean
         description: If true, run publish-to-sonatype in dry-run (no upload to Sonatype)
-        default: true
+        default: false
     secrets:
       AEROSPIKE_SA_CICD_USERNAME:
         required: true
       AEROSPIKE_SA_CICD_PASSWORD:
         required: true
-      # CLIENT_BOT_PAT: required for checkout and GitHub release when not in dry-run/test mode
-      # CLIENT_BOT_PAT:
-      #   required: true
+      CLIENT_BOT_PAT:
+        required: true
       JFROG_OIDC_PROVIDER:
         required: true
       JFROG_OIDC_AUDIENCE:
@@ -79,7 +78,7 @@ jobs:
           # Fetch the whole history to prevent unrelated history errors
           fetch-depth: "0"
           ref: ${{ inputs.target-branch }}
-          # token: ${{ secrets.CLIENT_BOT_PAT }}  # uncomment for real promote (needs PAT for private/restricted)
+          token: ${{ secrets.CLIENT_BOT_PAT }}
 
       # Getting build info which will allow us to get information about the build we are promoting
       - name: Get info
@@ -147,18 +146,20 @@ jobs:
           echo "commit-hash: '${{ steps.get-commit-hash.outputs.commit-hash }}'"
           echo "build-name: '${{ steps.get-build-name.outputs.build-names }}'"
 
-      # Promoting build to production (echo-only for test/dry-run; uncomment jf for real promote)
+      # Promoting build to production
       - name: Promote build
         shell: bash
         run: |
           BUILD_NAME="${{ steps.get-build-name.outputs.build-names }}"
           BUILD_NUMBER="${{ inputs.build-number }}"
+    
           if [ -z "$BUILD_NAME" ]; then
             echo "Error: Missing build name"
             exit 1
           fi
-          echo "[DRY-RUN] Would promote build '$BUILD_NAME' (build #$BUILD_NUMBER) to ${{ inputs.target-repository }}"
-          # jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
+    
+          echo "Promoting build '$BUILD_NAME' (build #$BUILD_NUMBER) to ${{ inputs.target-repository }}"
+          jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
 
       # Fetching release notes from commit logs
       - name: Generate release notes
@@ -250,11 +251,11 @@ jobs:
           egress-policy: audit
 
       # Needed since we are using actions which are part of the repository
-#      - name: Checkout
-#        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-#        with:
-#          ref: ${{ github.head_ref }}
-          # token: ${{ secrets.CLIENT_BOT_PAT }}  # uncomment for real promote
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.CLIENT_BOT_PAT }}
 
       # Pulling release from JFROG
       - uses: ./.github/actions/stage-release-artifacts
@@ -277,22 +278,20 @@ jobs:
           sonatype-domain-name: ${{ vars.SONATYPE_DOMAIN_NAME }}
           dry-run: ${{ inputs.dry-run }}
       
-      # Publishing release information to JFrog (echo-only for test; uncomment block for real promote)
-      # - uses: ./.github/actions/publish-build-info-to-jfrog
-      #   if: inputs.dry-run != true
-      #   with:
-      #     oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-      #     oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-      #     build-path: ${{ needs.promote.outputs.build-name-number }}
-      #     variables: '{"SONATYPE_STAGING_BUILD_ID":"${{ steps.publish-to-sonatype.outputs.maven-central-release-id }}"}'
-      - name: Publish build info to JFrog (echo only)
-        run: |
-          echo "[DRY-RUN] Would publish build-info to JFrog: build-path=${{ needs.promote.outputs.build-name-number }}"
+      # Publishing release information to JFrog for aggregation. This information is used later for final release step
+      # (acknowledgement) to Maven Central (skipped when dry-run)
+      - uses: ./.github/actions/publish-build-info-to-jfrog
+        if: inputs.dry-run != true
+        with:
+          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
+          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
+          build-path: ${{ needs.promote.outputs.build-name-number }}
+          variables: '{"SONATYPE_STAGING_BUILD_ID":"${{ steps.publish-to-sonatype.outputs.maven-central-release-id }}"}'
 
   publish-release-github:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     needs: [promote, publish-release-sonatype]
-    # if: inputs.dry-run != true   # kept running so workflow structure is testable; step below is echo-only
+    if: inputs.dry-run != true
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
@@ -303,23 +302,22 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ inputs.target-branch }}
-          # token: ${{ secrets.CLIENT_BOT_PAT }}  # uncomment for real promote
+          token: ${{ secrets.CLIENT_BOT_PAT }}
 
-      # Pull + publish to GitHub (echo-only for test; uncomment block for real promote)
-      # - uses: ./.github/actions/stage-release-artifacts
-      #   with:
-      #     oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-      #     oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-      #     target-repository: ${{ inputs.target-repository }}
-      #     build-name-number: ${{ needs.promote.outputs.build-name-number }}
-      #     artifact-version: ${{ needs.promote.outputs.artifact-version }}
-      #     staging-folder: '["staging","github"]'
-      # - uses: ./.github/actions/publish-to-github
-      #   with:
-      #     release-notes: ${{ needs.promote.outputs.release-notes }}
-      #     github-token: ${{ secrets.CLIENT_BOT_PAT }}
-      #     build-name-number: ${{ needs.promote.outputs.build-name-number }}
-      #     artifact-version: ${{ needs.promote.outputs.artifact-version }}
-      - name: Publish release to GitHub (echo only)
-        run: |
-          echo "[DRY-RUN] Would publish to GitHub: artifact-version=${{ needs.promote.outputs.artifact-version }} build-name-number=${{ needs.promote.outputs.build-name-number }}"
+      - uses: ./.github/actions/stage-release-artifacts
+        with:
+          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
+          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
+          target-repository: ${{ inputs.target-repository }}
+          build-name-number: ${{ needs.promote.outputs.build-name-number }}
+          artifact-version: ${{ needs.promote.outputs.artifact-version }}
+          staging-folder: '["staging","github"]'
+
+      # Publishing release to GitHub
+      # Note: this action knows how to process json internally. It expects inputs to be in json format
+      - uses: ./.github/actions/publish-to-github
+        with:
+          release-notes: ${{ needs.promote.outputs.release-notes }}
+          github-token: ${{ secrets.CLIENT_BOT_PAT }}
+          build-name-number: ${{ needs.promote.outputs.build-name-number }}
+          artifact-version: ${{ needs.promote.outputs.artifact-version }}
