@@ -27,7 +27,7 @@ This runs **push-to-stage** → **build-release**: the project is built, artifac
 
 ### 2. Note the build number
 
-After the run finishes, open the workflow run. The **build number** is the run number (e.g. `42`) for that repository. You will need it for **Promote to Prod**.
+After the run finishes, open the **Build and release** workflow run. The **build number** to use for **Promote to Prod** is the **jf-build-id** (a timestamp) exposed as the workflow output, not the GitHub run number.
 
 ### 3. Promote to “prod” (Sonatype staging + GitHub release)
 
@@ -92,3 +92,4 @@ Used by the workflows above; you normally don’t run them directly.
 
 - **build-release** uses `aerospike/shared-workflows` (reusable workflows for build, sign, deploy to JFrog). The repo must have access to that organization and the JFrog/OIDC setup must match.
 - Version tags should match the format used in **push-to-stage** (e.g. `v2.0.1`, `2.0.1`, `v2.0.1-rc1`).
+- Workflows follow the [shared-workflows CICD standard](https://github.com/aerospike/shared-workflows/blob/main/.github/workflows/docs/CICD-standard.md). See [.github/workflows/docs/CICD-PROPOSAL.md](.github/workflows/docs/CICD-PROPOSAL.md) for alignment details and a future move to the artifacts orchestrator.
