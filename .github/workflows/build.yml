@@ -43,4 +43,4 @@ jobs:
         uses: reugn/github-action-aerospike@v1
 
       - name: Build with Maven
-        run: mvn clean test -B -U
+        run: mvn clean package -B -U
