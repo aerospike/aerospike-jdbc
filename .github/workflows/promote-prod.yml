@@ -1,0 +1,23 @@
+name: Promote to Prod
+
+permissions:
+  contents: write # For creating releases
+  id-token: write # For OIDC authentication
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-number:
+        type: string
+        description: "JFrog build number: use jf-build-id from Build and release run output, or from JFrog UI URL it's the first number after the build name (e.g. .../aerospike-jdbc/1773785207202/... → 1773785207202)"
+
+jobs:
+  promote-from-stage-to-prod:
+    name: Promote from stage to prod
+    uses: ./.github/workflows/promote.yml
+    with:
+      build-number: ${{ inputs.build-number }}
+      target-repository: database-maven-dev-local
+      target-branch: main
+      source-branch: stage
+    secrets: inherit
