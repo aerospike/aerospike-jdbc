@@ -9,7 +9,11 @@ on:
     inputs:
       build-number:
         type: string
-        description: JFrog build id from the Build and release workflow output (jf-build-id), not the GitHub run number
+        description: "JFrog build number: use jf-build-id from Build and release run output, or from JFrog UI URL it's the first number after the build name (e.g. .../aerospike-jdbc/1773785207202/... → 1773785207202)"
+      dry-run:
+        type: boolean
+        description: "If true (default), no real changes to JFrog/GitHub/Sonatype; set false for real promote"
+        default: true
 
 jobs:
   promote-from-stage-to-prod:
@@ -17,6 +21,7 @@ jobs:
     uses: ./.github/workflows/promote.yml
     with:
       build-number: ${{ inputs.build-number }}
+      dry-run: ${{ inputs.dry-run }}
       target-repository: database-maven-dev-local
       target-branch: main
       source-branch: stage

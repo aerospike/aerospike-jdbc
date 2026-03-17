@@ -27,14 +27,18 @@ This runs **push-to-stage** → **build-release**: the project is built, artifac
 
 ### 2. Note the build number
 
-After the run finishes, open the **Build and release** workflow run. The **build number** to use for **Promote to Prod** is the **jf-build-id** (a timestamp) exposed as the workflow output, not the GitHub run number.
+After the run finishes, get the **build number** for **Promote to Prod** in one of these ways:
+
+- **From the workflow run:** Open the **Build and release** run and use the **jf-build-id** workflow output (a timestamp). This is not the GitHub run number.
+- **From the JFrog UI:** In a URL like `.../builds/aerospike-jdbc/1773785207202/1773785371103/published`, the build number is the **first** number after the build name: **1773785207202**. (The second number is an internal UI id; ignore it.)
 
 ### 3. Promote to “prod” (Sonatype staging + GitHub release)
 
 1. Go to **Actions** → **Promote to Prod**.
 2. Click **Run workflow**.
 3. Enter the **build number** from step 2.
-4. Run the workflow.
+4. **Dry run (default):** Leave **dry-run** checked to test the workflow without changing JFrog, GitHub, or Sonatype (Sonatype publish and JF/GH steps are echo-only; `CLIENT_BOT_PAT` not required). Uncheck **dry-run** and ensure `CLIENT_BOT_PAT` and other secrets are set for a real promote.
+5. Run the workflow.
 
 This runs **promote**: it promotes that build in JFrog, uploads to Sonatype (staging), and creates a **draft** GitHub release with the artifacts. The artifact is **not** on Maven Central until you approve it in Sonatype.
 
@@ -84,7 +88,7 @@ Used by the workflows above; you normally don’t run them directly.
 
 - **get-version** – Determines snapshot vs release and sets version output.
 - **stage-release-artifacts** – Downloads promoted artifacts from JFrog into staging folders for Sonatype and GitHub.
-- **publish-to-sonatype** – Uploads the staging bundle to Sonatype and waits for validation.
+- **publish-to-sonatype** – Uploads the staging bundle to Sonatype and waits for validation. Supports optional **dry-run** (prepare bundle and log what would be uploaded without calling Sonatype).
 - **publish-to-github** – Creates a draft GitHub release and attaches the staged artifacts.
 - **publish-build-info-to-jfrog** – Publishes build metadata (e.g. Sonatype staging id) to JFrog.
 

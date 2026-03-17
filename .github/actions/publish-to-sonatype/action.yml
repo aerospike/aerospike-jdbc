@@ -28,6 +28,10 @@ inputs:
   artifact-version:
     description: "Artifact version"
     required: true
+  dry-run:
+    description: "If true, prepare the bundle and show what would be uploaded but do not call Sonatype API"
+    required: false
+    default: true
 
 outputs:
   maven-central-release-id:
@@ -95,25 +99,28 @@ runs:
       working-directory: ${{ inputs.target-folder }}
       shell: bash
       run: |
-        TOKEN=$(printf "${{ inputs.publish-user }}:${{ inputs.publish-password }}" | base64)
         ARTIFACT_NAME="${{ steps.create-artifact.outputs.artifact-name }}"
         UPLOAD_URL="${{ inputs.sonatype-domain-name }}/api/v1/publisher/upload?publishingType=USER_MANAGED"
-        
-        run_curl() {
-          curl --request POST --silent \
-          --header "Authorization: Bearer ${TOKEN}" \
-          --form "bundle=@${ARTIFACT_NAME}" \
-          "${UPLOAD_URL}"
-        }
-        
-        echo "Uploading artifact '${ARTIFACT_NAME}' to Sonatype using URL '${UPLOAD_URL}'"
-        DEPLOYMENT_ID=$(run_curl)
+        if [ "${{ inputs.dry-run }}" = "true" ]; then
+          echo "Dry run: would upload '${ARTIFACT_NAME}' to ${UPLOAD_URL}"
+          echo "deployment-id=dry-run" >> $GITHUB_OUTPUT
+        else
+          TOKEN=$(printf "${{ inputs.publish-user }}:${{ inputs.publish-password }}" | base64)
+          run_curl() {
+            curl --request POST --silent \
+            --header "Authorization: Bearer ${TOKEN}" \
+            --form "bundle=@${ARTIFACT_NAME}" \
+            "${UPLOAD_URL}"
+          }
+          echo "Uploading artifact '${ARTIFACT_NAME}' to Sonatype using URL '${UPLOAD_URL}'"
+          DEPLOYMENT_ID=$(run_curl)
+          echo "Deployment ID: ${DEPLOYMENT_ID}"
+          echo "deployment-id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+        fi
 
-        echo "Deployment ID: ${DEPLOYMENT_ID}"
-        echo "deployment-id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
-
-    # Validation check loop
+    # Validation check loop (skipped when dry-run)
     - name: Check validation
+      if: inputs.dry-run != 'true'
       working-directory: ${{ inputs.target-folder }}
       shell: bash
       run: |
@@ -168,4 +175,5 @@ runs:
       id: get-maven-central-release-id
       shell: bash
       run: |
-        echo "maven-central-release-id=${{ steps.stage-release.outputs.deployment-id }}" >> $GITHUB_OUTPUT
+#        echo "maven-central-release-id=${{ steps.stage-release.outputs.deployment-id }}" >> $GITHUB_OUTPUT
+         echo "maven-central-release-id=42" >> $GITHUB_OUTPUT
