@@ -8,8 +8,8 @@ on:
   workflow_dispatch:
     inputs:
       build-number:
-        type: number
-        description: Build number used to build artifact to be promoted
+        type: string
+        description: JFrog build id from the Build and release workflow output (jf-build-id), not the GitHub run number
 
 jobs:
   promote-from-stage-to-prod:

@@ -60,11 +60,17 @@ jobs:
       setup-java: true
       java-version: "8"
       java-distribution: "temurin"
-      build-env: "VERSION=${{ needs.extract-version.outputs.version }};IS_SNAPSHOT=${{ needs.extract-version.outputs.is-snapshot }}"
+      # Orchestrator uses matrix['build-env'] || inputs.build-env; default matrix has build-env so we pass our vars via matrix
+      matrix-json: |
+        {"include":[{"runs-on":"ubuntu-22.04","distro":"jammy","arch":"x86_64","build-env":"emulated=false;VERSION=${{ needs.extract-version.outputs.version }};IS_SNAPSHOT=${{ needs.extract-version.outputs.is-snapshot }}"}]}
       build-script: |
         set -e
+        echo "VERSION=${VERSION:-<unset>} IS_SNAPSHOT=${IS_SNAPSHOT:-<unset>}"
         docker run -d --name aerospike -p 3000:3000 aerospike/aerospike-server && sleep 5
-        [ "$IS_SNAPSHOT" = "true" ] && pom_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) && mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+        if [ "${IS_SNAPSHOT}" = "true" ] || [ "${VERSION#*SNAPSHOT}" != "${VERSION}" ]; then
+          pom_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+        fi
         mvn clean install -B -U -Dgpg.skip=true
         REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
         VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
