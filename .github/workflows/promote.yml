@@ -216,11 +216,10 @@ jobs:
           
           VERSION=$(echo "$BUILD_INFO" | jq -r '
             .buildInfo.modules[]
-            | select(.id | test("-buildinfo-"))
-            | .id
-            | capture("-buildinfo-(?<ver>[^_]+)")
-            | .ver
-          ')
+          | select(.id | test("aerospike-jdbc"))
+          | .id
+          | split(":")[2]
+          ' | head -1)
           
           if [[ -z "$VERSION" ]]; then
             echo "ERROR: Could not parse artifact version from JFrog build info!"
@@ -265,6 +264,13 @@ jobs:
           target-repository: ${{ inputs.target-repository }}
           build-name-number: ${{ needs.promote.outputs.build-name-number }}
           artifact-version: ${{ needs.promote.outputs.artifact-version }}
+
+      - name: Debug staging folder contents
+        run: |
+          echo "=== staging/ ==="
+          ls -laR staging/ || echo "staging/ missing"
+          echo "=== sonatype/ ==="
+          ls -laR sonatype/ || echo "sonatype/ missing"
 
       # Publishing release to Maven Central
       - uses: ./.github/actions/publish-to-sonatype
