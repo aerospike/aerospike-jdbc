@@ -72,13 +72,13 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       # Needed since we are using actions which are part of the repository
-#      - name: Checkout
-#        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-#        with:
-#          # Fetch the whole history to prevent unrelated history errors
-#          fetch-depth: "0"
-#          ref: ${{ inputs.target-branch }}
-#          token: ${{ secrets.CLIENT_BOT_PAT }}
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          # Fetch the whole history to prevent unrelated history errors
+          fetch-depth: "0"
+          ref: ${{ inputs.target-branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Getting build info which will allow us to get information about the build we are promoting
       - name: Get info
@@ -120,19 +120,19 @@ jobs:
           fi
 
       # Fetching commit hash from the build info. The commit hash is used for SNAPSHOT builds
-#      - name: Get commit hash from repo
-#        id: get-commit-hash
-#        run: |
-#          BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
-#
-#          # Try to get from vcs first
-#          COMMIT_HASH=$(echo "$BUILD_INFO" | jq -r '.buildInfo.vcs[0].revision // empty')
-#
-#          if [ -z "$COMMIT_HASH" ] || [ "$COMMIT_HASH" == "null" ]; then
-#            # Fallback: extract from module ID
-#            COMMIT_HASH=$(echo "$BUILD_INFO" | jq -r '.buildInfo.modules[0].id' | sed -E 's/.*SNAPSHOT_(.*)$/\1/')
-#          fi
-#          echo "commit-hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+      - name: Get commit hash from repo
+        id: get-commit-hash
+        run: |
+          BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
+
+          # Try to get from vcs first
+          COMMIT_HASH=$(echo "$BUILD_INFO" | jq -r '.buildInfo.vcs[0].revision // empty')
+
+          if [ -z "$COMMIT_HASH" ] || [ "$COMMIT_HASH" == "null" ]; then
+            # Fallback: extract from module ID
+            COMMIT_HASH=$(echo "$BUILD_INFO" | jq -r '.buildInfo.modules[0].id' | sed -E 's/.*SNAPSHOT_(.*)$/\1/')
+          fi
+          echo "commit-hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
 
       # Fetching build name for build promotion process. The build name will contain build numbers.
       # This command parses json and pulls out the build name
@@ -255,7 +255,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ inputs.target-branch }}
-          token: ${{ secrets.CLIENT_BOT_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       # Pulling release from JFROG
       - uses: ./.github/actions/stage-release-artifacts
@@ -302,7 +302,7 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           ref: ${{ inputs.target-branch }}
-          token: ${{ secrets.CLIENT_BOT_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/stage-release-artifacts
         with:
@@ -318,6 +318,6 @@ jobs:
       - uses: ./.github/actions/publish-to-github
         with:
           release-notes: ${{ needs.promote.outputs.release-notes }}
-          github-token: ${{ secrets.CLIENT_BOT_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           build-name-number: ${{ needs.promote.outputs.build-name-number }}
           artifact-version: ${{ needs.promote.outputs.artifact-version }}

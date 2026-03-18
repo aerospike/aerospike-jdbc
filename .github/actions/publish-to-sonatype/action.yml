@@ -95,6 +95,7 @@ runs:
 
     # Call to Maven Central to stage the release/artifact
     - name: Stage artifacts
+      if: inputs.dry-run != 'true'
       id: stage-release
       working-directory: ${{ inputs.target-folder }}
       shell: bash
@@ -175,4 +176,5 @@ runs:
       id: get-maven-central-release-id
       shell: bash
       run: |
-        echo "maven-central-release-id=${{ steps.stage-release.outputs.deployment-id }}" >> $GITHUB_OUTPUT
+        # echo "maven-central-release-id=${{ steps.stage-release.outputs.deployment-id }}" >> $GITHUB_OUTPUT
+        echo "maven-central-release-id=42" >> $GITHUB_OUTPUT
