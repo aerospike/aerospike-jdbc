@@ -87,7 +87,7 @@ runs:
         ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
         echo artifact-build-info="${ARTIFACT_BUILD_INFO}" >> $GITHUB_OUTPUT
         # Extract artifact name from path (com/aerospike/ARTIFACT_NAME/VERSION/...); single-module has one, multi-module has many
-        ARTIFACT_NAME=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f3')
+        ARTIFACT_NAME=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f3)
         echo "Artifact Name: ${ARTIFACT_NAME}"
         echo artifact-name="${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
     
