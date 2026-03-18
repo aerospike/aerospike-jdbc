@@ -213,20 +213,20 @@ jobs:
         id: get-artifact-version
         run: |
           BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
+          BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
           
-          VERSION=$(echo "$BUILD_INFO" | jq -r '
-            .buildInfo.modules[]
-          | select(.id | test("aerospike-jdbc"))
-          | .id
-          | split(":")[2]
-          ' | head -1)
+          ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
+          ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
+          
+          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f4)
           
           if [[ -z "$VERSION" ]]; then
             echo "ERROR: Could not parse artifact version from JFrog build info!"
             exit 1
           fi
           
-          echo "artifact-version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Artifact version: ${VERSION}"
+          echo "artifact-version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Debug show 'build-name-numbers' and 'artifact-version'
         run: |
