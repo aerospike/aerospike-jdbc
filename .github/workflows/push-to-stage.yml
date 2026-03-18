@@ -1,0 +1,22 @@
+name: Java Build & Release
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+  attestations: write
+
+on:
+  push:
+    branches:
+      - stage
+    tags:
+      - 'v*'                       # Matches v5.4.0
+      - '[0-9]+.[0-9]+.[0-9]+'     # Matches 5.4.0
+      - '[0-9]+.[0-9]+.[0-9]+-rc*' # Matches 5.4.0-rc1
+  workflow_dispatch:
+
+jobs:
+  build-stage:
+    name: Build stage
+    uses: ./.github/workflows/build-release.yml
+    secrets: inherit
