@@ -254,7 +254,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: "stage" # ${{ inputs.target-branch }}
+          ref: ${{ inputs.target-branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # Pulling release from JFROG
@@ -301,7 +301,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
-          ref: "stage" "# ${{ inputs.target-branch }}
+          ref: ${{ inputs.target-branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/stage-release-artifacts
