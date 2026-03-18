@@ -54,10 +54,10 @@ runs:
         BUILD_PATH="promote_${BUILD_ID}"
 
         # record env variables 
-        # jf rt bce ${BUILD_PATH} ${{ github.run_number }}
+        jf rt bce ${BUILD_PATH} ${{ github.run_number }}
 
         # record git info
-        # jf rt bag ${BUILD_PATH} ${{ github.run_number }}
+        jf rt bag ${BUILD_PATH} ${{ github.run_number }}
 
         # publish build info
-        # jf rt bp ${BUILD_PATH} ${{ github.run_number }}
+        jf rt bp ${BUILD_PATH} ${{ github.run_number }}
