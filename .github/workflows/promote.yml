@@ -27,14 +27,14 @@ on:
       dry-run:
         type: boolean
         description: If true, run publish-to-sonatype in dry-run (no upload to Sonatype)
-        default: false
+        default: true
     secrets:
       AEROSPIKE_SA_CICD_USERNAME:
         required: true
       AEROSPIKE_SA_CICD_PASSWORD:
         required: true
       CLIENT_BOT_PAT:
-        required: true
+        required: false
       JFROG_OIDC_PROVIDER:
         required: true
       JFROG_OIDC_AUDIENCE:
@@ -72,13 +72,13 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       # Needed since we are using actions which are part of the repository
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          # Fetch the whole history to prevent unrelated history errors
-          fetch-depth: "0"
-          ref: ${{ inputs.target-branch }}
-          token: ${{ secrets.CLIENT_BOT_PAT }}
+#      - name: Checkout
+#        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+#        with:
+#          # Fetch the whole history to prevent unrelated history errors
+#          fetch-depth: "0"
+#          ref: ${{ inputs.target-branch }}
+#          token: ${{ secrets.CLIENT_BOT_PAT }}
 
       # Getting build info which will allow us to get information about the build we are promoting
       - name: Get info
@@ -159,7 +159,7 @@ jobs:
           fi
     
           echo "Promoting build '$BUILD_NAME' (build #$BUILD_NUMBER) to ${{ inputs.target-repository }}"
-          jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
+          # jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
 
       # Fetching release notes from commit logs
       - name: Generate release notes
@@ -250,12 +250,12 @@ jobs:
         with:
           egress-policy: audit
 
-      # Needed since we are using actions which are part of the repository
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          ref: ${{ github.head_ref }}
-          token: ${{ secrets.CLIENT_BOT_PAT }}
+#      # Needed since we are using actions which are part of the repository
+#      - name: Checkout
+#        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+#        with:
+#          ref: ${{ github.head_ref }}
+#          token: ${{ secrets.CLIENT_BOT_PAT }}
 
       # Pulling release from JFROG
       - uses: ./.github/actions/stage-release-artifacts
@@ -298,26 +298,26 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          ref: ${{ inputs.target-branch }}
-          token: ${{ secrets.CLIENT_BOT_PAT }}
-
-      - uses: ./.github/actions/stage-release-artifacts
-        with:
-          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-          target-repository: ${{ inputs.target-repository }}
-          build-name-number: ${{ needs.promote.outputs.build-name-number }}
-          artifact-version: ${{ needs.promote.outputs.artifact-version }}
-          staging-folder: '["staging","github"]'
+#      - name: Checkout
+#        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+#        with:
+#          ref: ${{ inputs.target-branch }}
+#          token: ${{ secrets.CLIENT_BOT_PAT }}
+#
+#      - uses: ./.github/actions/stage-release-artifacts
+#        with:
+#          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
+#          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
+#          target-repository: ${{ inputs.target-repository }}
+#          build-name-number: ${{ needs.promote.outputs.build-name-number }}
+#          artifact-version: ${{ needs.promote.outputs.artifact-version }}
+#          staging-folder: '["staging","github"]'
 
       # Publishing release to GitHub
       # Note: this action knows how to process json internally. It expects inputs to be in json format
-      - uses: ./.github/actions/publish-to-github
-        with:
-          release-notes: ${{ needs.promote.outputs.release-notes }}
-          github-token: ${{ secrets.CLIENT_BOT_PAT }}
-          build-name-number: ${{ needs.promote.outputs.build-name-number }}
-          artifact-version: ${{ needs.promote.outputs.artifact-version }}
+#      - uses: ./.github/actions/publish-to-github
+#        with:
+#          release-notes: ${{ needs.promote.outputs.release-notes }}
+#          github-token: ${{ secrets.CLIENT_BOT_PAT }}
+#          build-name-number: ${{ needs.promote.outputs.build-name-number }}
+#          artifact-version: ${{ needs.promote.outputs.artifact-version }}
