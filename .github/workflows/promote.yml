@@ -27,7 +27,7 @@ on:
       dry-run:
         type: boolean
         description: If true, run publish-to-sonatype in dry-run (no upload to Sonatype)
-        default: true
+        default: false
     secrets:
       AEROSPIKE_SA_CICD_USERNAME:
         required: true
@@ -96,27 +96,43 @@ jobs:
           
           echo build-info=$(jf rt curl "${API_PATH}" ) >> $GITHUB_OUTPUT
 
+      - name: Get artifact version from JFrog build info
+        id: get-artifact-version
+        run: |
+          BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
+          BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
+          
+          ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
+          ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
+          
+          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+            .buildInfo.modules[].artifacts[]
+            | select(.name | endswith(".jar")
+             and (contains("sources") | not)
+             and (contains("javadoc") | not))
+            | .path
+            | split("/")[-2]
+            ' | head -n1)
+          
+          if [[ -z "$VERSION" ]]; then
+            echo "ERROR: Could not parse artifact version from JFrog build info!"
+            exit 1
+          fi
+          
+          echo "Artifact version: ${VERSION}"
+          echo "artifact-version=${VERSION}" >> $GITHUB_OUTPUT
+
       # Snapshot builds are not promoted to production
       - name: Check if snapshot build
         id: check-snapshot
         run: |
-          BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
-          BUILD_ID=$(echo "$BUILD_INFO" | jq -r '.buildInfo.modules[] | select(.id | test("buildinfo")) | .id')
-          # extracting snapshot from build-nfo name. Not ideal, but we don't have is_snapshot information in JF yet          
-          # Extract version from build ID
-          # Format: <artifact>/<number>-buildinfo-<version>_hash
-          if [[ "$BUILD_ID" =~ buildinfo-([0-9.]+(-SNAPSHOT)?) ]]; then
-            VERSION="${BASH_REMATCH[1]}"
-          echo "Parsed version: $VERSION"
-            else
-            echo "ERROR: Could not parse version"
-          fi
+          VERSION="${{ steps.get-artifact-version.outputs.artifact-version }}"
           
           echo "Parsed version: $VERSION"
           
           if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
             echo "Error: Build ${{ inputs.jf-target-build }} with build number ${{ inputs.build-number }} is a SNAPSHOT build. Snapshots are not promoted to production."
-            # exit 1
+            exit 1
           fi
 
       # Fetching commit hash from the build info. The commit hash is used for SNAPSHOT builds
@@ -208,32 +224,6 @@ jobs:
           BUILD_NAME=$(echo '${{ steps.get-build-info.outputs.build-info }}' | jq -r '.buildInfo.name')
           BUILD_NUMBER="${{ inputs.build-number }}"
           echo "build-name-numbers=${BUILD_NAME}/${BUILD_NUMBER}" >> $GITHUB_OUTPUT
-
-      - name: Get artifact version from JFrog build info
-        id: get-artifact-version
-        run: |
-          BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
-          BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
-          
-          ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
-          ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
-          
-          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-            .buildInfo.modules[].artifacts[]
-            | select(.name | endswith(".jar")
-            and (contains("sources") | not)
-            and (contains("javadoc") | not))
-            | .path
-            | split("/")[-2]
-            ' | head -n1)
-          
-          if [[ -z "$VERSION" ]]; then
-            echo "ERROR: Could not parse artifact version from JFrog build info!"
-            exit 1
-          fi
-          
-          echo "Artifact version: ${VERSION}"
-          echo "artifact-version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Debug show 'build-name-numbers' and 'artifact-version'
         run: |
