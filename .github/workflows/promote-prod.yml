@@ -9,7 +9,7 @@ on:
     inputs:
       build-number:
         type: string
-        description: "JFrog build number: use jf-build-id from Build and release run output, or from JFrog UI URL it's the first number after the build name (e.g. .../aerospike-jdbc/1773785207202/... → 1773785207202)"
+        description: "JFrog build number: use jf-build-id from Build and release run output."
 
 jobs:
   promote-from-stage-to-prod:

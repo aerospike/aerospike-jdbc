@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>2.0.1</version>
+    <version>2.1.0</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -48,7 +48,6 @@
     <developers>
         <developer>
             <name>Eugene Rizhkov</name>
-            <email>yrizhkov@aerospike.com</email>
             <url>https://www.aerospike.com</url>
             <organization>Aerospike</organization>
         </developer>

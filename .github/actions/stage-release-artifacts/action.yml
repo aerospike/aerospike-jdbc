@@ -87,7 +87,7 @@ runs:
         ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
         echo artifact-build-info="${ARTIFACT_BUILD_INFO}" >> $GITHUB_OUTPUT
         # Extract artifact name from path (com/aerospike/ARTIFACT_NAME/VERSION/...); single-module has one, multi-module has many
-        ARTIFACT_NAME=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f3')
+        ARTIFACT_NAME=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f3)
         echo "Artifact Name: ${ARTIFACT_NAME}"
         echo artifact-name="${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
     
@@ -105,10 +105,15 @@ runs:
       working-directory: ${{ fromJson(inputs.staging-folder)[0] }}
       run: |
         BUILD_INFO='${{ steps.get-artifact-build-info.outputs.artifact-build-info }}'
-        module_names=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[].artifacts[].path' | cut -d'/' -f3 | sort -u)
-        for module_name in $module_names; do
-          echo "Downloading artifacts for module: $module_name"
-          jf rt dl "database-maven-dev-local/com/aerospike/${module_name}/${{ inputs.artifact-version }}/*" --project database .
+        
+        echo "${BUILD_INFO}" | jq -r '
+          .buildInfo.modules[].artifacts[]
+          | select(.path | startswith("com/"))
+          | select(.name | startswith("maven-metadata") | not)
+          | .path
+        ' | sort -u | while read -r ARTIFACT_PATH; do
+          echo "Downloading: ${ARTIFACT_PATH}"
+          jf rt dl "database-maven-dev-local/${ARTIFACT_PATH}" --project database .
         done
 
     - name: Debug list downloaded content
