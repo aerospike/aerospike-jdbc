@@ -218,7 +218,14 @@ jobs:
           ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
           ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
           
-          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f4)
+          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+            .buildInfo.modules[].artifacts[]
+            | select(.name | endswith(".jar")
+            and (contains("sources") | not)
+            and (contains("javadoc") | not))
+            | .path
+            | split("/")[-2]
+            ' | head -n1)
           
           if [[ -z "$VERSION" ]]; then
             echo "ERROR: Could not parse artifact version from JFrog build info!"
