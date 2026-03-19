@@ -175,7 +175,7 @@ jobs:
           fi
     
           echo "Promoting build '$BUILD_NAME' (build #$BUILD_NUMBER) to ${{ inputs.target-repository }}"
-          # jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
+          jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
 
       # Fetching release notes from commit logs
       - name: Generate release notes
