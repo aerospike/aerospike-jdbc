@@ -47,9 +47,9 @@ jobs:
 
   artifacts-cicd:
     needs: extract-version
-    uses: aerospike/shared-workflows/.github/workflows/reusable_artifacts-cicd.yaml@ac18c9129ae507f11f2f0b94aaf6593dca05d512
+    uses: aerospike/shared-workflows/.github/workflows/reusable_artifacts-cicd.yaml@4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
     with:
-      gh-workflows-ref: ac18c9129ae507f11f2f0b94aaf6593dca05d512
+      gh-workflows-ref: 4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
       jf-project: ${{ vars.JFROG_PROJECT }}
       jf-build-name: aerospike-jdbc
       version: ${{ needs.extract-version.outputs.version }}
@@ -87,12 +87,12 @@ jobs:
 
   create-release-bundle:
     needs: [extract-version, artifacts-cicd]
-    uses: aerospike/shared-workflows/.github/workflows/reusable_create-release-bundle.yaml@ac18c9129ae507f11f2f0b94aaf6593dca05d512
+    uses: aerospike/shared-workflows/.github/workflows/reusable_create-release-bundle.yaml@4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
     with:
       jf-project: ${{ vars.JFROG_PROJECT }}
       jf-build-names: aerospike-jdbc:${{ needs.artifacts-cicd.outputs.jf-build-id }}
       jf-bundle-name: aerospike-jdbc
-      gh-workflows-ref: ac18c9129ae507f11f2f0b94aaf6593dca05d512
+      gh-workflows-ref: 4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
       version: ${{ needs.extract-version.outputs.version }}
       oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
       oidc-audience: ${{ vars.OIDC_AUDIENCE }}
