@@ -20,13 +20,16 @@ import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
 
 import static com.aerospike.jdbc.util.PreparedStatement.parseParameters;
 import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
 
 public class AerospikePreparedStatement extends AerospikeStatement implements PreparedStatement {
 
@@ -34,6 +37,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     private final String sqlStatement;
     private final Object[] sqlParameters;
+    private final List<Object> batchParameters = new ArrayList<>();
 
     public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection,
                                       String sqlStatement) throws SQLException {
@@ -170,12 +174,18 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void setObject(int parameterIndex, Object x) throws SQLException {
-        if (parameterIndex <= 0 || parameterIndex > sqlParameters.length) {
-            throw new SQLDataException(sqlParameters.length == 0
-                    ? "Current SQL statement does not have parameters"
-                    : format("The parameter index %d is out of range, number of parameters: %d",
+        checkClosed();
+
+        if (parameterIndex < 1 || parameterIndex > sqlParameters.length) {
+            throw new SQLException(format("Parameter index %d out of range [1, %d]",
                     parameterIndex, sqlParameters.length));
         }
+
+        if (x instanceof java.sql.Array) {
+            setArray(parameterIndex, (java.sql.Array) x);
+            return;
+        }
+
         sqlParameters[parameterIndex - 1] = x;
     }
 
@@ -191,7 +201,53 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     @Override
     public void addBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
+        checkClosed();
+
+        List<Object> batchEntry = new ArrayList<>(sqlParameters.length);
+        Collections.addAll(batchEntry, sqlParameters);
+        batchParameters.add(batchEntry);
+
+        // Reset parameters for next batch entry
+        Arrays.fill(sqlParameters, null);
+
+        logger.fine(() -> format("Added batch entry, total batches: %d", batchParameters.size()));
+    }
+
+    @Override
+    public void clearBatch() throws SQLException {
+        checkClosed();
+
+        batchParameters.clear();
+        logger.fine("Cleared batch");
+    }
+
+    @Override
+    public int[] executeBatch() throws SQLException {
+        checkClosed();
+
+        if (batchParameters.isEmpty()) {
+            return new int[0];
+        }
+
+        int batchSize = batchParameters.size();
+        logger.info(() -> format("Executing batch with %d entries", batchSize));
+        AerospikeQuery query = parseQuery(sqlStatement, batchParameters);
+        QueryType queryType = query.getQueryType();
+
+        if (queryType != QueryType.INSERT) {
+            throw new SQLException(format("Batch execution is only supported for INSERT statements, got: %s",
+                    queryType));
+        }
+
+        try {
+            runQuery(query);
+
+            int[] updateCounts = new int[batchSize];
+            Arrays.fill(updateCounts, 1);
+            return updateCounts;
+        } finally {
+            batchParameters.clear();
+        }
     }
 
     @Override
@@ -215,8 +271,41 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void setArray(int parameterIndex, Array x) throws SQLException {
-        setObject(parameterIndex, x);
+        checkClosed();
+
+        if (x == null) {
+            setObject(parameterIndex, null);
+            return;
+        }
+
+        Object array = x.getArray();
+        List<Object> objectList;
+        if (array instanceof Object[]) {
+            objectList = Arrays.asList((Object[]) array);
+        } else if (array instanceof List<?>) {
+            objectList = (List<Object>) array;
+        } else {
+            objectList = convertToObjectList(array);
+        }
+
+        setObject(parameterIndex, objectList);
+    }
+
+    private List<Object> convertToObjectList(Object array) throws SQLException {
+        if (array instanceof Object[]) {
+            return Arrays.asList((Object[]) array);
+        } else if (array instanceof List<?>) {
+            return new ArrayList<>((List<?>) array);
+        } else if (array instanceof long[]) {
+            long[] longArray = (long[]) array;
+            return Arrays.stream(longArray).boxed().collect(toList());
+        } else if (array instanceof double[]) {
+            double[] doubleArray = (double[]) array;
+            return Arrays.stream(doubleArray).boxed().collect(toList());
+        }
+        throw new SQLException(format("Unsupported array type: %s", array.getClass().getName()));
     }
 
     @Override

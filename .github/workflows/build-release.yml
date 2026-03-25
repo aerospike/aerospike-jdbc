@@ -1,0 +1,99 @@
+# Build and release using the shared-workflows Artifacts CI/CD orchestrator.
+# Standard flow: extract-version → reusable_artifacts-cicd (build → sign → deploy) → create-release-bundle.
+# Java/Maven are set up via orchestrator inputs (setup-java, java-version, java-distribution).
+# See .github/workflows/docs/CICD-PROPOSAL.md and shared-workflows CICD standard.
+name: Build and release
+
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+  attestations: write
+
+on:
+  workflow_call:
+    outputs:
+      jf-build-id:
+        description: JFrog build id (use this as build-number when running Promote to Prod)
+        value: ${{ jobs.artifacts-cicd.outputs.jf-build-id }}
+    secrets:
+      GPG_SECRET_KEY:
+        required: true
+      GPG_PUBLIC_KEY:
+        required: true
+      GPG_PASS:
+        required: true
+
+jobs:
+  extract-version:
+    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 2
+      - name: Extract Version
+        id: extract
+        uses: ./.github/actions/get-version
+    outputs:
+      version: ${{ steps.extract.outputs.release-version }}
+      is-snapshot: ${{ steps.extract.outputs.is-snapshot }}
+
+  artifacts-cicd:
+    needs: extract-version
+    uses: aerospike/shared-workflows/.github/workflows/reusable_artifacts-cicd.yaml@4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
+    with:
+      gh-workflows-ref: 4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
+      jf-project: ${{ vars.JFROG_PROJECT }}
+      jf-build-name: aerospike-jdbc
+      version: ${{ needs.extract-version.outputs.version }}
+      gh-source-path: aerospike-jdbc
+      working-directory: aerospike-jdbc
+      gh-artifact-directory: build
+      jar-group-id: com.aerospike
+      setup-java: true
+      java-version: "8"
+      java-distribution: "temurin"
+      # Orchestrator uses matrix['build-env'] || inputs.build-env; default matrix has build-env so we pass our vars via matrix
+      matrix-json: |
+        {"include":[{"runs-on":"ubuntu-22.04","distro":"jammy","arch":"x86_64","build-env":"emulated=false;VERSION=${{ needs.extract-version.outputs.version }};IS_SNAPSHOT=${{ needs.extract-version.outputs.is-snapshot }}"}]}
+      build-script: |
+        set -e
+        echo "VERSION=${VERSION:-<unset>} IS_SNAPSHOT=${IS_SNAPSHOT:-<unset>}"
+        docker run -d --name aerospike -p 3000:3000 aerospike/aerospike-server && sleep 5
+        if [ "${IS_SNAPSHOT}" = "true" ] || [ "${VERSION#*SNAPSHOT}" != "${VERSION}" ]; then
+          pom_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+        fi
+        mvn clean install -B -U -Dgpg.skip=true
+        REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
+        VER=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        mkdir -p build && cp -a "$REPO/com/aerospike/aerospike-jdbc/$VER"/. build/
+        find build -name '*jar-with-dependencies*' -delete
+        find build -name '_remote.repositories' -delete
+      oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+      oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+      dry-run: false
+    secrets:
+      gpg-private-key: ${{ secrets.GPG_SECRET_KEY }}
+      gpg-public-key: ${{ secrets.GPG_PUBLIC_KEY }}
+      gpg-key-pass: ${{ secrets.GPG_PASS }}
+
+  create-release-bundle:
+    needs: [extract-version, artifacts-cicd]
+    uses: aerospike/shared-workflows/.github/workflows/reusable_create-release-bundle.yaml@4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
+    with:
+      jf-project: ${{ vars.JFROG_PROJECT }}
+      jf-build-names: aerospike-jdbc:${{ needs.artifacts-cicd.outputs.jf-build-id }}
+      jf-bundle-name: aerospike-jdbc
+      gh-workflows-ref: 4a5f7cd3dc79c20385a55d3c6d242e8140d98e50
+      version: ${{ needs.extract-version.outputs.version }}
+      oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+      oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+      dry-run: false
