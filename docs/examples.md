@@ -3,6 +3,21 @@
 The following examples demonstrate CRUD operations in SQL using the Aerospike
 JDBC driver.
 
+## Table of Contents
+- [Concepts](#concepts)
+- [INSERT](#insert)
+- [SELECT](#select)
+- [Aggregate functions](#aggregate-functions)
+- [EXPLAIN](#explain)
+- [UPDATE](#update)
+- [DELETE](#delete)
+- [TRUNCATE](#truncate)
+- [CREATE INDEX](#create-index)
+- [DROP INDEX](#drop-index)
+- [Prepared Statements](#prepared-statements)
+- [Transactions](#transactions)
+- [Array Columns](#array-columns)
+
 ## Concepts
 
 Let's assume the namespace does not yet have a table (set) named _port_list_ in
@@ -357,6 +372,38 @@ SELECT * FROM port_list WHERE port < 200;
 | snmp     | Simple Network Management Protocol (SNMP)           | 161  |
 | snmptrap | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
 
+## Array Columns
+Aerospike List bins are mapped to SQL arrays. You can use the `ARRAY[...]` literal
+syntax to insert and update list values.
+
+Insert a row with an array column:
+
+```sql
+INSERT INTO port_list (__key, port, description, tags) VALUES ("https", 443, "HTTP over TLS", ARRAY['web', 'secure', 'tls']);
+SELECT * FROM port_list WHERE __key="https";
+```
+
+| __key | description    | port | tags                    |
+|-------|----------------|------|-------------------------|
+| https | HTTP over TLS  | 443  | ["web", "secure", "tls"]|
+
+Update the array column:
+
+```sql
+UPDATE port_list SET tags=ARRAY['web', 'secure', 'tls', 'default'] WHERE __key="https";
+SELECT * FROM port_list WHERE __key="https";
+```
+
+| __key | description    | port | tags                               |
+|-------|----------------|------|------------------------------------|
+| https | HTTP over TLS  | 443  | ["web", "secure", "tls", "default"]|
+
+Remove the array column by setting it to `NULL`:
+
+```sql
+UPDATE port_list SET tags=NULL WHERE __key="https";
+```
+
 ## DELETE
 
 Delete rows that match a WHERE condition on a regular column (a bin):
@@ -420,6 +467,55 @@ CREATE INDEX port_idx ON port_list (port);
 
 ```sql
 DROP INDEX port_idx ON port_list;
+```
+
+## Prepared Statements
+The JDBC driver supports [PreparedStatement](https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html)
+with `?` parameter placeholders. Batch INSERT operations are also supported
+using `addBatch()` and `executeBatch()`.
+
+Parameterized INSERT:
+
+```java
+PreparedStatement ps = connection.prepareStatement(
+    "INSERT INTO port_list (__key, port, description) VALUES (?, ?, ?)");
+ps.setString(1, "ssh");
+ps.setInt(2, 22);
+ps.setString(3, "Secure Shell");
+ps.executeUpdate();
+```
+
+Parameterized SELECT by primary key:
+
+```java
+PreparedStatement ps = connection.prepareStatement(
+    "SELECT * FROM port_list WHERE __key = ?");
+ps.setString(1, "ssh");
+ResultSet rs = ps.executeQuery();
+```
+
+Batch INSERT using `addBatch()` and `executeBatch()`:
+
+```java
+PreparedStatement ps = connection.prepareStatement(
+    "INSERT INTO port_list (__key, port, description) VALUES (?, ?, ?)");
+
+ps.setString(1, "ssh");
+ps.setInt(2, 22);
+ps.setString(3, "Secure Shell");
+ps.addBatch();
+
+ps.setString(1, "telnet");
+ps.setInt(2, 23);
+ps.setString(3, "Telnet protocol");
+ps.addBatch();
+
+ps.setString(1, "smtp");
+ps.setInt(2, 25);
+ps.setString(3, "Simple Mail Transfer Protocol");
+ps.addBatch();
+
+int[] counts = ps.executeBatch(); // counts.length == 3
 ```
 
 ## Transactions

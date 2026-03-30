@@ -14,9 +14,20 @@ Read [Java Tutorials](https://docs.oracle.com/javase/tutorial/jdbc/basics/index.
 ```sh
 mvn clean package
 ```
-The JDBC driver jar `uber-aerospike-jdbc-<version>.jar` will be created under the target folder.
+The uber JAR `uber-aerospike-jdbc-<version>.jar` will be created under the target folder.
+This JAR bundles all dependencies and is intended for use with data browser tools such as DBeaver and DataGrip.
 
-Pre-built versions of the driver are available in the [Releases](https://github.com/aerospike/aerospike-jdbc/releases).
+Pre-built versions of the uber JAR are available in the [Releases](https://github.com/aerospike/aerospike-jdbc/releases).
+
+For Java applications, add the driver as a dependency from [Maven Central](https://maven-badges.herokuapp.com/maven-central/com.aerospike/aerospike-jdbc/) instead:
+
+```xml
+<dependency>
+    <groupId>com.aerospike</groupId>
+    <artifactId>aerospike-jdbc</artifactId>
+    <version>2.1.0</version>
+</dependency>
+```
 
 ## JDBC connection properties
 |     |     |
@@ -55,10 +66,10 @@ Packages documentation can be found [here](https://javadoc.io/doc/com.aerospike/
 * INSERT
 * UPDATE
 * DELETE
-* TRUNCATE TABLE
-* CREATE INDEX
-* DROP INDEX
 * EXPLAIN
+* TRUNCATE TABLE
+* CREATE INDEX and DROP INDEX
+* Prepared Statements
 * Transactions
 
 See [examples](docs/examples.md) of SQL.
@@ -79,7 +90,7 @@ See [examples](docs/examples.md) of SQL.
         * Host: _host_ URL (such as `localhost` or `0.0.0.0`)
         * Port: _port_ by default should be `3000`
         * Database/Schema: _database_ by default should be `test`
-    * Click the `Add File` button and add the JDBC jar file.
+    * Click the `Add File` button and add the uber JAR file (`uber-aerospike-jdbc-<version>.jar`).
     * Click the `Find Class` button.
     * Click `OK`.
     
@@ -102,7 +113,7 @@ See [examples](docs/examples.md) of SQL.
     * Database > + > Driver
         * Name: Aerospike
         * Comment (Optional): Aerospike Driver
-        * Driver Files > + > Custom JARs… > add the Aerospike JDBC jar file
+        * Driver Files > + > Custom JARs… > add the uber JAR file (`uber-aerospike-jdbc-<version>.jar`)
         * URL Template > + > jdbc:aerospike:{host}[:{port}]/[{database}]
         * Class: select “com.aerospike.jdbc.AerospikeDriver” (should appear after doing the previous steps).
         * Apply.
