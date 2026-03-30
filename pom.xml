@@ -28,7 +28,8 @@
 
         <aerospike-client.version>9.2.0</aerospike-client.version>
         <netty.version>4.1.128.Final</netty.version>
-        <jackson.version>2.19.4</jackson.version>
+        <jackson.version>2.21.1</jackson.version>
+        <jackson.annotations.version>2.21</jackson.annotations.version>
         <calcite.version>1.41.0</calcite.version>
         <guava.version>33.5.0-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
@@ -101,7 +102,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
+            <version>${jackson.annotations.version}</version>
         </dependency>
 
         <dependency>
