@@ -84,3 +84,4 @@ jobs:
               echo "✗ Unexpected HTTP status ${HTTP_CODE} for action '$ACTION'."
               exit 1
             fi
+          fi
