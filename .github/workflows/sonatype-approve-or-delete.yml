@@ -54,14 +54,17 @@ jobs:
 
           if [[ "$ACTION" == "GET" ]]; then
             # GET returns a JSON body with deployment status
-            RESPONSE=$(curl --fail --show-error --silent \
+            RESPONSE=$(curl --show-error --silent \
               --request GET \
               --header "Authorization: Bearer ${TOKEN}" \
               --header "Accept: application/json" \
               "${DOMAIN}/api/v1/publisher/deployment/${ID}"
             )
-            echo "Deployment status:"
-            echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            echo "HTTP code: ${HTTP_CODE}"
+            echo "Body: $BODY"
           else
             # POST/DELETE return 204 No Content on success
             RESPONSE=$(curl --silent --write-out "\n%{http_code}" \
