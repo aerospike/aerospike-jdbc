@@ -1,9 +1,7 @@
 name: Approve or Delete Sonatype Deployment
 run-name: "Sonatype Deployment: ${{ inputs.action }} ${{ inputs.stage-release-id }}"
 # https://central.sonatype.org/publish/publish-portal-api/#verify-status-of-the-deployment
-
 permissions: {}
-
 on:
   workflow_dispatch:
     inputs:
@@ -12,59 +10,77 @@ on:
         required: true
         type: string
       action:
-        description: "Action to perform on the deployment: POST = approve, DELETE = discard"
+        description: "Action to perform: GET = check status, POST = approve, DELETE = discard"
         required: true
         type: choice
         options:
+          - GET
           - POST
           - DELETE
-
 jobs:
   sonatype-deployment-action:
     runs-on: ubuntu-latest
-
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
         with:
           egress-policy: audit
-
       - name: Debug Inputs
         run: |
           echo "Action: ${{ inputs.action }}"
           echo "Stage Release ID: ${{ inputs.stage-release-id }}"
-
       - name: Build Authorization Header
         id: auth
         run: |
           TOKEN=$(printf "%s:%s" "${{ secrets.AEROSPIKE_SA_CICD_USERNAME }}" "${{ secrets.AEROSPIKE_SA_CICD_PASSWORD }}" | base64)
           echo "token=$TOKEN" >> $GITHUB_OUTPUT
-
-      - name: Approve/Delete deployment
+      - name: Execute Sonatype Deployment Action
         shell: bash
         run: |
-          ACTION="${{ inputs.action }}"
+          ACTION=$(echo "${{ inputs.action }}" | tr '[:lower:]' '[:upper:]')
           ID="${{ inputs.stage-release-id }}"
           TOKEN="${{ steps.auth.outputs.token }}"
           DOMAIN="${{ vars.SONATYPE_DOMAIN_NAME }}"
 
           echo "Running Sonatype Deployment API call..."
           echo "Endpoint: ${DOMAIN}/api/v1/publisher/deployment/${ID}"
-          
-          ACTION=$(echo "${{ inputs.action }}" | tr '[:lower:]' '[:upper:]')
 
-          if [[ "$ACTION" != "POST" && "$ACTION" != "DELETE" ]]; then
-            echo "ERROR: Invalid action '$ACTION' (expected POST or DELETE)"
+          if [[ "$ACTION" != "GET" && "$ACTION" != "POST" && "$ACTION" != "DELETE" ]]; then
+            echo "ERROR: Invalid action '$ACTION' (expected GET, POST, or DELETE)"
             exit 1
           fi
-          
+
           echo "→ Executing $ACTION for deployment ID ${ID}"
-          
-          RESPONSE=$(curl --fail --show-error --silent \
-            --request "$ACTION" \
-            --header "Authorization: Bearer ${TOKEN}" \
-            "${DOMAIN}/api/v1/publisher/deployment/${ID}"
-          )
-          
-          echo "Response from Sonatype:"
-          echo "$RESPONSE"
+
+          if [[ "$ACTION" == "GET" ]]; then
+            # GET returns a JSON body with deployment status
+            RESPONSE=$(curl --fail --show-error --silent \
+              --request GET \
+              --header "Authorization: Bearer ${TOKEN}" \
+              --header "Accept: application/json" \
+              "${DOMAIN}/api/v1/publisher/deployment/${ID}"
+            )
+            echo "Deployment status:"
+            echo "$RESPONSE" | python3 -m json.tool 2>/dev/null || echo "$RESPONSE"
+          else
+            # POST/DELETE return 204 No Content on success
+            RESPONSE=$(curl --silent --write-out "\n%{http_code}" \
+              --request "$ACTION" \
+              --header "Authorization: Bearer ${TOKEN}" \
+              "${DOMAIN}/api/v1/publisher/deployment/${ID}"
+            )
+
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | head -n -1)
+
+            echo "HTTP response code: ${HTTP_CODE}"
+            if [[ -n "$BODY" ]]; then
+              echo "Response body: $BODY"
+            fi
+
+            if [[ "$HTTP_CODE" == "204" ]]; then
+              echo "✓ Action '$ACTION' completed successfully."
+            else
+              echo "✗ Unexpected HTTP status ${HTTP_CODE} for action '$ACTION'."
+              exit 1
+            fi
