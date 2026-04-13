@@ -1,6 +1,6 @@
 # Aerospike JDBC Driver
 ![Build](https://github.com/aerospike/aerospike-jdbc/workflows/Build/badge.svg)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.aerospike/aerospike-jdbc/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.aerospike/aerospike-jdbc/)
+[![Sonatype Central](https://maven-badges.sml.io/sonatype-central/com.aerospike/aerospike-jdbc/badge.svg?style=plastic)](https://central.sonatype.com/artifact/com.aerospike/aerospike-jdbc)
 [![javadoc](https://javadoc.io/badge2/com.aerospike/aerospike-jdbc/javadoc.svg)](https://javadoc.io/doc/com.aerospike/aerospike-jdbc)
 
 Aerospike JDBC Driver allows you to interact with Aerospike clusters by using SQL statements from your Java application.  
