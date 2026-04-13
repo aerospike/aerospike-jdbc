@@ -178,18 +178,18 @@ jobs:
           jf rt build-promote --copy=true "$BUILD_NAME" "$BUILD_NUMBER" "${{ inputs.target-repository }}"
 
       # Fetching release notes from commit logs
-#      - name: Generate release notes
-#        id: get-release-notes
-#        run: |
-#          RELEASE_NOTES=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")
-#          echo "release-notes<<EOF" >> $GITHUB_OUTPUT
-#          echo "${RELEASE_NOTES}" >> $GITHUB_OUTPUT
-#          echo "EOF" >> $GITHUB_OUTPUT
+      - name: Generate release notes
+        id: get-release-notes
+        run: |
+          RELEASE_NOTES=$(git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"- %s")
+          echo "release-notes<<EOF" >> $GITHUB_OUTPUT
+          echo "${RELEASE_NOTES}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-#      - name: Debug print release notes
-#        run: |
-#          echo "Changes for release ${{ steps.get-artifact-version.outputs.artifact-version }}"
-#          echo "${{ steps.get-release-notes.outputs.release-notes }}"
+      - name: Debug print release notes
+        run: |
+          echo "Changes for release ${{ steps.get-artifact-version.outputs.artifact-version }}"
+          echo "${{ steps.get-release-notes.outputs.release-notes }}"
       
       # Fast forward the target branch to the source branch.
 #      - name: Fast forward
@@ -230,12 +230,12 @@ jobs:
           echo "build-name-number: ${{ steps.get-build-name-number.outputs.build-name-numbers }}"
           echo "artifact-version: ${{ steps.get-artifact-version.outputs.artifact-version }}"
 
-#      - name: Release debug
-#        run: |
-#          GIT_NOTES='${{ steps.get-release-notes.outputs.release-notes }}'
-#          RELEASE_VERSION='${{steps.get-artifact-version.outputs.artifact-version }}'
-#          echo "${RELEASE_VERSION}"
-#          echo "${GIT_NOTES}"
+      - name: Release debug
+        run: |
+          GIT_NOTES='${{ steps.get-release-notes.outputs.release-notes }}'
+          RELEASE_VERSION='${{steps.get-artifact-version.outputs.artifact-version }}'
+          echo "${RELEASE_VERSION}"
+          echo "${GIT_NOTES}"
 
   publish-release-sonatype:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
