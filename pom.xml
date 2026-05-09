@@ -31,7 +31,7 @@
         <jackson.version>2.21.2</jackson.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
         <calcite.version>1.41.0</calcite.version>
-        <guava.version>33.5.0-jre</guava.version>
+        <guava.version>33.6.0-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
         <assertj.version>3.27.7</assertj.version>
