@@ -26,15 +26,15 @@ on:
         description: Source branch to merge from
       dry-run:
         type: boolean
-        description: If true, run publish-to-sonatype in dry-run (no upload to Sonatype)
+        description: If true, dispatch artifact-publisher with dry_run (no live Maven Central publish)
         default: false
     secrets:
       AEROSPIKE_SA_CICD_USERNAME:
-        required: true
-      AEROSPIKE_SA_CICD_PASSWORD:
-        required: true
-      CLIENT_BOT_PAT:
         required: false
+      AEROSPIKE_SA_CICD_PASSWORD:
+        required: false
+      CLIENT_BOT_PAT:
+        required: true
       JFROG_OIDC_PROVIDER:
         required: true
       JFROG_OIDC_AUDIENCE:
@@ -237,7 +237,10 @@ jobs:
           echo "${RELEASE_VERSION}"
           echo "${GIT_NOTES}"
 
-  publish-release-sonatype:
+  # Maven Central: citrusleaf/artifact-publisher (AUTOMATIC publishing). Requires CLIENT_BOT_PAT with
+  # permission to dispatch workflows on that repo. Optional repo var ARTIFACT_PUBLISHER_DISPATCH_REF
+  # (default main) selects the ref on artifact-publisher.
+  publish-maven-central:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     needs: promote
     steps:
@@ -246,54 +249,45 @@ jobs:
         with:
           egress-policy: audit
 
-      # Checkout required: local composite actions live in the repo (not on runner by default)
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-        with:
-          ref: ${{ inputs.target-branch }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      # Pulling release from JFROG
-      - uses: ./.github/actions/stage-release-artifacts
-        with:
-          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-          target-repository: ${{ inputs.target-repository }}
-          build-name-number: ${{ needs.promote.outputs.build-name-number }}
-          artifact-version: ${{ needs.promote.outputs.artifact-version }}
-
-      - name: Debug staging folder contents
+      - name: Dispatch artifact-publisher (Maven Central)
+        env:
+          TOKEN: ${{ secrets.CLIENT_BOT_PAT }}
+          JFROG_PROJECT: ${{ vars.JFROG_PROJECT }}
+          REPOSITORY: ${{ format('{0}-release-bundles-v2', vars.JFROG_PROJECT) }}
+          BUNDLE_NAME: ${{ inputs.jf-target-build }}
+          BUNDLE_VERSION: ${{ needs.promote.outputs.artifact-version }}
+          DRY_RUN: ${{ inputs.dry-run && 'true' || 'false' }}
+          DISPATCH_REF: ${{ vars.ARTIFACT_PUBLISHER_DISPATCH_REF }}
+        shell: bash
         run: |
-          echo "=== staging/ ==="
-          ls -laR staging/ || echo "staging/ missing"
-          echo "=== sonatype/ ==="
-          ls -laR sonatype/ || echo "sonatype/ missing"
-
-      # Publishing release to Maven Central
-      - uses: ./.github/actions/publish-to-sonatype
-        id: publish-to-sonatype
-        with:
-          build-name-number: ${{ needs.promote.outputs.build-name-number }}
-          artifact-version: ${{ needs.promote.outputs.artifact-version }}
-          publish-user: ${{ secrets.AEROSPIKE_SA_CICD_USERNAME }}
-          publish-password: ${{ secrets.AEROSPIKE_SA_CICD_PASSWORD }}
-          validation-max-number-checks: ${{ vars.VALIDATION_MAX_NUMBER_CHECKS }}
-          sonatype-domain-name: ${{ vars.SONATYPE_DOMAIN_NAME }}
-          dry-run: ${{ inputs.dry-run }}
-      
-      # Publishing release information to JFrog for aggregation. This information is used later for final release step
-      # (acknowledgement) to Maven Central (skipped when dry-run)
-      - uses: ./.github/actions/publish-build-info-to-jfrog
-        if: inputs.dry-run != true
-        with:
-          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-          build-path: ${{ needs.promote.outputs.build-name-number }}
-          variables: '{"SONATYPE_STAGING_BUILD_ID":"${{ steps.publish-to-sonatype.outputs.maven-central-release-id }}"}'
+          set -euo pipefail
+          if [[ -z "${TOKEN}" ]]; then
+            echo "::error::CLIENT_BOT_PAT must be set to dispatch citrusleaf/artifact-publisher (Deploy Artifact)." >&2
+            exit 1
+          fi
+          if [[ -z "${JFROG_PROJECT}" ]]; then
+            echo "::error::JFROG_PROJECT repository variable must be set (same as build-release)." >&2
+            exit 1
+          fi
+          ref="${DISPATCH_REF:-main}"
+          body="$(jq -nc \
+            --arg ref "$ref" \
+            --arg repository "$REPOSITORY" \
+            --arg bundle_name "$BUNDLE_NAME" \
+            --arg bundle_version "$BUNDLE_VERSION" \
+            --arg dry_run "$DRY_RUN" \
+            '{ref: $ref, inputs: {repository: $repository, bundle_name: $bundle_name, bundle_version: $bundle_version, dry_run: $dry_run}}')"
+          curl -fsS -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/citrusleaf/artifact-publisher/actions/workflows/publish-artifact.yaml/dispatches" \
+            -d "$body"
+          echo "Dispatched citrusleaf/artifact-publisher@$ref (repository=$REPOSITORY bundle=$BUNDLE_NAME/$BUNDLE_VERSION dry_run=$DRY_RUN)"
 
   publish-release-github:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
-    needs: [promote, publish-release-sonatype]
+    needs: [promote, publish-maven-central]
     if: inputs.dry-run != true
     steps:
       - name: Harden the runner (Audit all outbound calls)
