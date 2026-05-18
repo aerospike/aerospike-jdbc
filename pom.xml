@@ -26,8 +26,8 @@
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
         <central.publishing.maven.plugin>0.9.0</central.publishing.maven.plugin>
 
-        <aerospike-client.version>9.2.0</aerospike-client.version>
-        <netty.version>4.1.128.Final</netty.version>
+        <aerospike-client.version>9.3.0</aerospike-client.version>
+        <netty.version>4.2.13.Final</netty.version>
         <jackson.version>2.21.2</jackson.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
         <calcite.version>1.41.0</calcite.version>
