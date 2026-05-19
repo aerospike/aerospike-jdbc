@@ -126,11 +126,9 @@ jobs:
           echo "${RELEASE_NOTES}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  # Maven Central via reusable workflow (requires workflow_call on publish-artifact.yaml in citrusleaf/artifact-publisher).
-  # Pin @ref to a commit SHA after upgrading artifact-publisher. Cross-org callers need org policy + AWS trust for job_workflow_ref.
   publish-maven-central:
     needs: promote
-    uses: citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml@main
+    uses: citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml@ed20aecbe46a26df407033a7a9b5b94fb564abc7
     with:
       repository: ${{ format('{0}-release-bundles-v2', vars.JFROG_PROJECT) }}
       bundle_name: ${{ inputs.jf-target-build }}

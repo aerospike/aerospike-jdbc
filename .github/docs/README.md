@@ -27,7 +27,7 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 
 **Actions** → **Promote to Prod** → enter **`jf-build-id`** → run.
 
-**promote** will: promote the build in JFrog to **`database-maven-dev-local`**, call **`citrusleaf/artifact-publisher`** as a **reusable workflow** (`publish-artifact.yaml`) for Maven Central (jobs appear in the **same** Actions run; pin `@ref` in `promote.yml` as needed), then create a **draft** GitHub release with artifacts.
+**promote** will: promote the build in JFrog to **`database-maven-dev-local`**, call **`citrusleaf/artifact-publisher`** as a **reusable workflow** (`publish-artifact.yaml` @ `ed20aecbe46a26df407033a7a9b5b94fb564abc7`) for Maven Central (jobs appear in the **same** Actions run), then create a **draft** GitHub release with artifacts.
 
 ### 4. After the run
 
@@ -72,7 +72,7 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 
 ## Dependencies
 
-- **build-release** uses `aerospike/shared-workflows` (reusable build/sign/deploy and release bundle).
-- **promote** uses `citrusleaf/artifact-publisher` **reusable workflow** `@main` (pin a **commit SHA** in `.github/workflows/promote.yml` for reproducibility). Aerospike org settings must **allow** reusable workflows from the `citrusleaf` org if required.
+- **build-release** uses `aerospike/shared-workflows` at release tag **`v3.5.0`** (`reusable_artifacts-cicd`, `reusable_create-release-bundle`, and matching `gh-workflows-ref`).
+- **promote** uses `citrusleaf/artifact-publisher` **reusable workflow** pinned to **`ed20aecbe46a26df407033a7a9b5b94fb564abc7`**. Aerospike org settings must **allow** reusable workflows from the `citrusleaf` org if required.
 - **AWS / Maven:** jobs run in the **caller** repo context for OIDC; the trust policy for `CitrusleafArtifactPublisher` may need **`job_workflow_ref`** for `citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml` (see GitHub docs: *Using OpenID Connect with reusable workflows*).
 - Tag patterns match **push-to-stage** (`v*`, semver, `*-rc*`).
