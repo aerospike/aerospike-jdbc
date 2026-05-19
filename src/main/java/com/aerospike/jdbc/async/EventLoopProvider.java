@@ -1,10 +1,13 @@
 package com.aerospike.jdbc.async;
 
 import com.aerospike.client.async.EventLoop;
+import com.aerospike.client.async.EventLoopType;
 import com.aerospike.client.async.EventLoops;
 import com.aerospike.client.async.EventPolicy;
 import com.aerospike.client.async.NettyEventLoops;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 
 import java.util.logging.Logger;
 
@@ -42,9 +45,11 @@ public final class EventLoopProvider {
                 if (null == eventLoops) {
                     logger.info(() -> "Init eventLoops");
                     int nThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
+                    EventLoopGroup group = new MultiThreadIoEventLoopGroup(nThreads, NioIoHandler.newFactory());
                     EventLoops nettyEventLoops = new NettyEventLoops(
                             new EventPolicy(),
-                            new NioEventLoopGroup(nThreads)
+                            group,
+                            EventLoopType.NETTY_NIO
                     );
                     requireNonNull(nettyEventLoops.get(0));
                     eventLoops = nettyEventLoops;
