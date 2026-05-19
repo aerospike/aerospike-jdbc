@@ -19,5 +19,4 @@ jobs:
       build-number: ${{ inputs.build-number }}
       target-repository: database-maven-dev-local
       target-branch: main
-      source-branch: stage
     secrets: inherit
