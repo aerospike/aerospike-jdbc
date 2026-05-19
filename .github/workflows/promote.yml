@@ -2,7 +2,7 @@ name: Promote
 
 permissions:
   contents: write # For creating releases
-  id-token: write # For JFrog OIDC authentication
+  id-token: write # For OIDC (reusable publish workflow + JFrog)
 
 on:
   workflow_call:
@@ -22,11 +22,9 @@ on:
         default: aerospike-jdbc
       dry-run:
         type: boolean
-        description: If true, dispatch artifact-publisher with dry_run (no live Maven Central publish)
+        description: If true, artifact-publisher dry_run (no live Maven Central publish)
         default: false
     secrets:
-      CLIENT_BOT_PAT:
-        required: true
       JFROG_OIDC_PROVIDER:
         required: true
       JFROG_OIDC_AUDIENCE:
@@ -128,52 +126,17 @@ jobs:
           echo "${RELEASE_NOTES}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  # Maven Central: citrusleaf/artifact-publisher. Requires CLIENT_BOT_PAT with permission to dispatch
-  # workflows on that repo. Optional repo var ARTIFACT_PUBLISHER_DISPATCH_REF (default main).
+  # Maven Central via reusable workflow (requires workflow_call on publish-artifact.yaml in citrusleaf/artifact-publisher).
+  # Pin @ref to a commit SHA after upgrading artifact-publisher. Cross-org callers need org policy + AWS trust for job_workflow_ref.
   publish-maven-central:
-    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     needs: promote
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
-        with:
-          egress-policy: audit
-
-      - name: Dispatch artifact-publisher (Maven Central)
-        env:
-          TOKEN: ${{ secrets.CLIENT_BOT_PAT }}
-          JFROG_PROJECT: ${{ vars.JFROG_PROJECT }}
-          REPOSITORY: ${{ format('{0}-release-bundles-v2', vars.JFROG_PROJECT) }}
-          BUNDLE_NAME: ${{ inputs.jf-target-build }}
-          BUNDLE_VERSION: ${{ needs.promote.outputs.artifact-version }}
-          DRY_RUN: ${{ inputs.dry-run && 'true' || 'false' }}
-          DISPATCH_REF: ${{ vars.ARTIFACT_PUBLISHER_DISPATCH_REF }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ -z "${TOKEN}" ]]; then
-            echo "::error::CLIENT_BOT_PAT must be set to dispatch citrusleaf/artifact-publisher (Deploy Artifact)." >&2
-            exit 1
-          fi
-          if [[ -z "${JFROG_PROJECT}" ]]; then
-            echo "::error::JFROG_PROJECT repository variable must be set (same as build-release)." >&2
-            exit 1
-          fi
-          ref="${DISPATCH_REF:-main}"
-          body="$(jq -nc \
-            --arg ref "$ref" \
-            --arg repository "$REPOSITORY" \
-            --arg bundle_name "$BUNDLE_NAME" \
-            --arg bundle_version "$BUNDLE_VERSION" \
-            --arg dry_run "$DRY_RUN" \
-            '{ref: $ref, inputs: {repository: $repository, bundle_name: $bundle_name, bundle_version: $bundle_version, dry_run: $dry_run}}')"
-          curl -fsS -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/citrusleaf/artifact-publisher/actions/workflows/publish-artifact.yaml/dispatches" \
-            -d "$body"
-          echo "Dispatched citrusleaf/artifact-publisher@$ref (repository=$REPOSITORY bundle=$BUNDLE_NAME/$BUNDLE_VERSION dry_run=$DRY_RUN)"
+    uses: citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml@main
+    with:
+      repository: ${{ format('{0}-release-bundles-v2', vars.JFROG_PROJECT) }}
+      bundle_name: ${{ inputs.jf-target-build }}
+      bundle_version: ${{ needs.promote.outputs.artifact-version }}
+      dry_run: ${{ inputs.dry-run && 'true' || 'false' }}
+    secrets: inherit
 
   publish-release-github:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}

@@ -9,7 +9,7 @@ CI/CD for **aerospike-jdbc**: JFrog, Maven Central (via `citrusleaf/artifact-pub
 | **build** | Push to `main`; PR to `main` or `stage` | Build and test. Does not publish. |
 | **push-to-stage** | Push to `stage`, version tags, or manual | Runs **build-release**: build, sign, deploy to JFrog, create release bundle. |
 | **build-release** | Called by **push-to-stage** | Maven build + shared-workflows sign/deploy + release bundle. |
-| **promote** | Called by **promote-prod** only | JFrog `build-promote`, dispatch **artifact-publisher** (Maven Central), draft GitHub release. |
+| **promote** | Called by **promote-prod** only | JFrog `build-promote`, reusable **`citrusleaf/artifact-publisher`** workflow (Maven Central), draft GitHub release. |
 | **promote-prod** | Manual (`workflow_dispatch`) | Run **promote** with **jf-build-id** from **build-release**. |
 | **sonatype-approve-or-delete** | Manual (`workflow_dispatch`) | Optional Sonatype Central Portal API (GET/POST/DELETE). **Not** used by **promote**; keep for manual ops or legacy. |
 
@@ -27,11 +27,11 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 
 **Actions** → **Promote to Prod** → enter **`jf-build-id`** → run.
 
-**promote** will: promote the build in JFrog to **`database-maven-dev-local`**, dispatch **`citrusleaf/artifact-publisher`** for Maven Central (see that repo’s run for progress), then create a **draft** GitHub release with artifacts.
+**promote** will: promote the build in JFrog to **`database-maven-dev-local`**, call **`citrusleaf/artifact-publisher`** as a **reusable workflow** (`publish-artifact.yaml`) for Maven Central (jobs appear in the **same** Actions run; pin `@ref` in `promote.yml` as needed), then create a **draft** GitHub release with artifacts.
 
 ### 4. After the run
 
-- Watch **artifact-publisher** (and Maven Central sync) if needed.
+- Watch the **Deploy Artifact** / Maven jobs in the run (and Maven Central sync) if needed.
 - **Publish** the draft GitHub release when ready.
 - **`main`** is **not** updated by these workflows; merge or fast-forward from **`stage`** per team process.
 
@@ -44,7 +44,6 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 | `GPG_SECRET_KEY` | build-release | GPG private key (armored). |
 | `GPG_PUBLIC_KEY` | build-release | GPG public key. |
 | `GPG_PASS` | build-release | GPG passphrase. |
-| `CLIENT_BOT_PAT` | promote | PAT that can dispatch `citrusleaf/artifact-publisher`. |
 | `JFROG_OIDC_PROVIDER` | promote, stage-release-artifacts, publish-build-info-to-jfrog | OIDC provider for JFrog. |
 | `JFROG_OIDC_AUDIENCE` | promote, stage-release-artifacts, publish-build-info-to-jfrog | OIDC audience for JFrog. |
 | `AEROSPIKE_SA_CICD_USERNAME` | sonatype-approve-or-delete | Sonatype API user (manual workflow only). |
@@ -59,7 +58,6 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 | `JFROG_PLATFORM_URL` | promote | JFrog platform URL. |
 | `OIDC_PROVIDER_NAME` | build-release, promote | OIDC provider (vars). |
 | `OIDC_AUDIENCE` | build-release, promote | OIDC audience (vars). |
-| `ARTIFACT_PUBLISHER_DISPATCH_REF` | promote | Optional ref on `artifact-publisher` (default `main`). |
 | `SONATYPE_DOMAIN_NAME` | sonatype-approve-or-delete | Sonatype API base URL. |
 
 ## Composite actions
@@ -75,4 +73,6 @@ From the **Build and release** job, copy workflow output **`jf-build-id`** (JFro
 ## Dependencies
 
 - **build-release** uses `aerospike/shared-workflows` (reusable build/sign/deploy and release bundle).
+- **promote** uses `citrusleaf/artifact-publisher` **reusable workflow** `@main` (pin a **commit SHA** in `.github/workflows/promote.yml` for reproducibility). Aerospike org settings must **allow** reusable workflows from the `citrusleaf` org if required.
+- **AWS / Maven:** jobs run in the **caller** repo context for OIDC; the trust policy for `CitrusleafArtifactPublisher` may need **`job_workflow_ref`** for `citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml` (see GitHub docs: *Using OpenID Connect with reusable workflows*).
 - Tag patterns match **push-to-stage** (`v*`, semver, `*-rc*`).
