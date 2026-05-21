@@ -272,6 +272,11 @@
                 <version>${jacoco-maven-plugin.version}</version>
                 <configuration>
                     <skip>${skipTests}</skip>
+                    <!-- Only instrument this project: Netty 4.2+ classes can trip
+                         "Cannot process instrumented class" when JaCoCo rewrites them. -->
+                    <includes>
+                        <include>com/aerospike/jdbc/**</include>
+                    </includes>
                 </configuration>
                 <executions>
                     <execution>
