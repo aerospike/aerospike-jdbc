@@ -50,12 +50,11 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
         String query = format("delete from %s", TABLE_NAME);
         try {
             statement = connection.prepareStatement(query);
-            boolean result = statement.execute();
-            assertFalse(result);
+            int deleted = statement.executeUpdate();
+            assertTrue(deleted > 0);
         } finally {
             closeQuietly(statement);
         }
-        assertTrue(statement.getUpdateCount() > 0);
     }
 
     @Test
