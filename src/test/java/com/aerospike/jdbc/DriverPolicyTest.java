@@ -25,9 +25,9 @@ import static com.aerospike.jdbc.util.TestConfig.NAMESPACE;
 import static com.aerospike.jdbc.util.TestConfig.PORT;
 import static com.aerospike.jdbc.util.TestConfig.TABLE_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
+import static com.aerospike.jdbc.util.TestUtil.durableDeleteUrlSuffixIfStrongConsistency;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
 public class DriverPolicyTest {
@@ -46,7 +46,13 @@ public class DriverPolicyTest {
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
-        String url = String.format("jdbc:aerospike:%s:%d/%s?refuseScan=true", HOSTNAME, PORT, NAMESPACE);
+        String durableSuffix = durableDeleteUrlSuffixIfStrongConsistency(HOSTNAME, PORT, NAMESPACE);
+        if (!durableSuffix.isEmpty()) {
+            logger.info("namespace " + NAMESPACE + " has strong-consistency; enabling durableDelete on JDBC URL");
+        }
+        String url = String.format(
+                "jdbc:aerospike:%s:%d/%s?refuseScan=true%s",
+                HOSTNAME, PORT, NAMESPACE, durableSuffix);
         connection = DriverManager.getConnection(url);
         connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
         client = ((AerospikeConnection) connection).getClient();
@@ -80,12 +86,11 @@ public class DriverPolicyTest {
         String query = format("DELETE FROM %s", TABLE_NAME);
         try {
             statement = connection.createStatement();
-            boolean result = statement.execute(query);
-            assertFalse(result);
+            int deleted = statement.executeUpdate(query);
+            assertTrue(deleted > 0);
         } finally {
             closeQuietly(statement);
         }
-        assertTrue(statement.getUpdateCount() > 0);
     }
 
     @Test
