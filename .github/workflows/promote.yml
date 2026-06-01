@@ -2,7 +2,7 @@ name: Promote
 
 permissions:
   contents: write # For creating releases
-  id-token: write # For OIDC (reusable publish workflow + JFrog)
+  id-token: write # For OIDC (JFrog)
 
 on:
   workflow_call:
@@ -20,10 +20,6 @@ on:
         type: string
         description: Target build name
         default: aerospike-jdbc
-      dry-run:
-        type: boolean
-        description: If true, artifact-publisher dry_run (no live Maven Central publish)
-        default: false
     secrets:
       JFROG_OIDC_PROVIDER:
         required: true
@@ -91,11 +87,14 @@ jobs:
           fi
           echo "artifact-version=${VERSION}" >> $GITHUB_OUTPUT
 
+      # Version comes from JFrog artifact paths (not get-version). build-release promote-to-dev
+      # rejects both is-snapshot and *-SNAPSHOT* on the POM-derived version string; this step
+      # is the JF-side equivalent for promote-prod / build-promote.
       - name: Reject SNAPSHOT builds
         run: |
           VERSION="${{ steps.get-artifact-version.outputs.artifact-version }}"
-          if [[ "$VERSION" == *"-SNAPSHOT" ]]; then
-            echo "Error: Build ${{ inputs.jf-target-build }} with build number ${{ inputs.build-number }} is a SNAPSHOT build. Snapshots are not promoted to production."
+          if [[ "$VERSION" == *"-SNAPSHOT"* ]]; then
+            echo "Error: Build ${{ inputs.jf-target-build }} with build number ${{ inputs.build-number }} is a SNAPSHOT build. Snapshots are not promoted."
             exit 1
           fi
 
@@ -126,20 +125,12 @@ jobs:
           echo "${RELEASE_NOTES}" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  publish-maven-central:
-    needs: promote
-    uses: citrusleaf/artifact-publisher/.github/workflows/publish-artifact.yaml@ed20aecbe46a26df407033a7a9b5b94fb564abc7
-    with:
-      repository: ${{ format('{0}-release-bundles-v2', vars.JFROG_PROJECT) }}
-      bundle_name: ${{ inputs.jf-target-build }}
-      bundle_version: ${{ needs.promote.outputs.artifact-version }}
-      dry_run: ${{ inputs.dry-run && 'true' || 'false' }}
-    secrets: inherit
+  # Maven Central is published only when JFrog promotes the release bundle to PROD
+  # and the artifact-publisher webhook runs (see .github/docs/README.md).
 
   publish-release-github:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
-    needs: [promote, publish-maven-central]
-    if: inputs.dry-run != true
+    needs: [promote]
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0

@@ -1,4 +1,4 @@
-name: Promote to Prod
+name: Promote build to JF dev-local and draft GitHub release
 
 permissions:
   contents: write # For creating releases
@@ -13,7 +13,7 @@ on:
 
 jobs:
   promote-from-stage-to-prod:
-    name: Promote from stage to prod
+    name: JF build-promote to dev-local + draft GitHub release
     uses: ./.github/workflows/promote.yml
     with:
       build-number: ${{ inputs.build-number }}
