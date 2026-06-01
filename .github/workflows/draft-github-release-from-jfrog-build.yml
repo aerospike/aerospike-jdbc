@@ -1,0 +1,36 @@
+# Optional jf rt build-promote into database-maven-dev-local, then stage artifacts from JFrog
+# and create a draft GitHub release (reusable promote.yml). Not Maven Central / not "prod".
+name: Draft GitHub release from JFrog build
+
+permissions:
+  contents: write # For creating releases
+  id-token: write # For OIDC authentication
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-number:
+        type: string
+        description: "JFrog build number: use jf-build-id from Java Build & Release run output."
+      jfrog-build-promote:
+        type: boolean
+        description: "If true (default), run jf rt build-promote into database-maven-dev-local. If false, skip that promote only (staging still runs jf rt dl from artifact-download-repository or promote target)."
+        required: false
+        default: true
+      artifact-download-repository:
+        type: string
+        description: "JFrog repo for staging downloads (jf rt dl). Default empty = use promote target (database-maven-dev-local). Set explicitly if artifacts live elsewhere."
+        required: false
+        default: ""
+
+jobs:
+  draft-github-release:
+    name: JFrog dev-local promote (optional) + draft GitHub release
+    uses: ./.github/workflows/promote.yml
+    with:
+      build-number: ${{ inputs.build-number }}
+      target-repository: database-maven-dev-local
+      target-branch: main
+      jfrog-build-promote: ${{ inputs.jfrog-build-promote }}
+      artifact-download-repository: ${{ inputs.artifact-download-repository }}
+    secrets: inherit

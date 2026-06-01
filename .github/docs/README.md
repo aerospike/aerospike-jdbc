@@ -10,8 +10,8 @@ CI/CD for **aerospike-jdbc**: JFrog release bundles, optional GitHub draft relea
 | **push-to-stage** | Push to `stage`, version tags, or manual | Runs **build-release** only: build, sign, deploy to JFrog, **create release bundle**. **No** JF lifecycle promotion on push (avoids re-promoting an existing version such as `2.1.3` while Sonatype is still pending). |
 | **build-release** | Called by **push-to-stage** | Maven build + shared-workflows sign/deploy + release bundle. Does **not** promote the bundle to DEV/TEST/STAGE. |
 | **promote-release-bundle** | Manual (`workflow_dispatch`) | **`version`** + **`targets`**: promote **`aerospike-jdbc`** in JFrog — **DEV** only, **TEST** then **STAGE**, or **DEV → TEST → STAGE** (shared-workflows `promote-release-bundle`). |
-| **promote** | Called by **promote-prod** only | JFrog **`build-promote`** to **`database-maven-dev-local`**, then **draft GitHub release** with artifacts. Does **not** call Maven Central. |
-| **promote-prod** | Manual (`workflow_dispatch`) | Run **promote** with **`jf-build-id`** from **build-release** (optional path for dev-local + draft release). |
+| **promote** | Called by **draft-github-release-from-jfrog-build** only | JFrog **`build-promote`** to **`database-maven-dev-local`**, then **draft GitHub release** with artifacts. Does **not** call Maven Central. |
+| **draft-github-release-from-jfrog-build** | Manual (`workflow_dispatch`) | **`jf-build-id`** + **`jfrog-build-promote`** (default **true**): optional **`jf rt build-promote`** into **`database-maven-dev-local`**. **`artifact-download-repository`**: repo for **`jf rt dl`** when staging the release (empty = promote target). Independent of whether promote runs. |
 | **sonatype-approve-or-delete** | Manual (`workflow_dispatch`) | Optional Sonatype Central Portal API (GET/POST/DELETE). Not wired into **promote**; keep for manual ops. |
 
 ## Release flow (Path A)
@@ -22,14 +22,14 @@ CI/CD for **aerospike-jdbc**: JFrog release bundles, optional GitHub draft relea
 
 3. **PREVIEW / PROD** — Product (or policy owner) promotes the bundle in the **JFrog UI** so the action is audited. **Maven Central** (and other upstreams) are triggered by the **JFrog webhook** into **`citrusleaf/artifact-publisher`**, not by a reusable workflow call from this repository.
 
-4. **Optional: dev-local + draft GitHub release** — **Promote to Prod** (`promote-prod.yml`) still runs **`build-promote`** to **`database-maven-dev-local`** and creates a **draft** GitHub release from those artifacts. Use only if your team still wants that path; it is **orthogonal** to release-bundle promotion and does **not** publish to Maven Central.
+4. **Optional: dev-local + draft GitHub release** — **Draft GitHub release from JFrog build** (`draft-github-release-from-jfrog-build.yml`) can run **`build-promote`** to **`database-maven-dev-local`** and creates a **draft** GitHub release from JFrog artifacts. Orthogonal to release-bundle promotion; does **not** publish to Maven Central.
 
 ### Build id vs bundle version
 
 | Mechanism | Identifier | Use case |
 |-----------|------------|----------|
 | **`promote-release-bundle`** (workflow) | **`version`**, **`targets`** | Release-bundle lifecycle in JFrog: **DEV** / **TEST+STAGE** / **DEV+TEST+STAGE**. |
-| **`promote-prod` → `promote.yml`** | **`jf-build-id`** | JFrog **build** promotion into **`database-maven-dev-local`** + draft GitHub release. |
+| **`draft-github-release-from-jfrog-build` → `promote.yml`** | **`jf-build-id`** | Optional JF **build-promote** to **`database-maven-dev-local`** + draft GitHub release. |
 
 Existing release bundles in JFrog are **unchanged** by these workflow edits. New runs only add automation and remove the in-repo Maven publish step.
 
@@ -63,7 +63,7 @@ Existing release bundles in JFrog are **unchanged** by these workflow edits. New
 | Action | Role |
 |--------|------|
 | **get-version** | Snapshot vs release + version outputs. |
-| **stage-release-artifacts** | Download promoted artifacts from JFrog for GitHub attach (**promote** passes `staging` + `github` only). |
+| **stage-release-artifacts** | Download artifacts from JFrog repo **`target-repository`** + path from build info (used by **promote** for GitHub attach). |
 | **publish-to-github** | Draft GitHub release + artifacts. |
 | **publish-to-sonatype** | Not invoked by **promote**; optional for other/manual flows. |
 | **publish-build-info-to-jfrog** | Build metadata to JFrog. |

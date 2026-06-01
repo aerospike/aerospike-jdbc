@@ -20,6 +20,14 @@ on:
         type: string
         description: Target build name
         default: aerospike-jdbc
+      jfrog-build-promote:
+        type: boolean
+        description: If true, run jf rt build-promote to target-repository (JF write). If false, skip that step only.
+        default: true
+      artifact-download-repository:
+        type: string
+        description: JFrog repo key used for jf rt dl when staging artifacts for the GitHub release. Empty means use target-repository (same as promote destination by default).
+        default: ""
     secrets:
       JFROG_OIDC_PROVIDER:
         required: true
@@ -87,9 +95,7 @@ jobs:
           fi
           echo "artifact-version=${VERSION}" >> $GITHUB_OUTPUT
 
-      # Version comes from JFrog artifact paths (not get-version). Manual bundle promotion uses promote-release-bundle.yml.
-      # rejects both is-snapshot and *-SNAPSHOT* on the POM-derived version string; this step
-      # is the JF-side equivalent for promote-prod / build-promote.
+      # Version comes from JFrog artifact paths (not get-version). SNAPSHOT check matches JF artifact paths.
       - name: Reject SNAPSHOT builds
         run: |
           VERSION="${{ steps.get-artifact-version.outputs.artifact-version }}"
@@ -110,6 +116,7 @@ jobs:
           echo "build-name-numbers=${BUILD_NAME}/${{ inputs.build-number }}" >> $GITHUB_OUTPUT
 
       - name: Promote build in JFrog
+        if: inputs.jfrog-build-promote == true
         shell: bash
         run: |
           BUILD_NAME="${{ steps.get-build-meta.outputs.build-names }}"
@@ -147,7 +154,7 @@ jobs:
         with:
           oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
           oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
-          target-repository: ${{ inputs.target-repository }}
+          target-repository: ${{ inputs.artifact-download-repository != '' && inputs.artifact-download-repository || inputs.target-repository }}
           build-name-number: ${{ needs.promote.outputs.build-name-number }}
           artifact-version: ${{ needs.promote.outputs.artifact-version }}
           staging-folder: '["staging","github"]'

@@ -106,14 +106,15 @@ runs:
       run: |
         BUILD_INFO='${{ steps.get-artifact-build-info.outputs.artifact-build-info }}'
         
+        REPO_KEY="${{ inputs.target-repository }}"
         echo "${BUILD_INFO}" | jq -r '
           .buildInfo.modules[].artifacts[]
           | select(.path | startswith("com/"))
           | select(.name | startswith("maven-metadata") | not)
           | .path
         ' | sort -u | while read -r ARTIFACT_PATH; do
-          echo "Downloading: ${ARTIFACT_PATH}"
-          jf rt dl "database-maven-dev-local/${ARTIFACT_PATH}" --project database .
+          echo "Downloading: ${REPO_KEY}/${ARTIFACT_PATH}"
+          jf rt dl "${REPO_KEY}/${ARTIFACT_PATH}" --project database .
         done
 
     - name: Debug list downloaded content
