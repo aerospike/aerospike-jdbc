@@ -1,11 +1,11 @@
 package com.aerospike.jdbc;
 
 import com.aerospike.jdbc.util.TestRecord;
+import org.testng.SkipException;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.sql.Connection;
@@ -23,12 +23,12 @@ import static com.aerospike.jdbc.util.TestConfig.NAMESPACE;
 import static com.aerospike.jdbc.util.TestConfig.PORT;
 import static com.aerospike.jdbc.util.TestConfig.TABLE_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
+import static com.aerospike.jdbc.util.TestUtil.isStrongConsistencyNamespace;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 
-@Ignore
 public class TransactionTest {
 
     private static final Logger logger = Logger.getLogger(TransactionTest.class.getName());
@@ -44,6 +44,10 @@ public class TransactionTest {
 
     @BeforeClass
     public static void connectionInit() throws Exception {
+        if (!isStrongConsistencyNamespace(HOSTNAME, PORT, NAMESPACE)) {
+            throw new SkipException(
+                    "TransactionTest requires a strong-consistency namespace (multi-record transactions / MRT).");
+        }
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
         String url = String.format(
@@ -56,7 +60,9 @@ public class TransactionTest {
     @AfterClass
     public static void connectionClose() throws SQLException {
         logger.info("connectionClose");
-        connection.close();
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+        }
     }
 
     @BeforeMethod
@@ -81,12 +87,11 @@ public class TransactionTest {
         String query = format("DELETE FROM %s", TABLE_NAME);
         try {
             statement = connection.createStatement();
-            boolean result = statement.execute(query);
-            assertFalse(result);
+            int deleted = statement.executeUpdate(query);
+            assertTrue(deleted > 0);
         } finally {
             closeQuietly(statement);
         }
-        assertTrue(statement.getUpdateCount() > 0);
     }
 
     @Test

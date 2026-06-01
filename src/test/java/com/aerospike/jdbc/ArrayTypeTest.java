@@ -25,6 +25,7 @@ import static com.aerospike.jdbc.util.TestConfig.NAMESPACE;
 import static com.aerospike.jdbc.util.TestConfig.PORT;
 import static com.aerospike.jdbc.util.TestConfig.TABLE_NAME;
 import static com.aerospike.jdbc.util.TestUtil.closeQuietly;
+import static com.aerospike.jdbc.util.TestUtil.durableDeleteUrlSuffixIfStrongConsistency;
 import static java.lang.String.format;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -43,8 +44,13 @@ public class ArrayTypeTest {
     public static void connectionInit() throws Exception {
         logger.info("connectionInit");
         Class.forName("com.aerospike.jdbc.AerospikeDriver").newInstance();
-        String url = String.format("jdbc:aerospike:%s:%d/%s?sendKey=true&refuseScan=false",
-                HOSTNAME, PORT, NAMESPACE);
+        String durableSuffix = durableDeleteUrlSuffixIfStrongConsistency(HOSTNAME, PORT, NAMESPACE);
+        if (!durableSuffix.isEmpty()) {
+            logger.info("namespace " + NAMESPACE + " has strong-consistency; enabling durableDelete on JDBC URL");
+        }
+        String url = String.format(
+                "jdbc:aerospike:%s:%d/%s?sendKey=true&refuseScan=false%s",
+                HOSTNAME, PORT, NAMESPACE, durableSuffix);
         connection = DriverManager.getConnection(url);
         connection.setNetworkTimeout(Executors.newSingleThreadExecutor(), 5000);
     }
