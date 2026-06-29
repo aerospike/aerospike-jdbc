@@ -1,0 +1,47 @@
+name: Promote release bundle to DEV
+
+permissions:
+  id-token: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release bundle version to promote (must match the bundle already in JFrog, e.g. 2.1.3)
+        required: true
+        type: string
+
+jobs:
+  promote-to-dev:
+    name: Promote to DEV
+    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
+      - name: Check if snapshot version
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [[ "$VERSION" == *"-SNAPSHOT"* ]]; then
+            echo "Error: Version $VERSION is a SNAPSHOT. Not promoted to DEV."
+            exit 1
+          fi
+
+      - name: Setup JFrog CLI
+        uses: step-security/setup-jfrog-cli@893a92f96c7727242adf0e603c77b1f2a22390e1 # v4.9.1
+        env:
+          JF_URL: ${{ vars.JFROG_PLATFORM_URL }}
+          JF_PROJECT: ${{ vars.JFROG_PROJECT }}
+        with:
+          oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+          oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+
+      - name: Promoting release bundle to DEV
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.5.0
+        with:
+          bundle-name: aerospike-jdbc
+          version: ${{ inputs.version }}
+          environment: DEV
+          jf-project: ${{ vars.JFROG_PROJECT }}

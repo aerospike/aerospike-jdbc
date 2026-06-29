@@ -97,3 +97,7 @@ jobs:
       oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
       oidc-audience: ${{ vars.OIDC_AUDIENCE }}
       dry-run: false
+
+  # Release-bundle promotion (DEV / TEST / STAGE) is manual — see promote-to-dev.yml and
+  # promote-to-test-and-stage.yml — so pushes do not re-promote an existing bundle version
+  # (e.g. 2.1.3 already in JFrog while Sonatype is pending).
