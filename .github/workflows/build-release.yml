@@ -14,7 +14,7 @@ on:
   workflow_call:
     outputs:
       jf-build-id:
-        description: JFrog build id (use as build-number in Draft GitHub release from JFrog build)
+        description: JFrog build id (use as build-number in Draft GitHub release workflow)
         value: ${{ jobs.artifacts-cicd.outputs.jf-build-id }}
     secrets:
       GPG_SECRET_KEY:

@@ -1,36 +1,144 @@
-# Optional jf rt build-promote into database-maven-dev-local, then stage artifacts from JFrog
-# and create a draft GitHub release (reusable promote.yml). Not Maven Central / not "prod".
-name: Draft GitHub release from JFrog build
+# Read-only JFrog artifact download + uber-jar build at source commit + draft GitHub release.
+# Does not promote or write to JFrog. Maven Central / Sonatype are separate (JF UI).
+name: Draft GitHub release
 
 permissions:
-  contents: write # For creating releases
-  id-token: write # For OIDC authentication
+  contents: write
+  id-token: write
 
 on:
   workflow_dispatch:
     inputs:
       build-number:
         type: string
-        description: "JFrog build number: use jf-build-id from Java Build & Release run output."
-      jfrog-build-promote:
-        type: boolean
-        description: "If true (default), run jf rt build-promote into database-maven-dev-local. If false, skip that promote only (staging still runs jf rt dl from artifact-download-repository or promote target)."
-        required: false
-        default: false
+        description: "JFrog build number (jf-build-id from Java Build & Release)."
+        required: true
       artifact-download-repository:
         type: string
-        description: "JFrog repo for staging downloads (jf rt dl). Default empty = use promote target (database-maven-dev-local). Set explicitly if artifacts live elsewhere."
+        description: "JFrog repo for read-only jf rt dl. Leave empty to use deployedRepository from build info when available."
         required: false
         default: ""
 
 jobs:
-  draft-github-release:
-    name: JFrog dev-local promote (optional) + draft GitHub release
-    uses: ./.github/workflows/promote.yml
-    with:
-      build-number: ${{ inputs.build-number }}
-      target-repository: database-maven-dev-local
-      target-branch: main
-      jfrog-build-promote: ${{ inputs.jfrog-build-promote }}
-      artifact-download-repository: ${{ inputs.artifact-download-repository }}
-    secrets: inherit
+  draft-release:
+    name: Draft GitHub release
+    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup JFrog CLI
+        uses: step-security/setup-jfrog-cli@a6b41f8338bea0983ddff6bd4ede7d2dcd81e1fa # v4.8.1
+        env:
+          JF_URL: ${{ vars.JFROG_PLATFORM_URL }}
+          JF_PROJECT: database
+        with:
+          oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+          oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+
+      - name: Resolve JFrog build metadata
+        id: resolve
+        env:
+          BUILD_NUMBER: ${{ inputs.build-number }}
+          DOWNLOAD_REPO_INPUT: ${{ inputs.artifact-download-repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          API_PATH="/api/build/aerospike-jdbc/${BUILD_NUMBER}?project=database"
+          status_code=$(jf rt curl "${API_PATH}" -o /dev/null -s -w "%{http_code}")
+          if [[ "$status_code" -ne 200 ]]; then
+            echo "ERROR: could not fetch build ${BUILD_NUMBER} (HTTP ${status_code})" >&2
+            exit 1
+          fi
+          BUILD_INFO=$(jf rt curl "${API_PATH}")
+          BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
+          ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
+          ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
+          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+            .buildInfo.modules[].artifacts[]
+            | select(.name | endswith(".jar")
+                and (contains("sources") | not)
+                and (contains("javadoc") | not))
+            | .path
+            | split("/")[-2]
+            ' | head -n1)
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo "ERROR: Could not parse artifact version from JFrog build info!" >&2
+            exit 1
+          fi
+          if [[ "$VERSION" == *"-SNAPSHOT"* ]]; then
+            echo "ERROR: SNAPSHOT builds are not published to GitHub (${VERSION})." >&2
+            exit 1
+          fi
+          COMMIT=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.vcs[0].revision // empty')
+          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
+            RUN_URL=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.url // empty')
+            RUN_ID=$(echo "${RUN_URL}" | sed -n 's|.*/actions/runs/\([0-9]*\).*|\1|p')
+            if [[ -n "$RUN_ID" ]]; then
+              COMMIT=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.head_sha')
+            fi
+          fi
+          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
+            COMMIT=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[0].id' | sed -E 's/.*SNAPSHOT_(.*)$/\1/')
+          fi
+          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
+            echo "ERROR: Could not resolve source commit from JFrog build info." >&2
+            exit 1
+          fi
+          DOWNLOAD_REPO="${DOWNLOAD_REPO_INPUT}"
+          if [[ -z "$DOWNLOAD_REPO" ]]; then
+            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+              .buildInfo.modules[].artifacts[]
+              | select(.path | startswith("com/"))
+              | .deployedRepository // empty
+              ' | head -n1)
+          fi
+          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
+            echo "ERROR: Set artifact-download-repository (could not detect deployedRepository from build info)." >&2
+            exit 1
+          fi
+          echo "artifact-version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build-name-number=${BUILD_NAME}/${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "source-commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "download-repository=${DOWNLOAD_REPO}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version=${VERSION} commit=${COMMIT} repo=${DOWNLOAD_REPO}"
+
+      - uses: ./.github/actions/stage-release-artifacts
+        with:
+          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
+          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
+          target-repository: ${{ steps.resolve.outputs.download-repository }}
+          build-name-number: ${{ steps.resolve.outputs.build-name-number }}
+          artifact-version: ${{ steps.resolve.outputs.artifact-version }}
+          staging-folder: '["staging","github"]'
+
+      - uses: ./.github/actions/build-sign-uber-jar
+        with:
+          source-commit: ${{ steps.resolve.outputs.source-commit }}
+          artifact-version: ${{ steps.resolve.outputs.artifact-version }}
+          staging-folder: staging
+          gpg-secret-key: ${{ secrets.GPG_SECRET_KEY }}
+          gpg-pass: ${{ secrets.GPG_PASS }}
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          COMMIT="${{ steps.resolve.outputs.source-commit }}"
+          NOTES=$(git log "$(git describe --tags --abbrev=0 "${COMMIT}" 2>/dev/null || echo "")".."${COMMIT}" --pretty=format:"- %s" 2>/dev/null || true)
+          echo "release-notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${NOTES}" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/publish-to-github
+        with:
+          release-notes: ${{ steps.release-notes.outputs.release-notes }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          build-name-number: ${{ steps.resolve.outputs.build-name-number }}
+          artifact-version: ${{ steps.resolve.outputs.artifact-version }}
