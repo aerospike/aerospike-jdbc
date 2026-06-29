@@ -16,7 +16,7 @@ on:
         type: boolean
         description: "If true (default), run jf rt build-promote into database-maven-dev-local. If false, skip that promote only (staging still runs jf rt dl from artifact-download-repository or promote target)."
         required: false
-        default: true
+        default: false
       artifact-download-repository:
         type: string
         description: "JFrog repo for staging downloads (jf rt dl). Default empty = use promote target (database-maven-dev-local). Set explicitly if artifacts live elsewhere."
