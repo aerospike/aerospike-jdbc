@@ -116,7 +116,12 @@
             <artifactId>calcite-server</artifactId>
             <version>${calcite.version}</version>
         </dependency>
-
+        <!--commons-lang3 is transitively pulled through calcite and is pinned to a vulnerable stale version-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.20.0</version>
+        </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
