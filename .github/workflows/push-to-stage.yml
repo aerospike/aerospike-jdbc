@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - stage
+      - main
     tags:
       - 'v*'                       # Matches v5.4.0
       - '[0-9]+.[0-9]+.[0-9]+'     # Matches 5.4.0
@@ -16,7 +17,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-stage:
-    name: Build stage
+  build:
+    name: Build
     uses: ./.github/workflows/build-release.yml
     secrets: inherit

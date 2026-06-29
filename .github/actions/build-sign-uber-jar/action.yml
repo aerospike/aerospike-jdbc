@@ -1,0 +1,89 @@
+name: Build and sign uber JAR
+description: "Build shade uber-jar at a source commit via git worktree, GPG-sign, copy into staging"
+
+inputs:
+  source-commit:
+    description: "Git commit SHA to build from (matches JFrog build)"
+    required: true
+  artifact-version:
+    description: "Release version (must match pom at source commit)"
+    required: true
+  staging-folder:
+    description: "Folder to copy signed uber jar artifacts into"
+    required: false
+    default: staging
+  gpg-secret-key:
+    description: "Armored GPG private key"
+    required: true
+  gpg-pass:
+    description: "GPG key passphrase"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: "8"
+        cache: maven
+
+    - name: Build uber JAR at source commit
+      shell: bash
+      env:
+        SOURCE_COMMIT: ${{ inputs.source-commit }}
+        VERSION: ${{ inputs.artifact-version }}
+      run: |
+        set -euo pipefail
+        WORKTREE="${RUNNER_TEMP}/uber-build-src"
+        rm -rf "${WORKTREE}"
+        git worktree add --detach "${WORKTREE}" "${SOURCE_COMMIT}"
+        cd "${WORKTREE}"
+        POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        if [[ "${POM_VERSION}" != "${VERSION}" ]]; then
+          echo "Aligning pom version ${POM_VERSION} -> ${VERSION}"
+          mvn versions:set -DnewVersion="${VERSION}" -DgenerateBackupPoms=false -DprocessAllModules
+        fi
+        mvn package -B -DskipTests -Dgpg.skip=true
+        UBER="target/uber-aerospike-jdbc-${VERSION}.jar"
+        if [[ ! -f "${UBER}" ]]; then
+          echo "ERROR: expected uber jar at ${WORKTREE}/${UBER}" >&2
+          ls -la target/ || true
+          exit 1
+        fi
+        echo "UBER_JAR_PATH=${WORKTREE}/${UBER}" >> "$GITHUB_ENV"
+
+    - name: Import GPG key and sign uber JAR
+      shell: bash
+      env:
+        GPG_PASS: ${{ inputs.gpg-pass }}
+        UBER_JAR_PATH: ${{ env.UBER_JAR_PATH }}
+      run: |
+        set -euo pipefail
+        mkdir -p ~/.gnupg
+        chmod 700 ~/.gnupg
+        echo "allow-loopback-pinentry" >> ~/.gnupg/gpg-agent.conf
+        echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+        echo "${{ inputs.gpg-secret-key }}" | gpg --batch --import
+        gpgconf --kill gpg-agent || true
+        export GPG_TTY=$(tty)
+        "${GITHUB_WORKSPACE}/scripts/sign-and-checksum-jar.sh" "${UBER_JAR_PATH}"
+
+    - name: Copy uber artifacts to staging
+      shell: bash
+      env:
+        UBER_JAR_PATH: ${{ env.UBER_JAR_PATH }}
+      run: |
+        set -euo pipefail
+        DEST="${GITHUB_WORKSPACE}/${{ inputs.staging-folder }}"
+        mkdir -p "${DEST}"
+        cp -v "${UBER_JAR_PATH}"* "${DEST}/"
+        ls -la "${DEST}"
+
+    - name: Remove build worktree
+      if: always()
+      shell: bash
+      run: |
+        WORKTREE="${RUNNER_TEMP}/uber-build-src"
+        git worktree remove --force "${WORKTREE}" 2>/dev/null || rm -rf "${WORKTREE}"
