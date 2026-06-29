@@ -39,7 +39,7 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       - name: Promoting release bundle to TEST
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.5.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.8.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}
@@ -47,7 +47,7 @@ jobs:
           jf-project: ${{ vars.JFROG_PROJECT }}
 
       - name: Promoting release bundle to STAGE
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.5.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.8.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}

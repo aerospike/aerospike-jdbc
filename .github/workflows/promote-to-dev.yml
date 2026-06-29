@@ -39,7 +39,7 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       - name: Promoting release bundle to DEV
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.5.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@v3.8.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}
