@@ -4,51 +4,66 @@ description: Detects if build is a snapshot and gets the release or snapshot ver
 runs:
   using: composite
   steps:
-    # Checking if this particular build is a snapshot build
     - name: Detect if snapshot
       id: get-is-snapshot
       shell: bash
       run: |
-        # Check if tagged with release or release candidate
+        BRANCH="${{ github.ref_name }}"
+        echo "Branch: $BRANCH"
+
         TAG=$(git describe --exact-match --tags HEAD 2>/dev/null || echo "")
         echo "Detected Git tag: '$TAG'"
-        
-        # Define regex patterns
+
         RE_PROD='^v?[0-9]+\.[0-9]+\.[0-9]+$'
         RE_RC='^v?[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$'
-        
+
         if [[ "$TAG" =~ $RE_PROD ]]; then
           echo "Production release tag detected: $TAG"
           echo "is-snapshot=false" >> $GITHUB_OUTPUT
+          echo "version-changed=false" >> $GITHUB_OUTPUT
           exit 0
         elif [[ "$TAG" =~ $RE_RC ]]; then
           echo "Release candidate tag detected: $TAG"
           echo "is-snapshot=false" >> $GITHUB_OUTPUT
+          echo "version-changed=false" >> $GITHUB_OUTPUT
           exit 0
-        else
-          echo "No matching tag found"
-          echo "is-snapshot=true" >> $GITHUB_OUTPUT
         fi
-        
-        # Checking if previous commit contains pom.xml. This should always return true
+
         COMMIT_REF="HEAD~1"
         if ! git show "${COMMIT_REF}:pom.xml" &>/dev/null; then
           echo "Error: pom.xml not found in commit ${COMMIT_REF}"
-          echo "is-snapshot='true'" >> $GITHUB_OUTPUT
+          echo "is-snapshot=true" >> $GITHUB_OUTPUT
+          echo "version-changed=false" >> $GITHUB_OUTPUT
           exit 0
         fi
 
-        # Getting previous version
-        OLD_VERSIONS=$(git show "${COMMIT_REF}:pom.xml" | sed -n '0,/<version>/ s/.*<version>\([^<]*\)<\/version>.*/\1/p')
+        OLD_VERSION=$(git show "${COMMIT_REF}:pom.xml" | sed -n '0,/<version>/ s/.*<version>\([^<]*\)<\/version>.*/\1/p')
+        NEW_VERSION=$(sed -n '0,/<version>/ s/.*<version>\([^<]*\)<\/version>.*/\1/p' pom.xml)
 
-        # Getting current version
-        NEW_VERSIONS=$(sed -n '0,/<version>/ s/.*<version>\([^<]*\)<\/version>.*/\1/p' pom.xml)
+        echo "old version: ${OLD_VERSION}, new version: ${NEW_VERSION}"
 
-        echo "old versions: ${OLD_VERSIONS}, new versions: ${NEW_VERSIONS}"
-        # Compare the extracted versions. CI will not commit snapshot version.
-        if [[ "${OLD_VERSIONS}" != "${NEW_VERSIONS}" ]]; then
-          echo "is-snapshot=false" >> $GITHUB_OUTPUT
+        is_rc_version() {
+          [[ "$1" =~ -[Rr][Cc][0-9]+$ ]]
+        }
+
+        if [[ "${OLD_VERSION}" != "${NEW_VERSION}" ]]; then
+          echo "version-changed=true" >> $GITHUB_OUTPUT
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "Version bump on main — release build"
+            echo "is-snapshot=false" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "stage" ]] && is_rc_version "${NEW_VERSION}"; then
+            echo "RC version bump on stage — release candidate build"
+            echo "is-snapshot=false" >> $GITHUB_OUTPUT
+          elif [[ "$BRANCH" == "stage" ]]; then
+            echo "Semver bump on stage — snapshot build"
+            echo "is-snapshot=true" >> $GITHUB_OUTPUT
+          else
+            echo "Version bump on branch '$BRANCH' — snapshot build"
+            echo "is-snapshot=true" >> $GITHUB_OUTPUT
+          fi
         else
+          echo "version-changed=false" >> $GITHUB_OUTPUT
+          echo "No pom version change — snapshot build"
           echo "is-snapshot=true" >> $GITHUB_OUTPUT
         fi
 
@@ -56,11 +71,26 @@ runs:
       id: get-release-version
       shell: bash
       run: |
+        BRANCH="${{ github.ref_name }}"
         IS_SNAPSHOT=${{ steps.get-is-snapshot.outputs.is-snapshot }}
-        if [ $IS_SNAPSHOT == "true" ];then
-          echo release-version="$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)-SNAPSHOT_$GITHUB_SHA" >> $GITHUB_OUTPUT
+        VERSION_CHANGED=${{ steps.get-is-snapshot.outputs.version-changed }}
+        POM_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+
+        is_rc_version() {
+          [[ "$1" =~ -[Rr][Cc][0-9]+$ ]]
+        }
+
+        if [ "$IS_SNAPSHOT" == "true" ]; then
+          if [[ "$VERSION_CHANGED" == "true" && "$BRANCH" == "stage" ]] && ! is_rc_version "${POM_VERSION}"; then
+            echo "Stage semver bump — using ${POM_VERSION}-SNAPSHOT"
+            echo release-version="${POM_VERSION}-SNAPSHOT" >> $GITHUB_OUTPUT
+          elif [[ "$POM_VERSION" == *-SNAPSHOT* ]]; then
+            echo release-version="${POM_VERSION}_${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          else
+            echo release-version="${POM_VERSION}-SNAPSHOT_${GITHUB_SHA}" >> $GITHUB_OUTPUT
+          fi
         else
-          echo release-version="$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
+          echo release-version="${POM_VERSION}" >> $GITHUB_OUTPUT
         fi
 
 outputs:

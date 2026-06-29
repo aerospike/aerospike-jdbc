@@ -69,7 +69,9 @@ jobs:
         docker run -d --name aerospike -p 3000:3000 aerospike/aerospike-server && sleep 5
         if [ "${IS_SNAPSHOT}" = "true" ] || [ "${VERSION#*SNAPSHOT}" != "${VERSION}" ]; then
           pom_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+          if [[ "$pom_version" != *-SNAPSHOT* ]]; then
+            mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+          fi
         fi
         mvn clean install -B -U -Dgpg.skip=true
         REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
