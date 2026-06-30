@@ -15,9 +15,9 @@ on:
         required: true
       artifact-download-repository:
         type: string
-        description: "JFrog repo for read-only jf rt dl. Leave empty to use deployedRepository from build info when available."
+        description: "JFrog repo for read-only jf rt dl. Default database-maven-local (build-release deploy repo)."
         required: false
-        default: ""
+        default: "database-maven-local"
 
 jobs:
   draft-release:
@@ -95,14 +95,27 @@ jobs:
           DOWNLOAD_REPO="${DOWNLOAD_REPO_INPUT}"
           if [[ -z "$DOWNLOAD_REPO" ]]; then
             DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-              .buildInfo.modules[].artifacts[]
-              | select(.path | startswith("com/"))
-              | .deployedRepository // empty
+              [.buildInfo.modules[].artifacts[]
+               | select(.path | startswith("com/"))
+               | .deployedRepository, .originalDeploymentRepository, .repo
+               ] | map(select(. != null and . != "" and . != "null")) | first // empty
+              ')
+          fi
+          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
+            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+              .buildInfo.modules[].artifacts[].path
+              | select(startswith("com/") | not)
+              | split("/")[0]
               ' | head -n1)
           fi
           if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
-            echo "ERROR: Set artifact-download-repository (could not detect deployedRepository from build info)." >&2
-            exit 1
+            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
+              .buildInfo.modules[] | .repo // .repository // empty
+              ' | head -n1)
+          fi
+          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
+            DOWNLOAD_REPO="database-maven-local"
+            echo "WARN: could not detect repo from build info; using default ${DOWNLOAD_REPO}" >&2
           fi
           echo "artifact-version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "build-name-number=${BUILD_NAME}/${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"

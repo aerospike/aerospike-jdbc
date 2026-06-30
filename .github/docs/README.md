@@ -54,7 +54,7 @@ Legacy (superseded by **Promote release bundle**): `promote-to-dev.yml`, `promot
 | Input | Example |
 |-------|---------|
 | `build-number` | `jf-build-id` from Java Build & Release |
-| `artifact-download-repository` | JF repo for `jf rt dl` (optional if `deployedRepository` is in build info) |
+| `artifact-download-repository` | JF repo for `jf rt dl` (default **`database-maven-local`**) |
 
 Source commit for the uber jar: `buildInfo.vcs.revision`, else `buildInfo.url` → GitHub Actions run → `head_sha`.
 
