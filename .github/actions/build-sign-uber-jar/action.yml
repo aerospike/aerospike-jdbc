@@ -68,7 +68,15 @@ runs:
         echo "${{ inputs.gpg-secret-key }}" | gpg --batch --import
         gpgconf --kill gpg-agent || true
         export GPG_TTY=$(tty)
-        "${GITHUB_WORKSPACE}/scripts/sign-and-checksum-jar.sh" "${UBER_JAR_PATH}"
+        SIGN_SCRIPT="${GITHUB_ACTION_PATH}/../../scripts/sign-and-checksum-jar.sh"
+        if [[ ! -x "$SIGN_SCRIPT" ]]; then
+          chmod +x "$SIGN_SCRIPT"
+        fi
+        if [[ ! -f "$SIGN_SCRIPT" ]]; then
+          echo "ERROR: sign script not found at ${SIGN_SCRIPT}" >&2
+          exit 1
+        fi
+        "$SIGN_SCRIPT" "${UBER_JAR_PATH}"
 
     - name: Copy uber artifacts to staging
       shell: bash
