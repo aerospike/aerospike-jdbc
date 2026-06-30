@@ -9,6 +9,7 @@ permissions:
   packages: write
   contents: read
   attestations: write
+  actions: read
 
 on:
   workflow_call:
