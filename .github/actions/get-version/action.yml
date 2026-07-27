@@ -63,6 +63,16 @@ runs:
           fi
         else
           echo "version-changed=false" >> $GITHUB_OUTPUT
+          # Follow-up commit on main after a version bump (e.g. CI fix) keeps the same
+          # pom version — still emit a release if the parent commit introduced it.
+          if [[ "$BRANCH" == "main" ]] && git show "HEAD~2:pom.xml" &>/dev/null; then
+            GRANDPARENT_VERSION=$(git show "HEAD~2:pom.xml" | sed -n '0,/<version>/ s/.*<version>\([^<]*\)<\/version>.*/\1/p')
+            if [[ "${GRANDPARENT_VERSION}" != "${NEW_VERSION}" ]]; then
+              echo "Main follow-up to version bump ${GRANDPARENT_VERSION} → ${NEW_VERSION} — release build"
+              echo "is-snapshot=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
           echo "No pom version change — snapshot build"
           echo "is-snapshot=true" >> $GITHUB_OUTPUT
         fi
