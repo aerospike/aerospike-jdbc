@@ -11,7 +11,7 @@
     <name>aerospike-jdbc</name>
     <description>A JDBC driver for the Aerospike database</description>
     <url>https://github.com/aerospike/aerospike-jdbc</url>
-    <version>2.1.4</version>
+    <version>2.1.5</version>
 
     <properties>
         <skipTests>false</skipTests>
@@ -29,7 +29,7 @@
 
         <aerospike-client.version>10.3.0</aerospike-client.version>
         <netty.version>4.2.15.Final</netty.version>
-        <jackson.version>2.22.0</jackson.version>
+        <jackson.version>2.22.1</jackson.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
         <calcite.version>1.42.0</calcite.version>
         <guava.version>33.6.0-jre</guava.version>
