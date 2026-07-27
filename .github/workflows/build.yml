@@ -26,7 +26,7 @@ jobs:
           java-version: 8
 
       - name: Set up Maven
-        uses: step-security/setup-maven@8b5f727904660c4b112d02624218c791126af325 # v5.0.0
+        uses: step-security/setup-maven@952ce6ada26435ad361053035d888477856de677 # v5.0.1
         with:
           maven-version: 3.9.8
 
