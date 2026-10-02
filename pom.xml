@@ -32,7 +32,7 @@
         <jackson.version>2.22.1</jackson.version>
         <jackson.annotations.version>2.22</jackson.annotations.version>
         <calcite.version>1.42.0</calcite.version>
-        <guava.version>33.6.0-jre</guava.version>
+        <guava.version>33.7.1-jre</guava.version>
         <httpclient.version>4.5.14</httpclient.version>
 
         <assertj.version>4.0.0-M1</assertj.version>
