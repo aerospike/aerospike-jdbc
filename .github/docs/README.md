@@ -1,90 +1,96 @@
-# CI/CD — aerospike-jdbc
+# CI/CD - aerospike-jdbc
 
-Four **independent** paths: build → JFrog, JF bundle promotion, Sonatype (JF UI), GitHub draft release.
+The publishing flow is JFrog release-bundle based, with a separate manual GitHub
+Release path for the signed JDBC uber JAR.
 
-Maven Central is **not** published from this repo — JFrog PROD promotion triggers `citrusleaf/artifact-publisher` via webhook.
+Maven Central is not uploaded directly from this repository. JFrog promotion and
+the organization artifact-publisher path handle Central publication.
 
-## Release flow
+## Release Flow
 
+```text
+push stage or version tag, or manual dispatch
+  -> Trigger Creating Release Bundle
+  -> create-release-bundle
+  -> JFrog build artifacts + release bundle
+  -> automatic DEV promotion for non-snapshot releases
+
+manual: Promote release bundle to TEST and STAGE
+manual: JFrog UI / org publishing path -> Maven Central
+manual: Draft GitHub release -> versioned JFrog artifacts + signed uber JAR
 ```
-push stage/main (or tag)
-  → Java Build & Release → artifacts + JF release bundle
-
-manual: Promote release bundle     → DEV / TEST / STAGE (JF only)
-manual: JFrog UI                   → Sonatype / Maven Central
-manual: Draft GitHub release       → draft release + JF artifacts + uber jar
-```
-
-Nothing auto-promotes on push (avoids re-promoting a version already in JFrog).
 
 ## Workflows
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
-| **build** | PR/push to `main`; PR to `main`/`stage` | `mvn` build + test. No publish. |
-| **Java Build & Release** (`push-to-stage`) | Push to `stage` or `main`; version tags; manual | **build-release**: version detect → build/sign/deploy → JF release bundle. |
-| **Promote release bundle** | Manual | JF bundle lifecycle: `version` + `targets` (DEV / TEST+STAGE / all). |
-| **Draft GitHub release** | Manual | Read-only JF download → build/sign **uber jar** at source commit → draft GitHub release. **No JF writes.** |
-| **sonatype-approve-or-delete** | Manual | Sonatype Central Portal API (ops only). |
-| **snyk-scan** | Scheduled / manual | Security scan. |
+| **Build project** (`build.yml`) | Push to `main`; PR to `main`/`stage` | Maven build with Aerospike. No publish. |
+| **Trigger Creating Release Bundle** (`release-creation-trigger.yml`) | Push to `stage`; version tags; manual | Calls `create-release-bundle.yml`. |
+| **Build artifact and create release bundle** (`create-release-bundle.yml`) | Reusable workflow | Version detect -> build/sign/deploy -> JFrog release bundle -> DEV promotion. |
+| **Promote release bundle to TEST and STAGE** | Manual | Promotes a non-snapshot release bundle version to TEST and STAGE. |
+| **Draft GitHub release** | Manual | Downloads versioned JFrog artifacts, builds/signs the uber JAR, and creates a draft GitHub Release. No JFrog writes. |
+| **Snyk scan** | Push/PR | Security scan and SARIF upload. |
 
-Legacy (superseded by **Promote release bundle**): `promote-to-dev.yml`, `promote-to-test-and-stage.yml`.
+Removed/superseded workflows: `push-to-stage.yml`, `build-release.yml`,
+`promote-release-bundle.yml`, and `promote-to-dev.yml`.
 
-### Version detection (`get-version`)
+## Version Detection
 
-| Branch | pom change | Result |
-|--------|------------|--------|
-| **stage** | semver bump (e.g. `2.1.2` → `2.1.3`) | snapshot: `2.1.3-SNAPSHOT` |
-| **stage** | RC bump (e.g. → `2.1.3-RC1`) | release: `2.1.3-RC1` |
-| **main** | semver bump | release: `2.1.3` |
-| either | no pom change / untagged push | snapshot with commit suffix |
-| either | release/RC tag | release (pom version) |
+`get-version` follows the mapper-style release logic:
 
-### Manual inputs
+| Condition | Result |
+|-----------|--------|
+| Release or RC tag | Release build using the project version. |
+| `pom.xml` version changed since the previous commit | Release build using the project version. |
+| No release tag and no project version change | Snapshot build using `<project.version>-SNAPSHOT_<sha>`. |
 
-**Promote release bundle**
+## Manual Inputs
+
+**Promote release bundle to TEST and STAGE**
 
 | Input | Example |
 |-------|---------|
-| `version` | `2.1.3` (bundle in JFrog, not `jf-build-id`) |
-| `targets` | `DEV`, `TEST_AND_STAGE`, `DEV_THEN_TEST_AND_STAGE` |
+| `version` | `2.1.7` |
 
 **Draft GitHub release**
 
 | Input | Example |
 |-------|---------|
-| `build-number` | `jf-build-id` from Java Build & Release |
-| `artifact-download-repository` | JF repo for `jf rt dl` (default **`database-maven-local`**) |
+| `version` | `2.1.7` |
+| `artifact-download-repository` | `database-maven-local` |
 
-Source commit for the uber jar: `buildInfo.vcs.revision`, else `buildInfo.url` → GitHub Actions run → `head_sha`.
+The GitHub Release workflow resolves source from the matching bare-version Git
+tag (`<version>`, for example `2.1.7`), downloads Maven artifacts from JFrog
+using the version path, builds and signs `uber-aerospike-jdbc-<version>.jar`,
+and creates a draft GitHub Release.
 
 ## Secrets
 
 | Secret | Used for |
 |--------|----------|
-| `GPG_SECRET_KEY`, `GPG_PUBLIC_KEY`, `GPG_PASS` | build-release; draft uber jar signing |
-| `JFROG_OIDC_PROVIDER`, `JFROG_OIDC_AUDIENCE` | JFrog read/write in CI |
-| `AEROSPIKE_SA_CICD_USERNAME`, `AEROSPIKE_SA_CICD_PASSWORD` | sonatype-approve-or-delete only |
+| `GPG_SECRET_KEY`, `GPG_PUBLIC_KEY`, `GPG_PASS` | Release artifact signing and draft GitHub release uber-JAR signing. |
+| `JFROG_OIDC_PROVIDER`, `JFROG_OIDC_AUDIENCE` | JFrog read access in the draft GitHub Release path. |
 
 ## Variables
 
 | Variable | Used for |
 |----------|----------|
-| `BUILD_CONTAINER_DISTRO_VERSION` | Runner image |
-| `JFROG_PROJECT`, `JFROG_PLATFORM_URL` | JFrog |
-| `OIDC_PROVIDER_NAME`, `OIDC_AUDIENCE` | OIDC (also mirrored in secrets where actions require them) |
-| `SONATYPE_DOMAIN_NAME` | sonatype-approve-or-delete |
+| `BUILD_CONTAINER_DISTRO_VERSION` | Runner image. |
+| `JFROG_PROJECT`, `JFROG_PLATFORM_URL` | JFrog release-bundle and promotion flows. |
+| `OIDC_PROVIDER_NAME`, `OIDC_AUDIENCE` | JFrog OIDC for release-bundle and promotion flows. |
 
-## Composite actions
+## Composite Actions
 
 | Action | Role |
 |--------|------|
-| **get-version** | Branch-aware snapshot vs release version |
-| **stage-release-artifacts** | Read-only JF download + checksum sidecars |
-| **build-sign-uber-jar** | Worktree build at source commit, GPG sign, copy to staging |
-| **publish-to-github** | Create draft GitHub release with staged files |
+| **get-version** | Mapper-style snapshot vs release version detection. |
+| **stage-release-artifacts** | Read-only version-path JFrog artifact download plus checksum sidecars. |
+| **build-sign-uber-jar** | Worktree build at the release source commit, GPG sign, copy to staging. |
+| **publish-to-github** | Create a draft GitHub Release with staged files. |
 
-## External deps
+## External Dependencies
 
-- `aerospike/shared-workflows` **v3.5.0** — `reusable_artifacts-cicd`, `reusable_create-release-bundle`, `promote-release-bundle`
-- Maven Central allow-list + JFrog webhook — org `artifact-publisher` setup
+- `aerospike/shared-workflows` v5.0.0 for reusable artifact CI/CD,
+  release-bundle creation, and release-bundle promotion.
+- JFrog release-bundle promotion and the organization artifact-publisher path for
+  Maven Central publication.

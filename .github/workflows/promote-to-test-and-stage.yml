@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Release bundle version to promote (must match the bundle version in JFrog, e.g. 2.1.3)
+        description: Version to be promoted
         required: true
         type: string
 
@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -30,7 +30,7 @@ jobs:
           fi
 
       - name: Setup JFrog CLI
-        uses: step-security/setup-jfrog-cli@3054b554c0fb4915b3d58847fb7730c593dbb934 # v5.0.0
+        uses: step-security/setup-jfrog-cli@f67dd6dcfe5fab8d1ebd695c456631275009a39d # v5.2.0
         env:
           JF_URL: ${{ vars.JFROG_PLATFORM_URL }}
           JF_PROJECT: ${{ vars.JFROG_PROJECT }}
@@ -39,7 +39,7 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       - name: Promoting release bundle to TEST
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@8ec712eafbec26c8db8d1183688a5fd806560a95 # v3.5.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}
@@ -47,7 +47,7 @@ jobs:
           jf-project: ${{ vars.JFROG_PROJECT }}
 
       - name: Promoting release bundle to STAGE
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@8ec712eafbec26c8db8d1183688a5fd806560a95 # v3.5.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}

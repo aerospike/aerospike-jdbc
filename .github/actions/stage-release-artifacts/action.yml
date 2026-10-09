@@ -1,5 +1,5 @@
 name: Stage artifacts for release
-description: "Prepare artifacts for publish to various portals"
+description: "Download versioned Maven artifacts from JFrog and prepare release sidecars"
 
 inputs:
   jfrog-platform-url:
@@ -10,41 +10,43 @@ inputs:
     description: "OIDC provider name"
     required: true
   oidc-audience:
-    description: "ODIC audience"
+    description: "OIDC audience"
     required: true
   staging-folder:
     description: "Staging folders. Input should be a JSON array of staging folders"
     required: false
-    default: '["staging","github","sonatype"]'
+    default: '["staging","github"]'
   target-repository:
-    description: "Target repository in JFROG"
+    description: "Target repository in JFrog"
     required: false
-    default: database-maven-dev-local
-  build-name-number:
-    description: "Build name and number"
-    required: true
+    default: database-maven-local
   artifact-version:
     description: "Artifact version"
     required: true
+  group-id:
+    description: "Maven groupId"
+    required: false
+    default: com.aerospike
+  artifact-id:
+    description: "Maven artifactId"
+    required: false
+    default: aerospike-jdbc
 
 runs:
   using: "composite"
   steps:
-    - name: Debug stage artifact to github
+    - name: Debug staging inputs
       shell: bash
       run: |
         echo "${{ inputs.jfrog-platform-url }}"
-        echo "${{ inputs.artifact-id }}"
         echo "${{ inputs.staging-folder }}"
-        echo "first element  ${{ fromJson(inputs.staging-folder)[0] }}"
-        echo "second element ${{ fromJson(inputs.staging-folder)[1] }}"
-        echo "third element  ${{ fromJson(inputs.staging-folder)[2] }}"
         echo "${{ inputs.target-repository }}"
-        echo "${{ inputs.build-name-number }}"
         echo "${{ inputs.artifact-version }}"
+        echo "${{ inputs.group-id }}"
+        echo "${{ inputs.artifact-id }}"
 
-    - name: Setup jfrog shell
-      uses: step-security/setup-jfrog-cli@a6b41f8338bea0983ddff6bd4ede7d2dcd81e1fa # v4.8.1
+    - name: Setup JFrog CLI
+      uses: step-security/setup-jfrog-cli@f67dd6dcfe5fab8d1ebd695c456631275009a39d # v5.2.0
       env:
         JF_URL: ${{ inputs.jfrog-platform-url }}
         JF_PROJECT: database
@@ -52,104 +54,71 @@ runs:
         oidc-provider-name: ${{ inputs.oidc-provider }}
         oidc-audience: ${{ inputs.oidc-audience }}
 
-    - name: Get info
-      shell: bash
-      id: get-build-info
-      run: |
-        INPUT=${{ inputs.build-name-number }}
-
-        BUILD_NAME="${INPUT%/*}" # Getting the build name
-        BUILD_NUMBER="${INPUT#*/}" # Getting build number
-
-        BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${BUILD_NUMBER}?project=database" | jq -c ".")
-        echo build-info="${BUILD_INFO}" >> $GITHUB_OUTPUT
-
-    - name: Get build name
-      shell: bash
-      id: get-build-name
-      run: |
-        echo build-name=$(echo '${{ steps.get-build-info.outputs.build-info }}' | jq -r '.buildInfo.name') >> $GITHUB_OUTPUT
-
-    - name: Get artifact build info
-      shell: bash
-      id: get-artifact-build-info
-      run: |
-        BUILD_INFO='${{ steps.get-build-info.outputs.build-info }}'
-        BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
-        # Prefer module id containing "-artifacts" (multi-module reactor); fallback to first module (single-module)
-        ARTIFACT_BUILD_ID=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | head -1)
-        if [ -z "${ARTIFACT_BUILD_ID}" ]; then
-          ARTIFACT_BUILD_ID=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[0].id')
-        fi
-        echo "Artifact Build ID: ${ARTIFACT_BUILD_ID}"
-        ARTIFACT_BUILD_NUMBER=$(echo "${ARTIFACT_BUILD_ID}" | cut -d'/' -f2)
-        echo "Artifact Build Number: ${ARTIFACT_BUILD_NUMBER}"
-        ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
-        echo artifact-build-info="${ARTIFACT_BUILD_INFO}" >> $GITHUB_OUTPUT
-        # Extract artifact name from path (com/aerospike/ARTIFACT_NAME/VERSION/...); single-module has one, multi-module has many
-        ARTIFACT_NAME=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '.buildInfo.modules[0].artifacts[0].path' | cut -d'/' -f3)
-        echo "Artifact Name: ${ARTIFACT_NAME}"
-        echo artifact-name="${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
-    
-
     - name: Create staging folders
       shell: bash
       run: |
-        echo '${{ inputs.staging-folder }}' | jq -r '.[]' | while read FOLDER; do
+        echo '${{ inputs.staging-folder }}' | jq -r '.[]' | while read -r FOLDER; do
           mkdir -p "$FOLDER"
         done
 
-    # Download artifacts from JFrog
     - name: Download artifacts from JFrog
       shell: bash
       working-directory: ${{ fromJson(inputs.staging-folder)[0] }}
       run: |
-        BUILD_INFO='${{ steps.get-artifact-build-info.outputs.artifact-build-info }}'
-        
-        REPO_KEY="${{ inputs.target-repository }}"
-        echo "${BUILD_INFO}" | jq -r '
-          .buildInfo.modules[].artifacts[]
-          | select(.path | startswith("com/"))
-          | select(.name | startswith("maven-metadata") | not)
-          | .path
-        ' | sort -u | while read -r ARTIFACT_PATH; do
-          echo "Downloading: ${REPO_KEY}/${ARTIFACT_PATH}"
-          jf rt dl "${REPO_KEY}/${ARTIFACT_PATH}" --project database .
-        done
+        set -euo pipefail
 
-    - name: Debug list downloaded content
+        GROUP_PATH=$(echo "${{ inputs.group-id }}" | tr '.' '/')
+        ARTIFACT_PATH="${GROUP_PATH}/${{ inputs.artifact-id }}/${{ inputs.artifact-version }}"
+        REPO_KEY="${{ inputs.target-repository }}"
+
+        echo "Downloading artifacts from ${REPO_KEY}/${ARTIFACT_PATH}/"
+        jf rt dl --project database --flat=true "${REPO_KEY}/${ARTIFACT_PATH}/*" .
+
+        find . -type f -name "maven-metadata*" -delete
+
+        if ! find . -type f | grep -q .; then
+          echo "ERROR: no artifacts downloaded from ${REPO_KEY}/${ARTIFACT_PATH}/" >&2
+          exit 1
+        fi
+
+    - name: Generate checksum sidecars
+      shell: bash
+      working-directory: ${{ fromJson(inputs.staging-folder)[0] }}
+      run: |
+        set -euo pipefail
+
+        checksum_one() {
+          local file=$1
+          if command -v shasum >/dev/null 2>&1; then
+            shasum -a 1 "$file" | awk '{print $1}' > "${file}.sha1"
+            shasum -a 256 "$file" | awk '{print $1}' > "${file}.sha256"
+          else
+            sha1sum "$file" | awk '{print $1}' > "${file}.sha1"
+            sha256sum "$file" | awk '{print $1}' > "${file}.sha256"
+          fi
+
+          if command -v md5sum >/dev/null 2>&1; then
+            md5sum "$file" | awk '{print $1}' > "${file}.md5"
+          elif command -v md5 >/dev/null 2>&1; then
+            md5 -q "$file" > "${file}.md5"
+          else
+            echo "WARNING: md5sum/md5 not available; skipping MD5 for ${file}" >&2
+          fi
+        }
+
+        find . -type f \
+          ! -name "*.md5" \
+          ! -name "*.sha1" \
+          ! -name "*.sha256" \
+          ! -name "maven-metadata*" \
+          -print0 | while IFS= read -r -d '' FILE; do
+            echo "Creating checksums for: ${FILE}"
+            checksum_one "$FILE"
+          done
+
+    - name: Debug staged content
       shell: bash
       working-directory: ${{ fromJson(inputs.staging-folder)[0] }}
       run: |
         pwd
         ls -laR
-
-    # The hashes are generated when the artifacts are published (not part of this build).
-    # When we promote or run releases we download the artifacts and take the hashes
-    # which are part of the build info. We don't have sha-512 at the moment.
-    - name: Get hashes from build_info and generate files
-      shell: bash
-      working-directory: ${{ fromJson(inputs.staging-folder)[0] }}
-      run: |
-        BUILD_INFO='${{ steps.get-artifact-build-info.outputs.artifact-build-info }}'
-        
-        # Process artifacts from build info
-        echo "Creating checksums from build info..."
-        echo "${BUILD_INFO}" | jq -c '.buildInfo.modules[].artifacts[]' | while read -r MODULE; do
-          NAME=$(echo "${MODULE}" | jq -r ".name")
-          SHA1=$(echo "${MODULE}" | jq -r ".sha1")
-          SHA256=$(echo "${MODULE}" | jq -r ".sha256")
-          MD5=$(echo "${MODULE}" | jq -r ".md5")
-        
-          FILE_PATH=$(find . -type f -name "${NAME}" | head -n 1)
-        
-          if [[ -z "${FILE_PATH}" ]]; then
-            echo "Warning: Could not find file ${NAME}"
-            continue
-          fi
-        
-          echo "Creating checksums for: ${FILE_PATH}"
-          echo "${SHA1}" > "${FILE_PATH}.sha1"
-          echo "${SHA256}" > "${FILE_PATH}.sha256"
-          echo "${MD5}" > "${FILE_PATH}.md5"
-        done
