@@ -9,13 +9,13 @@ permissions:
 on:
   workflow_dispatch:
     inputs:
-      build-number:
+      version:
         type: string
-        description: "JFrog build number (jf-build-id from Java Build & Release)."
+        description: "Version to be released to GitHub"
         required: true
       artifact-download-repository:
         type: string
-        description: "JFrog repo for read-only jf rt dl. Default database-maven-local (build-release deploy repo)."
+        description: "JFrog repo for read-only jf rt dl. Default database-maven-local (release deploy repo)."
         required: false
         default: "database-maven-local"
 
@@ -25,110 +25,57 @@ jobs:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@20cf305ff2072d973412fa9b1e3a4f227bda3c76 # v2.14.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - name: Setup JFrog CLI
-        uses: step-security/setup-jfrog-cli@3054b554c0fb4915b3d58847fb7730c593dbb934 # v5.0.0
-        env:
-          JF_URL: ${{ vars.JFROG_PLATFORM_URL }}
-          JF_PROJECT: database
-        with:
-          oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
-          oidc-audience: ${{ vars.OIDC_AUDIENCE }}
-
-      - name: Resolve JFrog build metadata
+      - name: Resolve release version and source commit
         id: resolve
-        env:
-          BUILD_NUMBER: ${{ inputs.build-number }}
-          DOWNLOAD_REPO_INPUT: ${{ inputs.artifact-download-repository }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
         run: |
           set -euo pipefail
-          API_PATH="/api/build/aerospike-jdbc/${BUILD_NUMBER}?project=database"
-          status_code=$(jf rt curl "${API_PATH}" -o /dev/null -s -w "%{http_code}")
-          if [[ "$status_code" -ne 200 ]]; then
-            echo "ERROR: could not fetch build ${BUILD_NUMBER} (HTTP ${status_code})" >&2
+
+          VERSION="${{ inputs.version }}"
+          DOWNLOAD_REPO="${{ inputs.artifact-download-repository }}"
+
+          if [[ -z "$VERSION" ]]; then
+            echo "ERROR: version is required." >&2
             exit 1
           fi
-          BUILD_INFO=$(jf rt curl "${API_PATH}")
-          BUILD_NAME=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.name')
-          ARTIFACT_BUILD_NUMBER=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[] | select(.id | contains("-artifacts")) | .id' | cut -d'/' -f2)
-          ARTIFACT_BUILD_INFO=$(jf rt curl "/api/build/${BUILD_NAME}/${ARTIFACT_BUILD_NUMBER}?project=database" | jq -c ".")
-          VERSION=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-            .buildInfo.modules[].artifacts[]
-            | select(.name | endswith(".jar")
-                and (contains("sources") | not)
-                and (contains("javadoc") | not))
-            | .path
-            | split("/")[-2]
-            ' | head -n1)
-          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
-            echo "ERROR: Could not parse artifact version from JFrog build info!" >&2
-            exit 1
-          fi
+
           if [[ "$VERSION" == *"-SNAPSHOT"* ]]; then
             echo "ERROR: SNAPSHOT builds are not published to GitHub (${VERSION})." >&2
             exit 1
           fi
-          COMMIT=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.vcs[0].revision // empty')
-          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
-            RUN_URL=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.url // empty')
-            RUN_ID=$(echo "${RUN_URL}" | sed -n 's|.*/actions/runs/\([0-9]*\).*|\1|p')
-            if [[ -n "$RUN_ID" ]]; then
-              COMMIT=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RUN_ID}" --jq '.head_sha')
-            fi
-          fi
-          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
-            COMMIT=$(echo "${BUILD_INFO}" | jq -r '.buildInfo.modules[0].id' | sed -E 's/.*SNAPSHOT_(.*)$/\1/')
-          fi
-          if [[ -z "$COMMIT" || "$COMMIT" == "null" ]]; then
-            echo "ERROR: Could not resolve source commit from JFrog build info." >&2
+
+          TAG_REF=""
+          if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
+            TAG_REF="${VERSION}"
+          elif git rev-parse --verify --quiet "refs/tags/v${VERSION}" >/dev/null; then
+            TAG_REF="v${VERSION}"
+          else
+            echo "ERROR: Could not find a release tag for ${VERSION} or v${VERSION}." >&2
             exit 1
           fi
-          DOWNLOAD_REPO="${DOWNLOAD_REPO_INPUT}"
-          if [[ -z "$DOWNLOAD_REPO" ]]; then
-            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-              [.buildInfo.modules[].artifacts[]
-               | select(.path | startswith("com/"))
-               | .deployedRepository, .originalDeploymentRepository, .repo
-               ] | map(select(. != null and . != "" and . != "null")) | first // empty
-              ')
-          fi
-          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
-            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-              .buildInfo.modules[].artifacts[].path
-              | select(startswith("com/") | not)
-              | split("/")[0]
-              ' | head -n1)
-          fi
-          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
-            DOWNLOAD_REPO=$(echo "${ARTIFACT_BUILD_INFO}" | jq -r '
-              .buildInfo.modules[] | .repo // .repository // empty
-              ' | head -n1)
-          fi
-          if [[ -z "$DOWNLOAD_REPO" || "$DOWNLOAD_REPO" == "null" ]]; then
-            DOWNLOAD_REPO="database-maven-local"
-            echo "WARN: could not detect repo from build info; using default ${DOWNLOAD_REPO}" >&2
-          fi
+
+          COMMIT=$(git rev-parse "${TAG_REF}^{commit}")
+
           echo "artifact-version=${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "build-name-number=${BUILD_NAME}/${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "source-commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+          echo "source-tag=${TAG_REF}" >> "$GITHUB_OUTPUT"
           echo "download-repository=${DOWNLOAD_REPO}" >> "$GITHUB_OUTPUT"
-          echo "Resolved version=${VERSION} commit=${COMMIT} repo=${DOWNLOAD_REPO}"
+          echo "Resolved version=${VERSION} tag=${TAG_REF} commit=${COMMIT} repo=${DOWNLOAD_REPO}"
 
       - uses: ./.github/actions/stage-release-artifacts
         with:
           oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
           oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
           target-repository: ${{ steps.resolve.outputs.download-repository }}
-          build-name-number: ${{ steps.resolve.outputs.build-name-number }}
           artifact-version: ${{ steps.resolve.outputs.artifact-version }}
           staging-folder: '["staging","github"]'
 
@@ -142,10 +89,22 @@ jobs:
 
       - name: Generate release notes
         id: release-notes
+        shell: bash
         run: |
+          set -euo pipefail
+
           COMMIT="${{ steps.resolve.outputs.source-commit }}"
-          NOTES=$(git log "$(git describe --tags --abbrev=0 "${COMMIT}" 2>/dev/null || echo "")".."${COMMIT}" --pretty=format:"- %s" 2>/dev/null || true)
+          TAG="${{ steps.resolve.outputs.source-tag }}"
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "${COMMIT}^" 2>/dev/null || true)
+
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            NOTES=$(git log "${PREVIOUS_TAG}..${COMMIT}" --pretty=format:"- %s" 2>/dev/null || true)
+          else
+            NOTES=$(git log -n 50 "${COMMIT}" --pretty=format:"- %s" 2>/dev/null || true)
+          fi
+
           echo "release-notes<<EOF" >> "$GITHUB_OUTPUT"
+          echo "Changes for ${TAG}" >> "$GITHUB_OUTPUT"
           echo "${NOTES}" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
 
@@ -153,5 +112,4 @@ jobs:
         with:
           release-notes: ${{ steps.release-notes.outputs.release-notes }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          build-name-number: ${{ steps.resolve.outputs.build-name-number }}
           artifact-version: ${{ steps.resolve.outputs.artifact-version }}

@@ -19,9 +19,6 @@ inputs:
   artifact-version:
     description: "Version of the artifact to release"
     required: true
-  build-name-number:
-    description: "String containing build name, number and jdk versions"
-    required: true
 
 runs:
   using: "composite"
@@ -33,7 +30,6 @@ runs:
         echo "${{ inputs.target-folder }}"
         echo "${{ inputs.artifact-version }}"
         echo "${{ inputs.release-notes }}"
-        echo "${{ inputs.build-name-number }}"
 
     - id: get-artifact-version
       shell: bash
@@ -47,6 +43,7 @@ runs:
       run: |
         src="${{ inputs.staging-folder }}"
         dest="${{ inputs.target-folder }}"
+        mkdir -p "$dest"
 
         find "$src" -type f \
           -exec cp {} "$dest" \;
@@ -79,7 +76,7 @@ runs:
         echo "files: ${{ steps.get-github-release-artifact-names.outputs.release-artifacts }}"
 
     - name: Publish release to github
-      uses: step-security/action-gh-release@5f6a6ab53a5a2c000ff3a16fad038291e5b97ce7 # v2.4.2
+      uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3
       with:
         token: ${{ inputs.github-token }}
         tag_name: ${{ steps.get-artifact-version.outputs.artifact-version }}

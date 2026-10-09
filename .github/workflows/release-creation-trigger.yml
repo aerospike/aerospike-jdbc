@@ -1,0 +1,23 @@
+name: Trigger Creating Release Bundle
+
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+  attestations: write
+
+on:
+  push:
+    branches:
+      - stage
+    tags:
+      - 'v*'
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-rc*'
+  workflow_dispatch:
+
+jobs:
+  build-stage:
+    name: Build stage
+    uses: ./.github/workflows/create-release-bundle.yml
+    secrets: inherit

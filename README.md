@@ -25,7 +25,7 @@ For Java applications, add the driver as a dependency from [Maven Central](https
 <dependency>
     <groupId>com.aerospike</groupId>
     <artifactId>aerospike-jdbc</artifactId>
-    <version>2.1.0</version>
+    <version></version> <!-- Use the latest version -->
 </dependency>
 ```
 

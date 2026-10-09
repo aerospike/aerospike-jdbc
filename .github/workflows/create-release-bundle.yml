@@ -1,0 +1,146 @@
+name: Build artifact and create release bundle
+
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+  attestations: write
+
+on:
+  workflow_call:
+    secrets:
+      GPG_SECRET_KEY:
+        required: true
+      GPG_PUBLIC_KEY:
+        required: true
+      GPG_PASS:
+        required: true
+
+jobs:
+  extract-version:
+    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Extract Version
+        id: extract
+        uses: ./.github/actions/get-version
+
+    outputs:
+      version: ${{ steps.extract.outputs.release-version }}
+      is-snapshot: ${{ steps.extract.outputs.is-snapshot }}
+
+  build-sign-deploy:
+    needs: extract-version
+    uses: aerospike/shared-workflows/.github/workflows/reusable_artifacts-cicd.yaml@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
+    with:
+      gh-artifact-directory: build
+      gh-workflows-ref: b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860
+      jf-build-name: aerospike-jdbc
+      jf-project: ${{ vars.JFROG_PROJECT }}
+      oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+      oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+      version: ${{ needs.extract-version.outputs.version }}
+      jar-group-id: com.aerospike
+      setup-java: true
+      java-version: "8"
+      java-distribution: "temurin"
+      gh-source-path: aerospike-jdbc
+      gh-retention-days: 1
+      runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+      build-script: |
+        # Maven build
+        docker rm -f aerospike 2>/dev/null || true
+        docker run -d --name aerospike -p 3000:3000 aerospike/aerospike-server
+        trap 'docker rm -f aerospike 2>/dev/null || true' EXIT
+        sleep 5
+
+        if [ "${{ needs.extract-version.outputs.is-snapshot }}" == "true" ]; then
+          pom_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [[ "$pom_version" != *-SNAPSHOT* ]]; then
+            mvn versions:set -DnewVersion="${pom_version}-SNAPSHOT" -DgenerateBackupPoms=false -DprocessAllModules
+          fi
+        fi
+
+        mvn clean install -B -U -Dgpg.skip=true
+
+        LOCAL_REPO=$(mvn help:evaluate -Dexpression=settings.localRepository -q -DforceStdout)
+        GROUP_ID=$(mvn help:evaluate -Dexpression=project.groupId -q -DforceStdout)
+        ARTIFACT_ID=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout)
+        VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+
+        GROUP_PATH=$(echo "$GROUP_ID" | tr '.' '/')
+        ARTIFACT_PATH="$LOCAL_REPO/$GROUP_PATH/$ARTIFACT_ID/$VERSION"
+
+        echo "ARTIFACT_PATH: $ARTIFACT_PATH"
+        echo "Copying artifacts to ./build/"
+
+        mkdir -p build
+        for file in "$ARTIFACT_PATH"/*; do
+          if [[ "$file" == *"-jar-with-dependencies.jar" ]] || [[ "$file" == *"_remote.repositories" ]]; then
+            continue
+          fi
+          cp "$file" build/
+        done
+
+        ls -lar build/
+    secrets:
+      gpg-private-key: ${{ secrets.GPG_SECRET_KEY }}
+      gpg-public-key: ${{ secrets.GPG_PUBLIC_KEY }}
+      gpg-key-pass: ${{ secrets.GPG_PASS }}
+
+  create-release-bundle:
+    needs: [ extract-version, build-sign-deploy ]
+    uses: aerospike/shared-workflows/.github/workflows/reusable_create-release-bundle.yaml@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
+    with:
+      jf-project: ${{ vars.JFROG_PROJECT }}
+      jf-build-names: ${{ needs.build-sign-deploy.outputs.jf-build-name }}:${{ needs.build-sign-deploy.outputs.jf-build-id }}
+      jf-bundle-name: aerospike-jdbc
+      gh-workflows-ref: b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860
+      version: ${{ needs.extract-version.outputs.version }}
+      oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+      oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+      dry-run: false
+
+  promote-to-dev:
+    needs: [ extract-version, create-release-bundle ]
+    name: Promote to DEV
+    runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+
+      - name: Setup JFrog CLI
+        uses: step-security/setup-jfrog-cli@f67dd6dcfe5fab8d1ebd695c456631275009a39d # v5.2.0
+        env:
+          JF_URL: ${{ vars.JFROG_PLATFORM_URL }}
+          JF_PROJECT: ${{ vars.JFROG_PROJECT }}
+        with:
+          oidc-provider-name: ${{ vars.OIDC_PROVIDER_NAME }}
+          oidc-audience: ${{ vars.OIDC_AUDIENCE }}
+
+      - name: Check if snapshot build
+        run: |
+          if [[ "${{ needs.extract-version.outputs.is-snapshot }}" == "true" ]]; then
+            echo "Error: this is a SNAPSHOT build. Snapshots are not promoted."
+            exit 1
+          fi
+
+      - name: Promoting release bundle to DEV
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
+        with:
+          bundle-name: aerospike-jdbc
+          version: ${{ needs.extract-version.outputs.version }}
+          environment: DEV
+          jf-project: ${{ vars.JFROG_PROJECT }}
