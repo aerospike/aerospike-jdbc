@@ -1,5 +1,5 @@
 # Read-only JFrog artifact download + uber-jar build at source commit + draft GitHub release.
-# Does not promote or write to JFrog. Maven Central / Sonatype are separate (JF UI).
+# Does not promote or write to JFrog. Maven Central publication is separate.
 name: Draft GitHub release
 
 permissions:
@@ -53,13 +53,9 @@ jobs:
             exit 1
           fi
 
-          TAG_REF=""
-          if git rev-parse --verify --quiet "refs/tags/${VERSION}" >/dev/null; then
-            TAG_REF="${VERSION}"
-          elif git rev-parse --verify --quiet "refs/tags/v${VERSION}" >/dev/null; then
-            TAG_REF="v${VERSION}"
-          else
-            echo "ERROR: Could not find a release tag for ${VERSION} or v${VERSION}." >&2
+          TAG_REF="${VERSION}"
+          if ! git rev-parse --verify --quiet "refs/tags/${TAG_REF}" >/dev/null; then
+            echo "ERROR: Could not find release tag ${TAG_REF}. JDBC release tags must use the bare version format, for example 2.1.7." >&2
             exit 1
           fi
 

@@ -11,7 +11,6 @@ on:
     branches:
       - stage
     tags:
-      - 'v*'
       - '[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+-rc*'
   workflow_dispatch:

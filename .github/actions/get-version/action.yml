@@ -13,8 +13,8 @@ runs:
         echo "Detected Git tag: '$TAG'"
 
         # Define regex patterns
-        RE_PROD='^v?[0-9]+\.[0-9]+\.[0-9]+$'
-        RE_RC='^v?[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$'
+        RE_PROD='^[0-9]+\.[0-9]+\.[0-9]+$'
+        RE_RC='^[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$'
 
         if [[ "$TAG" =~ $RE_PROD ]]; then
           echo "Production release tag detected: $TAG"

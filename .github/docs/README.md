@@ -16,7 +16,7 @@ push stage or version tag, or manual dispatch
   -> automatic DEV promotion for non-snapshot releases
 
 manual: Promote release bundle to TEST and STAGE
-manual: JFrog UI / org publishing path -> Sonatype / Maven Central
+manual: JFrog UI / org publishing path -> Maven Central
 manual: Draft GitHub release -> versioned JFrog artifacts + signed uber JAR
 ```
 
@@ -29,7 +29,6 @@ manual: Draft GitHub release -> versioned JFrog artifacts + signed uber JAR
 | **Build artifact and create release bundle** (`create-release-bundle.yml`) | Reusable workflow | Version detect -> build/sign/deploy -> JFrog release bundle -> DEV promotion. |
 | **Promote release bundle to TEST and STAGE** | Manual | Promotes a non-snapshot release bundle version to TEST and STAGE. |
 | **Draft GitHub release** | Manual | Downloads versioned JFrog artifacts, builds/signs the uber JAR, and creates a draft GitHub Release. No JFrog writes. |
-| **Approve or Delete Sonatype Deployment** | Manual | Sonatype Central Portal API operations only. |
 | **Snyk scan** | Push/PR | Security scan and SARIF upload. |
 
 Removed/superseded workflows: `push-to-stage.yml`, `build-release.yml`,
@@ -60,10 +59,10 @@ Removed/superseded workflows: `push-to-stage.yml`, `build-release.yml`,
 | `version` | `2.1.7` |
 | `artifact-download-repository` | `database-maven-local` |
 
-The GitHub Release workflow resolves source from the matching Git tag
-(`<version>` or `v<version>`), downloads Maven artifacts from JFrog using the
-version path, builds and signs `uber-aerospike-jdbc-<version>.jar`, and creates a
-draft GitHub Release.
+The GitHub Release workflow resolves source from the matching bare-version Git
+tag (`<version>`, for example `2.1.7`), downloads Maven artifacts from JFrog
+using the version path, builds and signs `uber-aerospike-jdbc-<version>.jar`,
+and creates a draft GitHub Release.
 
 ## Secrets
 
@@ -71,7 +70,6 @@ draft GitHub Release.
 |--------|----------|
 | `GPG_SECRET_KEY`, `GPG_PUBLIC_KEY`, `GPG_PASS` | Release artifact signing and draft GitHub release uber-JAR signing. |
 | `JFROG_OIDC_PROVIDER`, `JFROG_OIDC_AUDIENCE` | JFrog read access in the draft GitHub Release path. |
-| `AEROSPIKE_SA_CICD_USERNAME`, `AEROSPIKE_SA_CICD_PASSWORD` | Sonatype approval/delete operations only. |
 
 ## Variables
 
@@ -80,7 +78,6 @@ draft GitHub Release.
 | `BUILD_CONTAINER_DISTRO_VERSION` | Runner image. |
 | `JFROG_PROJECT`, `JFROG_PLATFORM_URL` | JFrog release-bundle and promotion flows. |
 | `OIDC_PROVIDER_NAME`, `OIDC_AUDIENCE` | JFrog OIDC for release-bundle and promotion flows. |
-| `SONATYPE_DOMAIN_NAME` | Sonatype approval/delete operations. |
 
 ## Composite Actions
 
