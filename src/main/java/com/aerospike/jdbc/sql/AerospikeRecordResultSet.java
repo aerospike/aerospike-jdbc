@@ -5,6 +5,7 @@ import com.aerospike.client.Value;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.sql.type.BasicArray;
+import com.aerospike.jdbc.util.JsonUtils;
 import com.aerospike.jdbc.util.SqlLiterals;
 import com.google.common.io.BaseEncoding;
 
@@ -66,7 +67,11 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     @Override
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
-        String str = getValue(columnLabel).map(Value::toString).orElse(null);
+        String str = getValue(columnLabel)
+                .map(value -> JsonUtils.isCdt(value.getObject())
+                        ? JsonUtils.toJson(value.getObject())
+                        : value.toString())
+                .orElse(null);
         wasNull = str == null;
         return str;
     }
