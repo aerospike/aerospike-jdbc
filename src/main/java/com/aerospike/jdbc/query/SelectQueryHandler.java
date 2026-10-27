@@ -162,7 +162,7 @@ public class SelectQueryHandler extends BaseQueryHandler {
 
     private Pair<ResultSet, Integer> queryResult(RecordSet recordSet, AerospikeQuery query) {
         return new Pair<>(new AerospikeRecordResultSet(recordSet, statement, query.getCatalog(),
-                query.getTable(), filterColumns(query)), -1);
+                query.getTable(), filterColumns(query), config.getDriverPolicy().getMapAsJson()), -1);
     }
 
     private Comparator<AerospikeSecondaryIndex> secondaryIndexComparator() {

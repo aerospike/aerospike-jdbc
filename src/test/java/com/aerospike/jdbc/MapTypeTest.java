@@ -109,6 +109,30 @@ public class MapTypeTest {
         }
     }
 
+    @Test
+    public void testGetObjectReturnsJsonForMapWithMapAsJson() throws SQLException {
+        insertValue(Collections.singletonMap("foo", Collections.singletonMap("bar", 1L)));
+
+        String url = String.format("jdbc:aerospike:%s:%d/%s?mapAsJson=true", HOSTNAME, PORT, NAMESPACE);
+        Connection jsonConnection = DriverManager.getConnection(url);
+        Statement selectStmt = null;
+        ResultSet rs = null;
+        try {
+            String selectQuery = format("SELECT map_col FROM %s WHERE %s='%s'",
+                    TABLE_NAME, PRIMARY_KEY_COLUMN_NAME, TEST_KEY);
+            selectStmt = jsonConnection.createStatement();
+            rs = selectStmt.executeQuery(selectQuery);
+
+            assertTrue(rs.next());
+            assertEquals(rs.getObject("map_col"), "{\"foo\":{\"bar\":1}}");
+            assertEquals(rs.getString("map_col"), "{\"foo\":{\"bar\":1}}");
+        } finally {
+            closeQuietly(rs);
+            closeQuietly(selectStmt);
+            jsonConnection.close();
+        }
+    }
+
     private void insertValue(Object value) throws SQLException {
         PreparedStatement insertStmt = null;
         try {
