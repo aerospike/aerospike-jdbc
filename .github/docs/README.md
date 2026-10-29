@@ -69,7 +69,6 @@ and creates a draft GitHub Release.
 | Secret | Used for |
 |--------|----------|
 | `GPG_SECRET_KEY`, `GPG_PUBLIC_KEY`, `GPG_PASS` | Release artifact signing and draft GitHub release uber-JAR signing. |
-| `JFROG_OIDC_PROVIDER`, `JFROG_OIDC_AUDIENCE` | JFrog read access in the draft GitHub Release path. |
 
 ## Variables
 
@@ -77,7 +76,7 @@ and creates a draft GitHub Release.
 |----------|----------|
 | `BUILD_CONTAINER_DISTRO_VERSION` | Runner image. |
 | `JFROG_PROJECT`, `JFROG_PLATFORM_URL` | JFrog release-bundle and promotion flows. |
-| `OIDC_PROVIDER_NAME`, `OIDC_AUDIENCE` | JFrog OIDC for release-bundle and promotion flows. |
+| `OIDC_PROVIDER_NAME`, `OIDC_AUDIENCE` | JFrog OIDC for PR builds (Aerospike server image pull), draft GitHub release, release-bundle and promotion flows. |
 
 ## Composite Actions
 
