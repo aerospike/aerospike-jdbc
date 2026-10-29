@@ -17,6 +17,7 @@ public class DriverPolicy {
     private final int queryLimit;
     private final boolean showRecordMetadata;
     private final boolean refuseScan;
+    private final boolean batchSkipDuplicateKeys;
 
     public DriverPolicy(Properties properties) {
         recordSetQueueCapacity = parseInt(properties.getProperty("recordSetQueueCapacity"),
@@ -31,6 +32,7 @@ public class DriverPolicy {
         queryLimit = parseInt(properties.getProperty("queryLimit"), 0);
         showRecordMetadata = parseBool(properties.getProperty("showRecordMetadata"), false);
         refuseScan = parseBool(properties.getProperty("refuseScan"), true);
+        batchSkipDuplicateKeys = parseBool(properties.getProperty("batchSkipDuplicateKeys"), false);
     }
 
     public int getRecordSetQueueCapacity() {
@@ -63,6 +65,10 @@ public class DriverPolicy {
 
     public boolean getRefuseScan() {
         return refuseScan;
+    }
+
+    public boolean getBatchSkipDuplicateKeys() {
+        return batchSkipDuplicateKeys;
     }
 
     private int parseInt(String value, int defaultValue) {

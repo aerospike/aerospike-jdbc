@@ -368,10 +368,7 @@ public class PreparedQueriesTest {
 
             // Execute batch
             int[] updateCounts = insertStmt.executeBatch();
-            assertEquals(updateCounts.length, 5);
-            for (int count : updateCounts) {
-                assertTrue(count >= 0, "Update count should be non-negative");
-            }
+            assertEquals(updateCounts, new int[]{1, 1, 1, 1, 1});
 
             // Verify all records were inserted correctly
             String selectQuery = format("SELECT %s, int1, int2, str1 FROM %s WHERE %s LIKE 'batch_key'",
@@ -404,7 +401,7 @@ public class PreparedQueriesTest {
             insertStmt.addBatch();
 
             int[] nullCounts = insertStmt.executeBatch();
-            assertEquals(nullCounts.length, 1);
+            assertEquals(nullCounts, new int[]{1});
 
             // Verify null value was handled
             String nullQuery = format("SELECT str1 FROM %s WHERE %s='batch_key_null'",
@@ -413,14 +410,14 @@ public class PreparedQueriesTest {
             assertTrue(rs.next());
             assertNull(rs.getString("str1"));
 
-            // Test that batch only supports INSERT
+            // Test batch UPDATE
             try (PreparedStatement updateStmt = connection.prepareStatement(
                     format("UPDATE %s SET int1=? WHERE %s=?", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME))) {
                 updateStmt.setInt(1, 9999);
                 updateStmt.setString(2, "batch_key1");
                 updateStmt.addBatch();
 
-                assertThrows(SQLException.class, updateStmt::executeBatch);
+                assertEquals(updateStmt.executeBatch(), new int[]{1});
             }
         } finally {
             closeQuietly(rs);

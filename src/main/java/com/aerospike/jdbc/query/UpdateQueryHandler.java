@@ -7,6 +7,7 @@ import com.aerospike.client.Key;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.ScanPolicy;
 import com.aerospike.client.policy.WritePolicy;
+import com.aerospike.client.query.KeyRecord;
 import com.aerospike.jdbc.async.EventLoopProvider;
 import com.aerospike.jdbc.async.FutureWriteListener;
 import com.aerospike.jdbc.async.RecordSetRecordSequenceListener;
@@ -16,7 +17,6 @@ import com.aerospike.jdbc.model.Pair;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collection;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 public class UpdateQueryHandler extends BaseQueryHandler {
@@ -53,17 +53,21 @@ public class UpdateQueryHandler extends BaseQueryHandler {
             client.scanAll(EventLoopProvider.getEventLoop(), listener, scanPolicy, query.getCatalog(),
                     query.getSetName());
 
-            final AtomicInteger count = new AtomicInteger();
-            listener.getRecordSet().forEach(r -> {
+            int count = 0;
+            AerospikeException firstFailure = null;
+            for (KeyRecord r : listener.getRecordSet()) {
                 try {
                     client.put(writePolicy, r.key, bins);
-                    count.incrementAndGet();
+                    count++;
                 } catch (AerospikeException e) {
-                    logAerospikeException(e);
+                    firstFailure = onScanWriteFailure(e, firstFailure);
                 }
-            });
+            }
+            if (firstFailure != null) {
+                throw firstFailure;
+            }
 
-            return new Pair<>(emptyRecordSet(query), count.get());
+            return new Pair<>(emptyRecordSet(query), count);
         }
     }
 }

@@ -94,6 +94,11 @@ public class DatabaseMetadataTest extends JdbcBaseTest {
     }
 
     @Test
+    public void testSupportsBatchUpdates() throws SQLException {
+        assertTrue(connection.getMetaData().supportsBatchUpdates());
+    }
+
+    @Test
     public void testJDBCVersion() throws SQLException {
         DatabaseMetaData metadata = connection.getMetaData();
 

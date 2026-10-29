@@ -3,6 +3,7 @@ package com.aerospike.jdbc.query;
 import com.aerospike.client.AerospikeException;
 import com.aerospike.client.Bin;
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.jdbc.AerospikeConnection;
 import com.aerospike.jdbc.AerospikeDatabaseMetadata;
@@ -32,6 +33,8 @@ public abstract class BaseQueryHandler implements QueryHandler {
     protected final AerospikeVersion aerospikeVersion;
     protected final AerospikeDatabaseMetadata databaseMetadata;
 
+    protected boolean strict;
+
     protected BaseQueryHandler(IAerospikeClient client, Statement statement) {
         this.client = client;
         this.statement = statement;
@@ -55,19 +58,52 @@ public abstract class BaseQueryHandler implements QueryHandler {
                 emptyList(), emptyList());
     }
 
+    /**
+     * In strict mode, failures that would otherwise only be logged are rethrown.
+     * Used by batch execution to report per-command failures.
+     */
+    public void setStrict(boolean strict) {
+        this.strict = strict;
+    }
+
     protected Integer getUpdateCount(Future<Integer> updateCountFuture) {
         try {
             return updateCountFuture.get();
         } catch (ExecutionException e) {
             logger.log(Level.SEVERE, "Future computation failure", e.getCause());
+            if (strict) {
+                throw e.getCause() instanceof AerospikeException
+                        ? (AerospikeException) e.getCause()
+                        : new IllegalStateException(e.getCause());
+            }
         } catch (InterruptedException e) {
             logger.log(Level.SEVERE, "Thread was interrupted", e);
+            if (strict) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Thread was interrupted", e);
+            }
         }
         return 0;
     }
 
     protected void logAerospikeException(AerospikeException e) {
         logger.log(Level.SEVERE, "Aerospike operation failure", e);
+    }
+
+    /**
+     * Handles a single record write failure during a scan-based UPDATE or DELETE.
+     * Records that disappeared or were filtered out after the scan are not failures.
+     *
+     * @return the first failure to report in strict mode
+     */
+    protected AerospikeException onScanWriteFailure(AerospikeException e, AerospikeException firstFailure) {
+        logAerospikeException(e);
+        if (!strict || firstFailure != null
+                || e.getResultCode() == ResultCode.KEY_NOT_FOUND_ERROR
+                || e.getResultCode() == ResultCode.FILTERED_OUT) {
+            return firstFailure;
+        }
+        return e;
     }
 
     private DriverConfiguration getConfiguration() {
