@@ -4,7 +4,6 @@ import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.QueryType;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -41,10 +40,7 @@ public final class BatchCommand {
     public static BatchCommand of(AerospikeQuery query) {
         List<List<Object>> rows = null;
         if (query.getQueryType() == QueryType.INSERT) {
-            rows = new ArrayList<>();
-            for (Object row : query.getValues()) {
-                rows.add(new ArrayList<>((List<Object>) row));
-            }
+            rows = (List<List<Object>>) (List<?>) query.getValues();
         }
         return new BatchCommand(query, rows);
     }
@@ -53,7 +49,7 @@ public final class BatchCommand {
      * Creates a single-row INSERT command that shares the parsed {@code template}.
      */
     public static BatchCommand insertRow(AerospikeQuery template, List<Object> row) {
-        return new BatchCommand(template, Collections.singletonList(new ArrayList<>(row)));
+        return new BatchCommand(template, Collections.singletonList(row));
     }
 
     public static void validate(AerospikeQuery query) throws SQLException {
@@ -72,7 +68,7 @@ public final class BatchCommand {
     }
 
     /**
-     * INSERT rows; {@code null} for other statement types.
+     * INSERT rows; {@code null} for other statement types. The rows are not copied and must not be modified.
      */
     public List<List<Object>> getRows() {
         return rows;

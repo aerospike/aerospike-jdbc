@@ -110,6 +110,7 @@ public class BatchPerformer {
                 List<String> binNames = InsertQueryHandler.getBinNames(query);
                 BatchWritePolicy createOnlyPolicy = policyBuilder.buildBatchCreateOnlyPolicy();
                 for (List<Object> row : command.getRows()) {
+                    // toBatchWrite removes the primary key value from the list it is given.
                     records.add(InsertQueryHandler.toBatchWrite(query, binNames, new ArrayList<>(row),
                             createOnlyPolicy));
                 }
