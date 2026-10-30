@@ -1,7 +1,10 @@
 package com.aerospike.jdbc.util;
 
+import com.aerospike.client.Value;
 import org.testng.annotations.Test;
 
+import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -9,19 +12,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
 public class JsonUtilsTest {
-
-    @Test
-    public void testIsCdt() {
-        assertTrue(JsonUtils.isCdt(Collections.emptyMap()));
-        assertTrue(JsonUtils.isCdt(Collections.emptyList()));
-        assertFalse(JsonUtils.isCdt("str"));
-        assertFalse(JsonUtils.isCdt(1L));
-        assertFalse(JsonUtils.isCdt(null));
-    }
 
     @Test
     public void testNestedMapToJson() {
@@ -41,13 +33,48 @@ public class JsonUtilsTest {
     }
 
     @Test
-    public void testNonStringKeysToJson() {
-        Map<Object, Object> map = new TreeMap<>();
-        map.put(1L, "one");
-        map.put(2L, "two");
-        assertEquals(JsonUtils.toJson(map), "{\"1\":\"one\",\"2\":\"two\"}");
+    public void testGeoJsonValueToJson() {
+        Map<String, Object> map = Collections.singletonMap("loc",
+                Value.getAsGeoJSON("{\"type\": \"Point\", \"coordinates\": [-122.0, 37.5]}"));
+        assertEquals(JsonUtils.toJson(map),
+                "{\"loc\":{\"type\":\"Point\",\"coordinates\":[-122.0,37.5]}}");
+    }
 
+    @Test
+    public void testHllValueToJson() {
+        Map<String, Object> map = Collections.singletonMap("hll", Value.getAsHLL(new byte[]{1, 2, 3}));
+        assertEquals(JsonUtils.toJson(map), "{\"hll\":\"AQID\"}");
+    }
+
+    @Test
+    public void testNonStringKeysToJson() {
+        Map<Object, Object> longKeyMap = new TreeMap<>();
+        longKeyMap.put(1L, "one");
+        longKeyMap.put(2L, "two");
+        assertEquals(JsonUtils.toJson(longKeyMap), "{\"1\":\"one\",\"2\":\"two\"}");
+
+        Map<Object, Object> doubleKeyMap = Collections.singletonMap(1.5, "x");
+        assertEquals(JsonUtils.toJson(doubleKeyMap), "{\"1.5\":\"x\"}");
+    }
+
+    @Test
+    public void testBlobKeysToJson() {
+        // unordered maps return blob keys as byte[]
         Map<Object, Object> blobKeyMap = Collections.singletonMap(new byte[]{1, 2, 3}, 1L);
         assertEquals(JsonUtils.toJson(blobKeyMap), "{\"AQID\":1}");
+
+        // key-ordered maps return blob keys wrapped in ByteBuffer
+        Map<Object, Object> wrappedKeyMap = new TreeMap<>();
+        ByteBuffer key = ByteBuffer.wrap(new byte[]{1, 2, 3});
+        wrappedKeyMap.put(key, 1L);
+        assertEquals(JsonUtils.toJson(wrappedKeyMap), "{\"AQID\":1}");
+        assertEquals(key.remaining(), 3); // the key buffer is not consumed
+    }
+
+    @Test
+    public void testMapEntryListToJson() {
+        // index/rank range results are returned as a list of entries
+        Object entries = Collections.singletonList(new AbstractMap.SimpleEntry<>("k", 1L));
+        assertEquals(JsonUtils.toJson(entries), "[{\"k\":1}]");
     }
 }

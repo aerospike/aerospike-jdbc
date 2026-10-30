@@ -52,7 +52,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
             String catalog,
             String table,
             List<DataColumn> columns, // columns list
-            boolean mapAsJson // return map bins from getObject as JSON strings
+            boolean mapAsJson // return map bins from getObject and getString as JSON strings
     ) {
         super(statement, catalog, table, columns);
         this.recordSet = recordSet;
@@ -85,7 +85,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
         String str = getValue(columnLabel)
-                .map(value -> JsonUtils.isCdt(value.getObject())
+                .map(value -> mapAsJson && value.getObject() instanceof Map<?, ?>
                         ? JsonUtils.toJson(value.getObject())
                         : value.toString())
                 .orElse(null);

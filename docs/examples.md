@@ -17,6 +17,7 @@ JDBC driver.
 - [Prepared Statements](#prepared-statements)
 - [Transactions](#transactions)
 - [Array Columns](#array-columns)
+- [Map Columns](#map-columns)
 
 ## Concepts
 
@@ -403,6 +404,57 @@ Remove the array column by setting it to `NULL`:
 ```sql
 UPDATE port_list SET tags=NULL WHERE __key="https";
 ```
+
+## Map Columns
+Aerospike Map bins are returned as `java.util.Map` objects by `ResultSet.getObject()`.
+Map values can be written with a `PreparedStatement`:
+
+```java
+Map<String, Object> ports = new HashMap<>();
+ports.put("tcp", Collections.singletonMap("default", 3000L));
+ports.put("tags", Arrays.asList("db", "nosql"));
+
+PreparedStatement ps = connection.prepareStatement(
+    "INSERT INTO port_list (__key, port, description, ports) VALUES (?, ?, ?, ?)");
+ps.setString(1, "aerospike");
+ps.setInt(2, 3000);
+ps.setString(3, "Aerospike Database");
+ps.setObject(4, ports);
+ps.executeUpdate();
+```
+
+By default, `getObject()` returns the `Map` and `getString()` returns its Java `toString()` representation,
+which is also what most SQL tools display:
+
+```sql
+SELECT ports FROM port_list WHERE __key="aerospike";
+```
+
+| ports                                   |
+|-----------------------------------------|
+| {tcp={default=3000}, tags=[db, nosql]}  |
+
+Set `mapAsJson=true` in the JDBC URL to return map bins as JSON strings from both `getObject()` and `getString()`:
+
+```
+jdbc:aerospike:localhost:3000/test?mapAsJson=true
+```
+
+| ports                                           |
+|-------------------------------------------------|
+| {"tcp":{"default":3000},"tags":["db","nosql"]} |
+
+When `mapAsJson` is enabled, the map content is converted to JSON as follows:
+
+* JSON object keys are always strings, so **map keys that aren't strings are converted to strings**:
+  integer and double keys to their decimal representation (`{1=one}` becomes `{"1":"one"}`),
+  blob (`byte[]`) keys to Base64-encoded strings. Keys that differ only by type (for example, the integer `1`
+  and the string `"1"`) produce duplicate JSON keys.
+* Blob and HyperLogLog values are converted to Base64-encoded strings.
+* GeoJSON values are embedded as JSON objects.
+* Nested lists and maps are converted recursively.
+
+List bins are not affected by this option; see [Array Columns](#array-columns).
 
 ## DELETE
 
