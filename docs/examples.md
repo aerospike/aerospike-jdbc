@@ -17,6 +17,7 @@ JDBC driver.
 - [Prepared Statements](#prepared-statements)
 - [Transactions](#transactions)
 - [Array Columns](#array-columns)
+- [Map Columns](#map-columns)
 
 ## Concepts
 
@@ -403,6 +404,71 @@ Remove the array column by setting it to `NULL`:
 ```sql
 UPDATE port_list SET tags=NULL WHERE __key="https";
 ```
+
+## Map Columns
+Aerospike Map bins are returned as `java.util.Map` objects by `ResultSet.getObject()`.
+Map values can be written with a `PreparedStatement`:
+
+```java
+Map<String, Object> ports = new HashMap<>();
+ports.put("tcp", Collections.singletonMap("default", 3000L));
+ports.put("tags", Arrays.asList("db", "nosql"));
+
+PreparedStatement ps = connection.prepareStatement(
+    "INSERT INTO port_list (__key, port, description, ports) VALUES (?, ?, ?, ?)");
+ps.setString(1, "aerospike");
+ps.setInt(2, 3000);
+ps.setString(3, "Aerospike Database");
+ps.setObject(4, ports);
+ps.executeUpdate();
+```
+
+By default, `getObject()` returns the `Map` and `getString()` returns its Java `toString()` representation,
+which is also what most SQL tools display:
+
+```sql
+SELECT ports FROM port_list WHERE __key="aerospike";
+```
+
+| ports                                  |
+|----------------------------------------|
+| {tcp={default=3000}, tags=[db, nosql]} |
+
+Set `mapAsJson=true` in the JDBC URL to return map bins as JSON strings from both `getObject()` and `getString()`:
+
+```
+jdbc:aerospike:localhost:3000/test?mapAsJson=true
+```
+
+| ports                                          |
+|------------------------------------------------|
+| {"tcp":{"default":3000},"tags":["db","nosql"]} |
+
+In both modes, key-ordered maps are returned sorted by key. Unordered maps have no guaranteed key order.
+
+When `mapAsJson` is enabled, the map content is converted to JSON as follows:
+
+* JSON object keys are always strings, so **map keys that aren't strings are converted to strings**:
+  integer and double keys to their Java string representation (`{1=one}` becomes `{"1":"one"}`,
+  a `1.5` key becomes `"1.5"` and a `1e10` key becomes `"1.0E10"`),
+  blob (`byte[]`) keys to Base64-encoded strings. Keys that differ only by type (for example, the integer `1`
+  and the string `"1"`) produce duplicate JSON keys.
+* Blob and HyperLogLog values are converted to Base64-encoded strings.
+* GeoJSON values are embedded as JSON objects with their original number formatting.
+  GeoJSON text that isn't valid JSON is embedded as a JSON string.
+* `NaN` and infinite doubles are converted to the strings `"NaN"`, `"Infinity"` and `"-Infinity"`.
+* Integers are written exactly. JSON consumers that parse numbers as doubles (for example, JavaScript)
+  may lose precision for values above 2<sup>53</sup>.
+* Nested lists and maps are converted recursively.
+
+Other effects of `mapAsJson`:
+
+* `getObject()` returns a `java.lang.String` for map columns, while `ResultSetMetaData.getColumnType()`
+  still reports `Types.OTHER`. Do not enable the option if your code casts the result of `getObject()` to `Map`.
+* The option affects reads only. Writing a JSON string (for example, by editing the cell in a SQL tool)
+  stores a string bin, not a map.
+
+List bins are not affected by this option; see [Array Columns](#array-columns).
 
 ## DELETE
 

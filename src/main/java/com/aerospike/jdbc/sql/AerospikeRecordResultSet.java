@@ -5,6 +5,7 @@ import com.aerospike.client.Value;
 import com.aerospike.jdbc.async.RecordSet;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.sql.type.BasicArray;
+import com.aerospike.jdbc.util.JsonUtils;
 import com.aerospike.jdbc.util.SqlLiterals;
 import com.google.common.io.BaseEncoding;
 
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +34,7 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
 
     private final RecordSet recordSet;
     private final Set<String> columnNames;
+    private final boolean mapAsJson;
 
     public AerospikeRecordResultSet(
             RecordSet recordSet,
@@ -40,9 +43,21 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
             String table,
             List<DataColumn> columns // columns list
     ) {
+        this(recordSet, statement, catalog, table, columns, false);
+    }
+
+    public AerospikeRecordResultSet(
+            RecordSet recordSet,
+            Statement statement,
+            String catalog,
+            String table,
+            List<DataColumn> columns, // columns list
+            boolean mapAsJson // return map bins from getObject and getString as JSON strings
+    ) {
         super(statement, catalog, table, columns);
         this.recordSet = recordSet;
         this.columnNames = columns.stream().map(DataColumn::getName).collect(Collectors.toSet());
+        this.mapAsJson = mapAsJson;
     }
 
     @Override
@@ -60,13 +75,20 @@ public class AerospikeRecordResultSet extends BaseResultSet<Record> {
         logger.fine(() -> "getObject: " + columnLabel);
         Object obj = getValue(columnLabel).map(Value::getObject).orElse(null);
         wasNull = obj == null;
+        if (mapAsJson && obj instanceof Map<?, ?>) {
+            return JsonUtils.toJson(obj);
+        }
         return obj;
     }
 
     @Override
     public String getString(String columnLabel) {
         logger.fine(() -> "getString: " + columnLabel);
-        String str = getValue(columnLabel).map(Value::toString).orElse(null);
+        String str = getValue(columnLabel)
+                .map(value -> mapAsJson && value.getObject() instanceof Map<?, ?>
+                        ? JsonUtils.toJson(value.getObject())
+                        : value.toString())
+                .orElse(null);
         wasNull = str == null;
         return str;
     }

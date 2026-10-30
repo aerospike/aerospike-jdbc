@@ -44,3 +44,4 @@ Consider setting a custom value if really necessary.
 | refuseScan              | `true`  | Fail a query with error code 201 if no usable secondary index is found |
 | queryLimit              | 0       | An implicit `LIMIT` to prevent queries from running unbounded          |
 | batchSkipDuplicateKeys  | `false` | Report a batch INSERT row skipped on an existing key as update count `0` instead of failing it |
+| mapAsJson               | `false` | Return map bins as JSON strings, see [examples](examples.md)           |
