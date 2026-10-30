@@ -41,6 +41,53 @@ public class JsonUtilsTest {
     }
 
     @Test
+    public void testGeoJsonNumberTextIsPreserved() {
+        Map<String, Object> map = Collections.singletonMap("loc",
+                Value.getAsGeoJSON("{\"type\": \"Point\", \"coordinates\": [1e10, 37.123456789012345]}"));
+        assertEquals(JsonUtils.toJson(map),
+                "{\"loc\":{\"type\":\"Point\",\"coordinates\":[1e10,37.123456789012345]}}");
+    }
+
+    @Test
+    public void testInvalidGeoJsonFallsBackToString() {
+        assertEquals(JsonUtils.toJson(Collections.singletonMap("loc",
+                        Value.getAsGeoJSON("{\"type\":\"Point\"} x"))),
+                "{\"loc\":\"{\\\"type\\\":\\\"Point\\\"} x\"}");
+        assertEquals(JsonUtils.toJson(Collections.singletonMap("loc", Value.getAsGeoJSON("{} {}"))),
+                "{\"loc\":\"{} {}\"}");
+        assertEquals(JsonUtils.toJson(Collections.singletonMap("loc", Value.getAsGeoJSON("not json"))),
+                "{\"loc\":\"not json\"}");
+    }
+
+    @Test
+    public void testGeoJsonValuesInListToJson() {
+        Map<String, Object> map = Collections.singletonMap("a", Arrays.asList(
+                Value.getAsGeoJSON("{\"type\":\"Point\",\"coordinates\":[1,2]}"),
+                Value.getAsGeoJSON("{\"type\":\"Point\",\"coordinates\":[3,4]}")));
+        assertEquals(JsonUtils.toJson(map),
+                "{\"a\":[{\"type\":\"Point\",\"coordinates\":[1,2]},{\"type\":\"Point\",\"coordinates\":[3,4]}]}");
+    }
+
+    @Test
+    public void testGeoJsonStringPropertiesToJson() {
+        Map<String, Object> map = Collections.singletonMap("loc", Value.getAsGeoJSON(
+                "{\"type\":\"Feature\",\"properties\":{\"name\":\"Z\u00fcrich \\\"HQ\\\" \\u00e9\\n\"}}"));
+        assertEquals(JsonUtils.toJson(map),
+                "{\"loc\":{\"type\":\"Feature\",\"properties\":{\"name\":\"Z\u00fcrich \\\"HQ\\\" \u00e9\\n\"}}}");
+    }
+
+    @Test
+    public void testSpecialNumbersToJson() {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("doubles", Arrays.asList(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY));
+        map.put("max", Long.MAX_VALUE);
+        map.put("min", Long.MIN_VALUE);
+        assertEquals(JsonUtils.toJson(map),
+                "{\"doubles\":[\"NaN\",\"Infinity\",\"-Infinity\"],"
+                        + "\"max\":9223372036854775807,\"min\":-9223372036854775808}");
+    }
+
+    @Test
     public void testHllValueToJson() {
         Map<String, Object> map = Collections.singletonMap("hll", Value.getAsHLL(new byte[]{1, 2, 3}));
         assertEquals(JsonUtils.toJson(map), "{\"hll\":\"AQID\"}");

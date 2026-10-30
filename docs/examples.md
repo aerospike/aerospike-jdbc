@@ -430,9 +430,9 @@ which is also what most SQL tools display:
 SELECT ports FROM port_list WHERE __key="aerospike";
 ```
 
-| ports                                   |
-|-----------------------------------------|
-| {tcp={default=3000}, tags=[db, nosql]}  |
+| ports                                  |
+|----------------------------------------|
+| {tcp={default=3000}, tags=[db, nosql]} |
 
 Set `mapAsJson=true` in the JDBC URL to return map bins as JSON strings from both `getObject()` and `getString()`:
 
@@ -440,9 +440,11 @@ Set `mapAsJson=true` in the JDBC URL to return map bins as JSON strings from bot
 jdbc:aerospike:localhost:3000/test?mapAsJson=true
 ```
 
-| ports                                           |
-|-------------------------------------------------|
+| ports                                          |
+|------------------------------------------------|
 | {"tcp":{"default":3000},"tags":["db","nosql"]} |
+
+In both modes, the key order follows the order of the map on the server. Unordered maps have no guaranteed key order.
 
 When `mapAsJson` is enabled, the map content is converted to JSON as follows:
 
@@ -451,8 +453,18 @@ When `mapAsJson` is enabled, the map content is converted to JSON as follows:
   blob (`byte[]`) keys to Base64-encoded strings. Keys that differ only by type (for example, the integer `1`
   and the string `"1"`) produce duplicate JSON keys.
 * Blob and HyperLogLog values are converted to Base64-encoded strings.
-* GeoJSON values are embedded as JSON objects.
+* GeoJSON values are embedded as JSON objects with their original number formatting.
+* `NaN` and infinite doubles are converted to the strings `"NaN"`, `"Infinity"` and `"-Infinity"`.
+* Integers are written exactly. JSON consumers that parse numbers as doubles (for example, JavaScript)
+  may lose precision for values above 2<sup>53</sup>.
 * Nested lists and maps are converted recursively.
+
+Other effects of `mapAsJson`:
+
+* `getObject()` returns a `java.lang.String` for map columns, while `ResultSetMetaData.getColumnType()`
+  still reports `Types.OTHER`. Do not enable the option if your code casts the result of `getObject()` to `Map`.
+* The option affects reads only. Writing a JSON string (for example, by editing the cell in a SQL tool)
+  stores a string bin, not a map.
 
 List bins are not affected by this option; see [Array Columns](#array-columns).
 

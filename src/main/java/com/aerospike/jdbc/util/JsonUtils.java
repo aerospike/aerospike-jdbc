@@ -2,13 +2,16 @@ package com.aerospike.jdbc.util;
 
 import com.aerospike.client.Value;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.logging.Logger;
@@ -19,7 +22,7 @@ import java.util.logging.Logger;
  * Conversions:
  * <ul>
  *     <li>blob values and HLL values are Base64-encoded strings</li>
- *     <li>GeoJSON values are embedded as JSON objects</li>
+ *     <li>GeoJSON values are embedded as JSON objects, keeping their original number text</li>
  *     <li>non-string map keys are converted to strings: integers and doubles to their decimal
  *     representation, blobs to Base64</li>
  * </ul>
@@ -36,10 +39,12 @@ public final class JsonUtils {
                     @Override
                     public void serialize(Value.GeoJSONValue value, JsonGenerator gen,
                                           SerializerProvider serializers) throws IOException {
-                        try {
-                            gen.writeTree(mapper.readTree(value.toString()));
-                        } catch (JsonProcessingException e) {
-                            gen.writeString(value.toString());
+                        String text = value.toString();
+                        String json = compactJson(text);
+                        if (json != null) {
+                            gen.writeRawValue(json);
+                        } else {
+                            gen.writeString(text);
                         }
                     }
                 })
@@ -82,6 +87,42 @@ public final class JsonUtils {
             logger.warning(() -> "Failed to serialize value to JSON: " + e.getMessage());
             return value.toString();
         }
+    }
+
+    /**
+     * Validates a single JSON value and removes insignificant whitespace, keeping the original
+     * number text (a tree round trip would rewrite {@code 1e10} as {@code 1.0E10} and could round decimals).
+     *
+     * @return the compact JSON, or {@code null} if the text is not exactly one valid JSON value
+     */
+    private static String compactJson(String text) {
+        StringWriter out = new StringWriter();
+        try (JsonParser parser = mapper.getFactory().createParser(text);
+             JsonGenerator tmp = mapper.getFactory().createGenerator(out)) {
+            JsonToken token = parser.nextToken();
+            if (token == null) {
+                return null;
+            }
+            int depth = 0;
+            do {
+                if (token == JsonToken.VALUE_NUMBER_INT || token == JsonToken.VALUE_NUMBER_FLOAT) {
+                    tmp.writeNumber(parser.getText());
+                } else {
+                    tmp.copyCurrentEvent(parser);
+                }
+                if (token.isStructStart()) {
+                    depth++;
+                } else if (token.isStructEnd()) {
+                    depth--;
+                }
+            } while (depth > 0 && (token = parser.nextToken()) != null);
+            if (depth != 0 || parser.nextToken() != null) {
+                return null;
+            }
+        } catch (IOException e) {
+            return null;
+        }
+        return out.toString();
     }
 
     private static byte[] toBytes(ByteBuffer buffer) {
