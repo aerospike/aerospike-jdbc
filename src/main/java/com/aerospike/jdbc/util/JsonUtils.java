@@ -23,8 +23,8 @@ import java.util.logging.Logger;
  * <ul>
  *     <li>blob values and HLL values are Base64-encoded strings</li>
  *     <li>GeoJSON values are embedded as JSON objects, keeping their original number text</li>
- *     <li>non-string map keys are converted to strings: integers and doubles to their decimal
- *     representation, blobs to Base64</li>
+ *     <li>non-string map keys are converted to strings: integers and doubles to their Java
+ *     {@code toString()} representation, blobs to Base64</li>
  * </ul>
  */
 public final class JsonUtils {

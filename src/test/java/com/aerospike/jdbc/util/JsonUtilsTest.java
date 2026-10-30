@@ -55,6 +55,8 @@ public class JsonUtilsTest {
                 "{\"loc\":\"{\\\"type\\\":\\\"Point\\\"} x\"}");
         assertEquals(JsonUtils.toJson(Collections.singletonMap("loc", Value.getAsGeoJSON("{} {}"))),
                 "{\"loc\":\"{} {}\"}");
+        assertEquals(JsonUtils.toJson(Collections.singletonMap("loc", Value.getAsGeoJSON("[1]]"))),
+                "{\"loc\":\"[1]]\"}");
         assertEquals(JsonUtils.toJson(Collections.singletonMap("loc", Value.getAsGeoJSON("not json"))),
                 "{\"loc\":\"not json\"}");
     }
@@ -102,6 +104,9 @@ public class JsonUtilsTest {
 
         Map<Object, Object> doubleKeyMap = Collections.singletonMap(1.5, "x");
         assertEquals(JsonUtils.toJson(doubleKeyMap), "{\"1.5\":\"x\"}");
+
+        Map<Object, Object> largeDoubleKeyMap = Collections.singletonMap(1e10, "y");
+        assertEquals(JsonUtils.toJson(largeDoubleKeyMap), "{\"1.0E10\":\"y\"}");
     }
 
     @Test

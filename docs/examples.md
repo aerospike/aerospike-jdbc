@@ -444,16 +444,18 @@ jdbc:aerospike:localhost:3000/test?mapAsJson=true
 |------------------------------------------------|
 | {"tcp":{"default":3000},"tags":["db","nosql"]} |
 
-In both modes, the key order follows the order of the map on the server. Unordered maps have no guaranteed key order.
+In both modes, key-ordered maps are returned sorted by key. Unordered maps have no guaranteed key order.
 
 When `mapAsJson` is enabled, the map content is converted to JSON as follows:
 
 * JSON object keys are always strings, so **map keys that aren't strings are converted to strings**:
-  integer and double keys to their decimal representation (`{1=one}` becomes `{"1":"one"}`),
+  integer and double keys to their Java string representation (`{1=one}` becomes `{"1":"one"}`,
+  a `1.5` key becomes `"1.5"` and a `1e10` key becomes `"1.0E10"`),
   blob (`byte[]`) keys to Base64-encoded strings. Keys that differ only by type (for example, the integer `1`
   and the string `"1"`) produce duplicate JSON keys.
 * Blob and HyperLogLog values are converted to Base64-encoded strings.
 * GeoJSON values are embedded as JSON objects with their original number formatting.
+  GeoJSON text that isn't valid JSON is embedded as a JSON string.
 * `NaN` and infinite doubles are converted to the strings `"NaN"`, `"Infinity"` and `"-Infinity"`.
 * Integers are written exactly. JSON consumers that parse numbers as doubles (for example, JavaScript)
   may lose precision for values above 2<sup>53</sup>.
