@@ -523,7 +523,7 @@ DROP INDEX port_idx ON port_list;
 
 ## Prepared Statements
 The JDBC driver supports [PreparedStatement](https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html)
-with `?` parameter placeholders. Batch INSERT operations are also supported
+with `?` parameter placeholders. Batch INSERT, UPDATE and DELETE operations are also supported
 using `addBatch()` and `executeBatch()`.
 
 Parameterized INSERT:
@@ -567,8 +567,52 @@ ps.setInt(2, 25);
 ps.setString(3, "Simple Mail Transfer Protocol");
 ps.addBatch();
 
-int[] counts = ps.executeBatch(); // counts.length == 3
+int[] counts = ps.executeBatch(); // {1, 1, 1}
 ```
+
+Batch UPDATE by primary key:
+
+```java
+PreparedStatement ps = connection.prepareStatement(
+    "UPDATE port_list SET description = ? WHERE __key = ?");
+
+ps.setString(1, "SSH");
+ps.setString(2, "ssh");
+ps.addBatch();
+
+ps.setString(1, "Unknown");
+ps.setString(2, "no-such-port");
+ps.addBatch();
+
+int[] counts = ps.executeBatch(); // {1, 0}: the second key does not exist
+```
+
+Batch of SQL strings using `Statement.addBatch(String)`:
+
+```java
+Statement stmt = connection.createStatement();
+stmt.addBatch("INSERT INTO port_list (__key, port) VALUES ('http', 80)");
+stmt.addBatch("UPDATE port_list SET description = 'Hypertext' WHERE __key = 'http'");
+stmt.addBatch("DELETE FROM port_list WHERE __key = 'telnet'");
+int[] counts = stmt.executeBatch(); // {1, 1, 1}
+```
+
+Batch execution semantics:
+* INSERT statements, and UPDATE/DELETE statements filtered by `__key`, are sent to the
+  database as Aerospike batch requests. Other statements (UPDATE/DELETE without a primary key
+  filter, TRUNCATE TABLE, CREATE INDEX, DROP INDEX) are executed one by one in order.
+  SELECT and EXPLAIN statements cannot be added to a batch.
+* Commands are applied in order; commands that touch the same key are never reordered.
+* The update count of each command is the number of affected records. An UPDATE or DELETE
+  of a key that does not exist reports `0`.
+* An INSERT of an existing key fails, as INSERT creates new records only. Set
+  `batchSkipDuplicateKeys=true` to report such rows as `0` instead.
+* The batch continues after a failed command. If any command failed, `executeBatch()` throws a
+  `BatchUpdateException`. Its `getUpdateCounts()` contains a count for every command, with
+  `Statement.EXECUTE_FAILED` for the failed ones, and `getErrorCode()` returns the Aerospike
+  result code. Writes reported as in doubt in the exception message may have been applied.
+* `executeLargeBatch()` is also supported, with the same semantics; on failure, use
+  `BatchUpdateException.getLargeUpdateCounts()`.
 
 ## Transactions
 **Note:** Wrapping multiple commands in a transaction requires Aerospike Database version 8.0+. Requires the namespace to be configured up with [`strong-consistency true`](https://aerospike.com/docs/server/operations/configure/consistency).

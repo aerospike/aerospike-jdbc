@@ -70,6 +70,7 @@ Packages documentation can be found [here](https://javadoc.io/doc/com.aerospike/
 * TRUNCATE TABLE
 * CREATE INDEX and DROP INDEX
 * Prepared Statements
+* Batch updates (`addBatch()`/`executeBatch()`)
 * Transactions
 
 See [examples](docs/examples.md) of SQL.

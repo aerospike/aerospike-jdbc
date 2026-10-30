@@ -17,6 +17,7 @@ public class DriverPolicy {
     private final int queryLimit;
     private final boolean showRecordMetadata;
     private final boolean refuseScan;
+    private final boolean batchSkipDuplicateKeys;
     private final boolean mapAsJson;
 
     public DriverPolicy(Properties properties) {
@@ -32,6 +33,7 @@ public class DriverPolicy {
         queryLimit = parseInt(properties.getProperty("queryLimit"), 0);
         showRecordMetadata = parseBool(properties.getProperty("showRecordMetadata"), false);
         refuseScan = parseBool(properties.getProperty("refuseScan"), true);
+        batchSkipDuplicateKeys = parseBool(properties.getProperty("batchSkipDuplicateKeys"), false);
         mapAsJson = parseBool(properties.getProperty("mapAsJson"), false);
     }
 
@@ -65,6 +67,10 @@ public class DriverPolicy {
 
     public boolean getRefuseScan() {
         return refuseScan;
+    }
+
+    public boolean getBatchSkipDuplicateKeys() {
+        return batchSkipDuplicateKeys;
     }
 
     public boolean getMapAsJson() {

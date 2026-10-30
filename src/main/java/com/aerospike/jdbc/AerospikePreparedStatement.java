@@ -5,6 +5,7 @@ import com.aerospike.client.Value;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.DataColumn;
 import com.aerospike.jdbc.model.QueryType;
+import com.aerospike.jdbc.query.BatchCommand;
 import com.aerospike.jdbc.sql.AerospikeResultSetMetaData;
 import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
@@ -37,7 +38,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
 
     private final String sqlStatement;
     private final Object[] sqlParameters;
-    private final List<Object> batchParameters = new ArrayList<>();
+    private final List<List<Object>> batchParameters = new ArrayList<>();
 
     public AerospikePreparedStatement(IAerospikeClient client, AerospikeConnection connection,
                                       String sqlStatement) throws SQLException {
@@ -222,6 +223,11 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     @Override
+    public void addBatch(String sql) throws SQLException {
+        throw new SQLException("addBatch(String) cannot be called on a PreparedStatement");
+    }
+
+    @Override
     public int[] executeBatch() throws SQLException {
         checkClosed();
 
@@ -229,25 +235,42 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
             return new int[0];
         }
 
-        int batchSize = batchParameters.size();
-        logger.info(() -> format("Executing batch with %d entries", batchSize));
-        AerospikeQuery query = parseQuery(sqlStatement, batchParameters);
-        QueryType queryType = query.getQueryType();
-
-        if (queryType != QueryType.INSERT) {
-            throw new SQLException(format("Batch execution is only supported for INSERT statements, got: %s",
-                    queryType));
-        }
-
         try {
-            runQuery(query);
-
-            int[] updateCounts = new int[batchSize];
-            Arrays.fill(updateCounts, 1);
-            return updateCounts;
+            int batchSize = batchParameters.size();
+            logger.info(() -> format("Executing batch with %d entries", batchSize));
+            return runBatch(buildBatchCommands());
         } finally {
             batchParameters.clear();
         }
+    }
+
+    private List<BatchCommand> buildBatchCommands() throws SQLException {
+        List<BatchCommand> commands = new ArrayList<>(batchParameters.size());
+        AerospikeQuery first = parseQuery(sqlStatement, batchParameters.get(0));
+        BatchCommand.validate(first);
+
+        if (isSingleRowParametersInsert(first)) {
+            // The statement structure is the same for every entry: parse once and bind entries as rows.
+            for (List<Object> entry : batchParameters) {
+                commands.add(BatchCommand.insertRow(first, entry));
+            }
+            return commands;
+        }
+
+        commands.add(BatchCommand.of(first));
+        for (List<Object> entry : batchParameters.subList(1, batchParameters.size())) {
+            commands.add(BatchCommand.of(parseQuery(sqlStatement, entry)));
+        }
+        return commands;
+    }
+
+    /**
+     * Whether the statement is an INSERT of a single row whose values are all parameters.
+     */
+    private boolean isSingleRowParametersInsert(AerospikeQuery query) {
+        return query.getQueryType() == QueryType.INSERT
+                && query.getValues().size() == 1
+                && query.getColumns().size() == sqlParameters.length;
     }
 
     @Override

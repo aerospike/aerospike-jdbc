@@ -72,17 +72,7 @@ public class InsertQueryHandler extends BaseQueryHandler {
 
         for (Object aerospikeRecord : query.getValues()) {
             for (List<Object> values : toObjectList(aerospikeRecord)) {
-                Value recordKey = extractInsertKey(query, values);
-                Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
-                batchRecords.add(
-                        new BatchWrite(
-                                batchWritePolicy,
-                                key,
-                                Arrays.stream(buildBinArray(binNames, values))
-                                        .map(Operation::put)
-                                        .toArray(Operation[]::new)
-                        )
-                );
+                batchRecords.add(toBatchWrite(query, binNames, values, batchWritePolicy));
             }
         }
         BatchPolicy batchPolicy = policyBuilder.buildBatchPolicyDefault(query);
@@ -97,6 +87,27 @@ public class InsertQueryHandler extends BaseQueryHandler {
     }
 
     protected Bin[] buildBinArray(List<String> binNames, List<Object> values) {
+        return toBins(binNames, values);
+    }
+
+    /**
+     * Builds a {@link BatchWrite} for a single INSERT row.
+     * The primary key value is removed from {@code values}.
+     */
+    static BatchWrite toBatchWrite(AerospikeQuery query, List<String> binNames, List<Object> values,
+                                   BatchWritePolicy batchWritePolicy) {
+        Value recordKey = extractInsertKey(query, values);
+        Key key = new Key(query.getCatalog(), query.getSetName(), recordKey);
+        return new BatchWrite(
+                batchWritePolicy,
+                key,
+                Arrays.stream(toBins(binNames, values))
+                        .map(Operation::put)
+                        .toArray(Operation[]::new)
+        );
+    }
+
+    private static Bin[] toBins(List<String> binNames, List<Object> values) {
         Bin[] bins = new Bin[binNames.size()];
         for (int i = 0; i < binNames.size(); i++) {
             bins[i] = new Bin(binNames.get(i), Value.get(values.get(i)));
@@ -104,13 +115,13 @@ public class InsertQueryHandler extends BaseQueryHandler {
         return bins;
     }
 
-    private List<String> getBinNames(AerospikeQuery query) {
+    static List<String> getBinNames(AerospikeQuery query) {
         return query.getColumns().stream()
                 .filter(c -> !c.equals(PRIMARY_KEY_COLUMN_NAME))
                 .collect(Collectors.toList());
     }
 
-    private Value extractInsertKey(AerospikeQuery query, List<Object> values) {
+    private static Value extractInsertKey(AerospikeQuery query, List<Object> values) {
         List<String> columns = query.getColumns();
         for (int i = 0; i < columns.size(); i++) {
             if (columns.get(i).equals(PRIMARY_KEY_COLUMN_NAME)) {

@@ -6,7 +6,9 @@ import com.aerospike.jdbc.model.DriverPolicy;
 import com.aerospike.jdbc.model.Pair;
 
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 
 import static com.aerospike.jdbc.util.Constants.UNSUPPORTED_QUERY_TYPE_MESSAGE;
 
@@ -21,39 +23,61 @@ public final class QueryPerformer {
             AerospikeQuery query,
             DriverPolicy driverPolicy
     ) {
-        QueryHandler queryHandler;
+        return createHandler(client, statement, query, driverPolicy).execute(query);
+    }
+
+    /**
+     * Executes a query, rethrowing failures that {@link #executeQuery} only logs.
+     */
+    public static Pair<ResultSet, Integer> executeQueryStrict(
+            IAerospikeClient client,
+            Statement statement,
+            AerospikeQuery query,
+            DriverPolicy driverPolicy
+    ) {
+        BaseQueryHandler queryHandler = createHandler(client, statement, query, driverPolicy);
+        queryHandler.setStrict(true);
+        return queryHandler.execute(query);
+    }
+
+    public static int[] executeBatch(
+            IAerospikeClient client,
+            Statement statement,
+            List<BatchCommand> commands
+    ) throws SQLException {
+        return new BatchPerformer(client, statement).execute(commands);
+    }
+
+    private static BaseQueryHandler createHandler(
+            IAerospikeClient client,
+            Statement statement,
+            AerospikeQuery query,
+            DriverPolicy driverPolicy
+    ) {
         switch (query.getQueryType()) {
             case SELECT:
-                queryHandler = new SelectQueryHandler(client, statement, driverPolicy);
-                return queryHandler.execute(query);
+                return new SelectQueryHandler(client, statement, driverPolicy);
 
             case INSERT:
-                queryHandler = new InsertQueryHandler(client, statement);
-                return queryHandler.execute(query);
+                return new InsertQueryHandler(client, statement);
 
             case UPDATE:
-                queryHandler = new UpdateQueryHandler(client, statement);
-                return queryHandler.execute(query);
+                return new UpdateQueryHandler(client, statement);
 
             case DELETE:
-                queryHandler = new DeleteQueryHandler(client, statement);
-                return queryHandler.execute(query);
+                return new DeleteQueryHandler(client, statement);
 
             case DROP_TABLE:
-                queryHandler = new TruncateQueryHandler(client, statement);
-                return queryHandler.execute(query);
+                return new TruncateQueryHandler(client, statement);
 
             case CREATE_INDEX:
-                queryHandler = new IndexCreateHandler(client, statement);
-                return queryHandler.execute(query);
+                return new IndexCreateHandler(client, statement);
 
             case DROP_INDEX:
-                queryHandler = new IndexDropHandler(client, statement);
-                return queryHandler.execute(query);
+                return new IndexDropHandler(client, statement);
 
             case EXPLAIN:
-                queryHandler = new ExplainQueryHandler(client, statement, driverPolicy);
-                return queryHandler.execute(query);
+                return new ExplainQueryHandler(client, statement, driverPolicy);
 
             default:
                 throw new UnsupportedOperationException(UNSUPPORTED_QUERY_TYPE_MESSAGE);
