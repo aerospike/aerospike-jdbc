@@ -1,6 +1,10 @@
 package com.aerospike.jdbc.query;
 
+import com.aerospike.client.BatchDelete;
+import com.aerospike.client.BatchRecord;
+import com.aerospike.client.BatchWrite;
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.policy.BatchDeletePolicy;
 import com.aerospike.client.policy.BatchPolicy;
 import com.aerospike.client.policy.BatchReadPolicy;
 import com.aerospike.client.policy.BatchWritePolicy;
@@ -66,11 +70,52 @@ public class PolicyBuilder {
     }
 
     public BatchWritePolicy buildBatchCreateOnlyPolicy() {
+        return buildBatchWritePolicy(RecordExistsAction.CREATE_ONLY);
+    }
+
+    public BatchWritePolicy buildBatchUpdateOnlyPolicy() {
+        return buildBatchWritePolicy(RecordExistsAction.UPDATE_ONLY);
+    }
+
+    public BatchDeletePolicy buildBatchDeletePolicy(AerospikeQuery query) {
+        BatchDeletePolicy batchDeletePolicy = new BatchDeletePolicy();
+        batchDeletePolicy.filterExp = query.toFilterExpression(true);
+        batchDeletePolicy.sendKey = client.getBatchPolicyDefault().sendKey;
+        batchDeletePolicy.durableDelete = client.getWritePolicyDefault().durableDelete;
+        return batchDeletePolicy;
+    }
+
+    /**
+     * Batch write policies are not populated from the connection properties,
+     * so the relevant settings are taken from the configured write policy.
+     */
+    private BatchWritePolicy buildBatchWritePolicy(RecordExistsAction recordExistsAction) {
+        WritePolicy writePolicyDefault = client.getWritePolicyDefault();
         BatchWritePolicy batchWritePolicy = new BatchWritePolicy();
-        batchWritePolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
+        batchWritePolicy.recordExistsAction = recordExistsAction;
         batchWritePolicy.sendKey = client.getBatchPolicyDefault().sendKey;
-        batchWritePolicy.expiration = client.getBatchWritePolicyDefault().expiration;
+        batchWritePolicy.expiration = writePolicyDefault.expiration;
+        batchWritePolicy.durableDelete = writePolicyDefault.durableDelete;
         return batchWritePolicy;
+    }
+
+    public WritePolicy buildWritePolicy(BatchRecord batchRecord, AerospikeQuery query) {
+        WritePolicy writePolicy = new WritePolicy(client.getWritePolicyDefault());
+        if (batchRecord instanceof BatchWrite) {
+            BatchWritePolicy batchWritePolicy = ((BatchWrite) batchRecord).policy;
+            writePolicy.recordExistsAction = batchWritePolicy.recordExistsAction;
+            writePolicy.sendKey = batchWritePolicy.sendKey;
+            writePolicy.expiration = batchWritePolicy.expiration;
+            writePolicy.durableDelete = batchWritePolicy.durableDelete;
+            writePolicy.filterExp = batchWritePolicy.filterExp;
+        } else if (batchRecord instanceof BatchDelete) {
+            BatchDeletePolicy batchDeletePolicy = ((BatchDelete) batchRecord).policy;
+            writePolicy.sendKey = batchDeletePolicy.sendKey;
+            writePolicy.durableDelete = batchDeletePolicy.durableDelete;
+            writePolicy.filterExp = batchDeletePolicy.filterExp;
+        }
+        writePolicy.txn = query.getTxn();
+        return writePolicy;
     }
 
     public WritePolicy buildCreateOnlyPolicy(AerospikeQuery query) {

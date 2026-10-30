@@ -1,9 +1,11 @@
 package com.aerospike.jdbc;
 
 import com.aerospike.client.IAerospikeClient;
+import com.aerospike.client.Txn;
 import com.aerospike.jdbc.model.AerospikeQuery;
 import com.aerospike.jdbc.model.Pair;
 import com.aerospike.jdbc.model.QueryType;
+import com.aerospike.jdbc.query.BatchCommand;
 import com.aerospike.jdbc.query.QueryPerformer;
 import com.aerospike.jdbc.sql.AerospikeRecordResultSet;
 import com.aerospike.jdbc.sql.SimpleWrapper;
@@ -15,6 +17,8 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -26,8 +30,6 @@ import static java.sql.ResultSet.TYPE_FORWARD_ONLY;
 
 public class AerospikeStatement implements Statement, SimpleWrapper {
 
-    protected static final String BATCH_NOT_SUPPORTED_MESSAGE = "Batch update is not supported";
-
     private static final Logger logger = Logger.getLogger(AerospikeStatement.class.getName());
     private static final String AUTO_GENERATED_KEYS_NOT_SUPPORTED_MESSAGE = "Auto-generated keys are not supported";
 
@@ -35,6 +37,7 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
     protected final AerospikeConnection connection;
 
     private final AtomicBoolean isClosed = new AtomicBoolean();
+    private final List<AerospikeQuery> batchQueries = new ArrayList<>();
 
     protected String catalog;
     protected ResultSet resultSet;
@@ -222,17 +225,58 @@ public class AerospikeStatement implements Statement, SimpleWrapper {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
+        checkClosed();
+        AerospikeQuery query = parseQuery(sql, null);
+        BatchCommand.validate(query);
+        batchQueries.add(query);
+        logger.fine(() -> format("Added batch command, total commands: %d", batchQueries.size()));
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
+        checkClosed();
+        batchQueries.clear();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        throw new SQLFeatureNotSupportedException(BATCH_NOT_SUPPORTED_MESSAGE);
+        checkClosed();
+        if (batchQueries.isEmpty()) {
+            return new int[0];
+        }
+        try {
+            logger.info(() -> format("Executing batch with %d commands", batchQueries.size()));
+            List<BatchCommand> commands = new ArrayList<>(batchQueries.size());
+            for (AerospikeQuery query : batchQueries) {
+                commands.add(BatchCommand.of(query));
+            }
+            return runBatch(commands);
+        } finally {
+            batchQueries.clear();
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * A {@link java.sql.BatchUpdateException} thrown by {@link #executeBatch()} also provides
+     * {@link java.sql.BatchUpdateException#getLargeUpdateCounts()}.
+     */
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        return Arrays.stream(executeBatch()).asLongStream().toArray();
+    }
+
+    protected int[] runBatch(List<BatchCommand> commands) throws SQLException {
+        Txn txn = connection.getTxn();
+        for (BatchCommand command : commands) {
+            command.getQuery().setTxn(txn);
+        }
+        resultSet = null;
+        updateCount = -1;
+        int[] counts = QueryPerformer.executeBatch(client, this, commands);
+        updateCount = Arrays.stream(counts).filter(c -> c > 0).sum();
+        return counts;
     }
 
     @Override

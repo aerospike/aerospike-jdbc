@@ -69,8 +69,8 @@ jobs:
 
       - uses: ./.github/actions/stage-release-artifacts
         with:
-          oidc-provider: ${{ secrets.JFROG_OIDC_PROVIDER }}
-          oidc-audience: ${{ secrets.JFROG_OIDC_AUDIENCE }}
+          oidc-provider: ${{ vars.OIDC_PROVIDER_NAME }}
+          oidc-audience: ${{ vars.OIDC_AUDIENCE }}
           target-repository: ${{ steps.resolve.outputs.download-repository }}
           artifact-version: ${{ steps.resolve.outputs.artifact-version }}
           staging-folder: '["staging","github"]'

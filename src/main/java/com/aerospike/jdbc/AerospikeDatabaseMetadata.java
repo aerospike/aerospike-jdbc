@@ -1025,7 +1025,7 @@ public class AerospikeDatabaseMetadata implements DatabaseMetaData, SimpleWrappe
 
     @Override
     public boolean supportsBatchUpdates() {
-        return false;
+        return true;
     }
 
     @Override
