@@ -19,6 +19,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 
 import static com.aerospike.jdbc.util.Constants.PRIMARY_KEY_COLUMN_NAME;
@@ -342,6 +344,35 @@ public class BatchQueriesTest extends JdbcBaseTest {
         }
         assertFalse(exists("txn1"));
         assertEquals(get(testRecord.getPrimaryKey()).getInt("int2"), testRecord.getInt2());
+    }
+
+    @Test
+    public void testPreparedInsertBatchArrayOfParameter() throws SQLException {
+        String query = format("INSERT INTO %s (%s, l1) VALUES (?, ARRAY[?])", TABLE_NAME, PRIMARY_KEY_COLUMN_NAME);
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, "arr1");
+            statement.setInt(2, 5);
+            statement.addBatch();
+            statement.setString(1, "arr2");
+            statement.setInt(2, 6);
+            statement.addBatch();
+            assertEquals(statement.executeBatch(), new int[]{1, 1});
+        }
+        assertEquals(get("arr1").getList("l1"), Collections.singletonList(5L));
+        assertEquals(get("arr2").getList("l1"), Collections.singletonList(6L));
+    }
+
+    @Test
+    public void testPreparedInsertBatchLiteralKeyArrayOfParameters() throws SQLException {
+        String query = format("INSERT INTO %s (%s, l1) VALUES ('k1', ARRAY[?, ?])", TABLE_NAME,
+                PRIMARY_KEY_COLUMN_NAME);
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setInt(1, 1);
+            statement.setInt(2, 2);
+            statement.addBatch();
+            assertEquals(statement.executeBatch(), new int[]{1});
+        }
+        assertEquals(get("k1").getList("l1"), Arrays.asList(1L, 2L));
     }
 
     private static void addInsertBatch(PreparedStatement statement, String key, int int1, int int2)

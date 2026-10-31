@@ -11,6 +11,7 @@ import com.aerospike.jdbc.sql.SimpleParameterMetaData;
 import com.aerospike.jdbc.sql.type.ByteArrayBlob;
 import com.aerospike.jdbc.sql.type.StringClob;
 import com.aerospike.jdbc.util.IOUtils;
+import com.google.common.annotations.VisibleForTesting;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -249,7 +250,7 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
         AerospikeQuery first = parseQuery(sqlStatement, batchParameters.get(0));
         BatchCommand.validate(first);
 
-        if (isSingleRowParametersInsert(first)) {
+        if (isSingleRowParametersInsert(first, batchParameters.get(0))) {
             // The statement structure is the same for every entry: parse once and bind entries as rows.
             for (List<Object> entry : batchParameters) {
                 commands.add(BatchCommand.insertRow(first, entry));
@@ -265,12 +266,26 @@ public class AerospikePreparedStatement extends AerospikeStatement implements Pr
     }
 
     /**
-     * Whether the statement is an INSERT of a single row whose values are all parameters.
+     * Whether the statement is an INSERT of a single row whose values are exactly the given parameters,
+     * in order. Only then can the other batch entries be bound as rows without parsing the statement again.
      */
-    private boolean isSingleRowParametersInsert(AerospikeQuery query) {
-        return query.getQueryType() == QueryType.INSERT
-                && query.getValues().size() == 1
-                && query.getColumns().size() == sqlParameters.length;
+    @VisibleForTesting
+    static boolean isSingleRowParametersInsert(AerospikeQuery query, List<Object> parameters) {
+        if (query.getQueryType() != QueryType.INSERT || query.getValues().size() != 1
+                || query.getColumns().size() != parameters.size()) {
+            return false;
+        }
+        List<?> row = (List<?>) query.getValues().get(0);
+        if (row.size() != parameters.size()) {
+            return false;
+        }
+        for (int i = 0; i < row.size(); i++) {
+            // Identity: a value built from a literal or an expression such as ARRAY[?] is never the bound object.
+            if (row.get(i) != parameters.get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override

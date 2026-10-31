@@ -10,14 +10,14 @@ JDBC driver.
 - [Aggregate functions](#aggregate-functions)
 - [EXPLAIN](#explain)
 - [UPDATE](#update)
+- [Array Columns](#array-columns)
+- [Map Columns](#map-columns)
 - [DELETE](#delete)
 - [TRUNCATE](#truncate)
 - [CREATE INDEX](#create-index)
 - [DROP INDEX](#drop-index)
 - [Prepared Statements](#prepared-statements)
 - [Transactions](#transactions)
-- [Array Columns](#array-columns)
-- [Map Columns](#map-columns)
 
 ## Concepts
 
@@ -36,13 +36,19 @@ SELECT * FROM port_list;
 <sup name="key">1</sup> Aerospike always has a primary key index
 on an identifier that isn't one of the bins (columns).
 
-To represent this in SQL, `__key` is a magic column. When developers use
-`sendKey=true` in their applications, the `__key` column will
-reflect the _userKey_ that is saved with any write operation. Otherwise, it
-will appear to be NULL, but each row still has a distinct object identifier,
-the Aerospike record's _digest_ (see the
-[Glossary](https://www.aerospike.com/docs/guide/glossary.html)). The Aerospike
-JDBC driver always sends the primary key.
+To represent this in SQL, `__key` is a magic column. The Aerospike JDBC driver
+stores the key (the _userKey_) with the record only when the `sendKey=true`
+connection parameter is set (see [params](params.md)). Each record is addressed by
+its _digest_, a hash of the key (see the
+[Glossary](https://www.aerospike.com/docs/guide/glossary.html)), whether or not the
+key is stored. A query that reads records by `__key` with `=` or `IN` returns the
+requested key in the `__key` column. Other queries return the stored key, or NULL for
+records written without `sendKey=true`.
+
+The examples below assume `sendKey=true` and `refuseScan=false`, for example
+`jdbc:aerospike:localhost:3000/test?sendKey=true&refuseScan=false`. With the default
+`refuseScan=true`, a SELECT that has to scan fails unless a secondary index or a set index
+can be used.
 
 Notice that this table is shown even though it does not explicitly exist.
 That is because Aerospike is schemaless, with tables (Aerospike _sets_)
@@ -140,10 +146,10 @@ Batch query for rows in a list of primary keys:
 SELECT * FROM port_list WHERE __key IN ("ntp", "ror");
 ```
 
-| __key | description                                         | extra | port |
-|-------|-----------------------------------------------------|-------|------|
-| ror   | Ruby on Rails development default                   |       | 3000 |
-| ntp   | Network Time Protocol used for time synchronization |       | 123  |
+| __key | description                                         | port |
+|-------|-----------------------------------------------------|------|
+| ror   | Ruby on Rails development default                   | 3000 |
+| ntp   | Network Time Protocol used for time synchronization | 123  |
 
 
 ### Multiple predicates
@@ -216,7 +222,7 @@ SELECT COUNT(*) FROM port_list WHERE port <> 3000;
 
 | COUNT(*) |
 |----------|
-| 7        |
+| 8        |
 
 ## EXPLAIN
 Explains the way a SELECT query will be executed, including information about the indexes that will be used.
@@ -367,11 +373,12 @@ UPDATE port_list SET extra=NULL;
 SELECT * FROM port_list WHERE port < 200;
 ```
 
-| __key    | description                                         | port |
-|----------|-----------------------------------------------------|------|
-| ntp      | Network Time Protocol used for time synchronization | 123  |
-| snmp     | Simple Network Management Protocol (SNMP)           | 161  |
-| snmptrap | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
+| __key                                | description                                         | port |
+|--------------------------------------|-----------------------------------------------------|------|
+| 05511f2b-4ace-4fc3-93b6-7053a6fe5d8c | Reserved                                            | 47   |
+| ntp                                  | Network Time Protocol used for time synchronization | 123  |
+| snmp                                 | Simple Network Management Protocol (SNMP)           | 161  |
+| snmptrap                             | Simple Network Management Protocol Trap(SNMPTRAP)   | 162  |
 
 ## Array Columns
 Aerospike List bins are mapped to SQL arrays. You can use the `ARRAY[...]` literal
@@ -411,14 +418,14 @@ Map values can be written with a `PreparedStatement`:
 
 ```java
 Map<String, Object> ports = new HashMap<>();
-ports.put("tcp", Collections.singletonMap("default", 3000L));
+ports.put("tcp", Collections.singletonMap("default", 4333L));
 ports.put("tags", Arrays.asList("db", "nosql"));
 
 PreparedStatement ps = connection.prepareStatement(
     "INSERT INTO port_list (__key, port, description, ports) VALUES (?, ?, ?, ?)");
-ps.setString(1, "aerospike");
-ps.setInt(2, 3000);
-ps.setString(3, "Aerospike Database");
+ps.setString(1, "aerospike-tls");
+ps.setInt(2, 4333);
+ps.setString(3, "Aerospike Database over TLS");
 ps.setObject(4, ports);
 ps.executeUpdate();
 ```
@@ -427,12 +434,12 @@ By default, `getObject()` returns the `Map` and `getString()` returns its Java `
 which is also what most SQL tools display:
 
 ```sql
-SELECT ports FROM port_list WHERE __key="aerospike";
+SELECT ports FROM port_list WHERE __key="aerospike-tls";
 ```
 
 | ports                                  |
 |----------------------------------------|
-| {tcp={default=3000}, tags=[db, nosql]} |
+| {tcp={default=4333}, tags=[db, nosql]} |
 
 Set `mapAsJson=true` in the JDBC URL to return map bins as JSON strings from both `getObject()` and `getString()`:
 
@@ -442,7 +449,7 @@ jdbc:aerospike:localhost:3000/test?mapAsJson=true
 
 | ports                                          |
 |------------------------------------------------|
-| {"tcp":{"default":3000},"tags":["db","nosql"]} |
+| {"tcp":{"default":4333},"tags":["db","nosql"]} |
 
 In both modes, key-ordered maps are returned sorted by key. Unordered maps have no guaranteed key order.
 
@@ -545,9 +552,9 @@ Parameterized INSERT:
 ```java
 PreparedStatement ps = connection.prepareStatement(
     "INSERT INTO port_list (__key, port, description) VALUES (?, ?, ?)");
-ps.setString(1, "ssh");
-ps.setInt(2, 22);
-ps.setString(3, "Secure Shell");
+ps.setString(1, "ftp");
+ps.setInt(2, 21);
+ps.setString(3, "File Transfer Protocol");
 ps.executeUpdate();
 ```
 
@@ -556,7 +563,7 @@ Parameterized SELECT by primary key:
 ```java
 PreparedStatement ps = connection.prepareStatement(
     "SELECT * FROM port_list WHERE __key = ?");
-ps.setString(1, "ssh");
+ps.setString(1, "ftp");
 ResultSet rs = ps.executeQuery();
 ```
 
@@ -612,19 +619,25 @@ int[] counts = stmt.executeBatch(); // {1, 1, 1}
 ```
 
 Batch execution semantics:
-* INSERT statements, and UPDATE/DELETE statements filtered by `__key`, are sent to the
-  database as Aerospike batch requests. Other statements (UPDATE/DELETE without a primary key
-  filter, TRUNCATE TABLE, CREATE INDEX, DROP INDEX) are executed one by one in order.
-  SELECT and EXPLAIN statements cannot be added to a batch.
+* INSERT statements, and UPDATE/DELETE statements filtered by `__key` with `=` or `IN`, are sent
+  to the database as Aerospike batch requests. Other statements (UPDATE/DELETE without such a
+  primary key filter, TRUNCATE TABLE, CREATE INDEX, DROP INDEX) are executed one by one in order.
+  SELECT and EXPLAIN statements cannot be executed in a batch.
+* Aerospike Database versions before 6.0 do not support batch writes. On those servers, the driver
+  sends a single-record command for each record instead, with the same update counts.
 * Commands are applied in order; commands that touch the same key are never reordered.
 * The update count of each command is the number of affected records. An UPDATE or DELETE
   of a key that does not exist reports `0`.
 * An INSERT of an existing key fails, as INSERT creates new records only. Set
   `batchSkipDuplicateKeys=true` to report such rows as `0` instead.
+* All commands are parsed and converted to Aerospike requests before anything is sent. If a command
+  cannot be converted, for example an INSERT with fewer values than columns, `executeBatch()` throws an
+  `SQLException` and nothing is written.
 * The batch continues after a failed command. If any command failed, `executeBatch()` throws a
   `BatchUpdateException`. Its `getUpdateCounts()` contains a count for every command, with
   `Statement.EXECUTE_FAILED` for the failed ones, and `getErrorCode()` returns the Aerospike
-  result code. Writes reported as in doubt in the exception message may have been applied.
+  result code, or `-1` (`ResultCode.CLIENT_ERROR`) for an error raised in the driver or the client.
+  Writes reported as in doubt in the exception message may have been applied.
 * `executeLargeBatch()` is also supported, with the same semantics; on failure, use
   `BatchUpdateException.getLargeUpdateCounts()`.
 
