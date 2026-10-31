@@ -114,6 +114,8 @@ public class PolicyBuilder {
             writePolicy.durableDelete = batchDeletePolicy.durableDelete;
             writePolicy.filterExp = batchDeletePolicy.filterExp;
         }
+        // Report filtered-out records as failures, as a batch does, instead of as successful writes.
+        writePolicy.failOnFilteredOut = true;
         writePolicy.txn = query.getTxn();
         return writePolicy;
     }
