@@ -8,6 +8,7 @@ import com.aerospike.client.BatchWrite;
 import com.aerospike.client.IAerospikeClient;
 import com.aerospike.client.Key;
 import com.aerospike.client.Operation;
+import com.aerospike.client.ResultCode;
 import com.aerospike.client.Value;
 import com.aerospike.client.policy.BatchDeletePolicy;
 import com.aerospike.client.policy.BatchWritePolicy;
@@ -51,12 +52,20 @@ public class BatchPerformer {
     private final AerospikeVersion aerospikeVersion;
 
     public BatchPerformer(IAerospikeClient client, Statement statement) throws SQLException {
+        this(client, statement, (AerospikeConnection) statement.getConnection());
+    }
+
+    private BatchPerformer(IAerospikeClient client, Statement statement, AerospikeConnection connection) {
+        this(client, statement, connection.getConfiguration().getDriverPolicy(), connection.getAerospikeVersion());
+    }
+
+    BatchPerformer(IAerospikeClient client, Statement statement, DriverPolicy driverPolicy,
+                   AerospikeVersion aerospikeVersion) {
         this.client = client;
         this.statement = statement;
-        AerospikeConnection connection = (AerospikeConnection) statement.getConnection();
-        policyBuilder = new PolicyBuilder(client);
-        driverPolicy = connection.getConfiguration().getDriverPolicy();
-        aerospikeVersion = connection.getAerospikeVersion();
+        this.policyBuilder = new PolicyBuilder(client);
+        this.driverPolicy = driverPolicy;
+        this.aerospikeVersion = aerospikeVersion;
     }
 
     public int[] execute(List<BatchCommand> commands) throws SQLException {
@@ -201,6 +210,8 @@ public class BatchPerformer {
                     policyBuilder.buildBatchPolicyDefault(query), records);
         } catch (AerospikeException e) {
             listener.onFailure(e);
+        } catch (RuntimeException e) {
+            listener.onFailure(new AerospikeException(ResultCode.CLIENT_ERROR, e));
         }
         return await(listener.getTotal());
     }
@@ -223,6 +234,8 @@ public class BatchPerformer {
                 }
             } catch (AerospikeException e) {
                 listener.onFailure(batchRecord, e);
+            } catch (RuntimeException e) {
+                listener.onFailure(batchRecord, new AerospikeException(ResultCode.CLIENT_ERROR, e));
             }
         }
         return await(listener.getCompletion());
