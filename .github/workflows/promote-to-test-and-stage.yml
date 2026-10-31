@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ vars.BUILD_CONTAINER_DISTRO_VERSION }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
@@ -39,7 +39,7 @@ jobs:
           oidc-audience: ${{ vars.OIDC_AUDIENCE }}
 
       - name: Promoting release bundle to TEST
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@308f37e0cd5c7a6386a99ea7afc379d5a4ea9256 # v5.1.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}
@@ -47,7 +47,7 @@ jobs:
           jf-project: ${{ vars.JFROG_PROJECT }}
 
       - name: Promoting release bundle to STAGE
-        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@b4b1e9dc89314a2d542f9d6fe0ee150ad06f9860 # v5.0.0
+        uses: aerospike/shared-workflows/.github/actions/promote-release-bundle@308f37e0cd5c7a6386a99ea7afc379d5a4ea9256 # v5.1.0
         with:
           bundle-name: aerospike-jdbc
           version: ${{ inputs.version }}
